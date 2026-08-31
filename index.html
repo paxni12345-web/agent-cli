@@ -62,12 +62,8 @@
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     @keyframes slideInFromTop {
@@ -101,6 +97,11 @@
         opacity: 1;
         transform: translateX(0);
       }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
     }
 
     /* Nav */
@@ -225,8 +226,35 @@
 
     /* Hero */
     .hero {
-      padding: 200px 0 120px;
+      padding: 200px 0 80px;
       text-align: center;
+      position: relative;
+    }
+
+    .hero-bg {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1400px;
+      height: 600px;
+      opacity: 0.4;
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .hero-bg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 24px;
+      filter: grayscale(100%) contrast(1.2);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
     }
 
     .hero-title {
@@ -254,30 +282,48 @@
       animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s backwards;
     }
 
+    /* Screenshot Section */
+    .screenshot-section {
+      padding: 80px 0;
+      background: var(--gray-50);
+    }
+
+    .screenshot-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      animation: scaleIn 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .screenshot-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
     /* Features */
     .features {
       padding: 120px 0;
-      background: var(--gray-50);
-      animation: fadeIn 1s ease-out;
+      background: var(--white);
     }
 
     .features-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--gray-200);
-      border: 1px solid var(--gray-200);
-      overflow: hidden;
-      border-radius: 12px;
+      gap: 24px;
     }
 
     .feature {
       padding: 48px;
-      background: var(--white);
+      background: var(--gray-50);
+      border-radius: 16px;
       opacity: 0;
       animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
+      overflow: hidden;
     }
 
     .feature:nth-child(1) { animation-delay: 0.1s; }
@@ -287,6 +333,27 @@
     .feature:nth-child(5) { animation-delay: 0.5s; }
     .feature:nth-child(6) { animation-delay: 0.6s; }
 
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--gray-200);
+    }
+
+    .feature-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(100%);
+      transition: filter 0.3s;
+    }
+
+    .feature:hover .feature-icon img {
+      filter: grayscale(0%);
+    }
+
     .feature::before {
       content: '';
       position: absolute;
@@ -294,7 +361,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(135deg, transparent 0%, var(--gray-50) 100%);
+      background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.03) 100%);
       opacity: 0;
       transition: opacity 0.4s;
     }
@@ -305,6 +372,7 @@
 
     .feature:hover {
       transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
     }
 
     .feature-title {
@@ -324,6 +392,45 @@
       z-index: 1;
     }
 
+    /* Gallery */
+    .gallery {
+      padding: 80px 0;
+      background: var(--gray-50);
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    .gallery-item {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      opacity: 0;
+      animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .gallery-item:nth-child(1) { animation-delay: 0.1s; }
+    .gallery-item:nth-child(2) { animation-delay: 0.2s; }
+    .gallery-item:nth-child(3) { animation-delay: 0.3s; }
+    .gallery-item:nth-child(4) { animation-delay: 0.4s; }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(100%);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gallery-item:hover img {
+      filter: grayscale(0%);
+      transform: scale(1.1);
+    }
+
     /* Auth */
     .auth-page {
       min-height: 100vh;
@@ -332,6 +439,7 @@
       justify-content: center;
       padding: 48px 24px;
       animation: fadeIn 0.5s ease-out;
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
     }
 
     .auth-card {
@@ -765,6 +873,21 @@
       width: 100%;
     }
 
+    .section-title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      font-size: 18px;
+      color: var(--gray-600);
+      margin-bottom: 48px;
+    }
+
     @media (max-width: 768px) {
       .hero {
         padding: 160px 0 80px;
@@ -789,6 +912,10 @@
       .suggestions {
         grid-template-columns: 1fr;
       }
+
+      .gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
@@ -808,56 +935,109 @@
     </nav>
 
     <div class="hero container">
-      <h1 class="hero-title">AI Coding Assistant</h1>
-      <p class="hero-subtitle">
-        Build faster with AI-powered code generation, debugging, and refactoring.
-      </p>
-      <div class="hero-cta">
-        <button class="btn" onclick="showAuth('signup')">Start Coding Free</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
-          Learn More
-        </button>
+      <div class="hero-bg">
+        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1400&h=600&fit=crop" alt="Coding">
+      </div>
+      <div class="hero-content">
+        <h1 class="hero-title">AI Coding Assistant</h1>
+        <p class="hero-subtitle">
+          Build faster with AI-powered code generation, debugging, and refactoring.
+        </p>
+        <div class="hero-cta">
+          <button class="btn" onclick="showAuth('signup')">Start Coding Free</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
+            Learn More
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshot-section">
+      <div class="container">
+        <div class="screenshot-container">
+          <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1000&h=600&fit=crop" alt="Screenshot">
+        </div>
       </div>
     </div>
 
     <div id="features" class="features">
       <div class="container">
+        <h2 class="section-title">Built for Real Development</h2>
+        <p class="section-subtitle">Complete AI coding environment with powerful features</p>
         <div class="features-grid">
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Context-Aware</h3>
             <p class="feature-description">
               Understands your codebase, dependencies, and architecture.
             </p>
           </div>
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Multi-File Editing</h3>
             <p class="feature-description">
               Edit multiple files atomically with full confidence.
             </p>
           </div>
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Deep Search</h3>
             <p class="feature-description">
               Semantic search across your entire project.
             </p>
           </div>
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1605379399642-870262d3d051?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Tool Integration</h3>
             <p class="feature-description">
               Works with git, npm, docker, and CI/CD.
             </p>
           </div>
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Private & Secure</h3>
             <p class="feature-description">
               Your code stays yours. Never used for training.
             </p>
           </div>
           <div class="feature">
+            <div class="feature-icon">
+              <img src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=100&h=100&fit=crop" alt="">
+            </div>
             <h3 class="feature-title">Extensible</h3>
             <p class="feature-description">
               Custom prompts, plugins, and open API.
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gallery">
+      <div class="container">
+        <h2 class="section-title">Powered by Modern Technology</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=300&h=300&fit=crop" alt="">
+          </div>
+          <div class="gallery-item">
+            <img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=300&h=300&fit=crop" alt="">
+          </div>
+          <div class="gallery-item">
+            <img src="https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=300&h=300&fit=crop" alt="">
+          </div>
+          <div class="gallery-item">
+            <img src="https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=300&h=300&fit=crop" alt="">
           </div>
         </div>
       </div>
@@ -875,7 +1055,7 @@
     </footer>
   </div>
 
-  <!-- Auth -->
+  <!-- Auth & Chat pages remain the same -->
   <div id="auth" class="auth-page hidden">
     <div class="auth-card">
       <h2 class="auth-title" id="auth-title">Welcome Back</h2>
@@ -926,7 +1106,6 @@
     </div>
   </div>
 
-  <!-- Chat -->
   <div id="chat" class="chat-page hidden">
     <div class="sidebar">
       <button class="new-chat-btn" onclick="newChat()">New Chat</button>

@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent CLI - AI Coding Assistant for Developers</title>
+  <title>Agent CLI - AI Coding Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ===================================================================
-       DESIGN SYSTEM - Agent CLI
-       Aesthetic: Technical Calm - Precise, minimal, professional
-       Inspiration: Linear, Vercel, Stripe - tools for makers
-       =================================================================== */
-
     * {
       margin: 0;
       padding: 0;
@@ -18,137 +15,122 @@
     }
 
     :root {
-      /* Typography Scale */
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+      /* Typography */
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 
-      /* Color Palette - Neutral with Precision */
+      /* Color System - Refined Palette */
       --gray-50: #fafafa;
-      --gray-100: #f5f5f5;
-      --gray-200: #e5e5e5;
-      --gray-300: #d4d4d4;
-      --gray-400: #a3a3a3;
-      --gray-500: #737373;
-      --gray-600: #525252;
-      --gray-700: #404040;
-      --gray-800: #262626;
-      --gray-900: #171717;
+      --gray-100: #f4f4f5;
+      --gray-200: #e4e4e7;
+      --gray-300: #d4d4d8;
+      --gray-400: #a1a1aa;
+      --gray-500: #71717a;
+      --gray-600: #52525b;
+      --gray-700: #3f3f46;
+      --gray-800: #27272a;
+      --gray-900: #18181b;
 
-      /* Accent - Focused Blue */
+      /* Accent - Sophisticated Blue */
+      --blue-400: #60a5fa;
       --blue-500: #3b82f6;
       --blue-600: #2563eb;
       --blue-700: #1d4ed8;
 
-      /* Semantic Colors */
-      --success: #10b981;
-      --warning: #f59e0b;
-      --error: #ef4444;
-
-      /* Light Theme (default) */
-      --bg-primary: #ffffff;
-      --bg-secondary: var(--gray-50);
-      --bg-tertiary: var(--gray-100);
-      --text-primary: var(--gray-900);
-      --text-secondary: var(--gray-600);
-      --text-tertiary: var(--gray-400);
+      /* Light Theme */
+      --bg: #ffffff;
+      --bg-subtle: var(--gray-50);
+      --bg-muted: var(--gray-100);
+      --text: var(--gray-900);
+      --text-subtle: var(--gray-600);
+      --text-muted: var(--gray-400);
       --border: var(--gray-200);
-      --border-strong: var(--gray-300);
+      --border-subtle: rgba(0, 0, 0, 0.06);
+      --accent: var(--blue-600);
+      --accent-hover: var(--blue-700);
 
-      /* Shadows */
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      /* Shadows - Subtle Depth */
+      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 
-      /* Spacing Scale */
+      /* Spacing */
       --space-1: 0.25rem;
       --space-2: 0.5rem;
       --space-3: 0.75rem;
       --space-4: 1rem;
-      --space-5: 1.25rem;
       --space-6: 1.5rem;
       --space-8: 2rem;
-      --space-10: 2.5rem;
       --space-12: 3rem;
       --space-16: 4rem;
-      --space-20: 5rem;
       --space-24: 6rem;
 
-      /* Border Radius */
-      --radius-sm: 0.25rem;
-      --radius-md: 0.375rem;
-      --radius-lg: 0.5rem;
-      --radius-xl: 0.75rem;
-      --radius-2xl: 1rem;
+      /* Radius */
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
 
       /* Transitions */
-      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-      --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-      --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --duration-fast: 150ms;
+      --duration-base: 200ms;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-primary: var(--gray-900);
-        --bg-secondary: var(--gray-800);
-        --bg-tertiary: var(--gray-700);
-        --text-primary: var(--gray-50);
-        --text-secondary: var(--gray-400);
-        --text-tertiary: var(--gray-500);
-        --border: var(--gray-800);
-        --border-strong: var(--gray-700);
+        --bg: var(--gray-900);
+        --bg-subtle: var(--gray-800);
+        --bg-muted: var(--gray-700);
+        --text: var(--gray-50);
+        --text-subtle: var(--gray-400);
+        --text-muted: var(--gray-500);
+        --border: rgba(255, 255, 255, 0.1);
+        --border-subtle: rgba(255, 255, 255, 0.06);
+        --accent: var(--blue-500);
+        --accent-hover: var(--blue-400);
       }
     }
 
     body {
       font-family: var(--font-sans);
-      font-size: 16px;
-      line-height: 1.5;
-      color: var(--text-primary);
-      background: var(--bg-primary);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: 'kern' 1, 'liga' 1;
     }
 
-    /* ===================================================================
-       LAYOUT PRIMITIVES
-       =================================================================== */
-
+    /* Layout */
     .container {
       width: 100%;
       max-width: 1280px;
-      margin-left: auto;
-      margin-right: auto;
-      padding-left: var(--space-6);
-      padding-right: var(--space-6);
-    }
-
-    .stack {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .row {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
+      margin: 0 auto;
+      padding: 0 var(--space-6);
     }
 
     .hidden {
       display: none !important;
     }
 
-    /* ===================================================================
-       NAVIGATION
-       =================================================================== */
-
+    /* Nav */
     .nav {
       position: sticky;
       top: 0;
       z-index: 50;
-      background: var(--bg-primary);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px) saturate(180%);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .nav {
+        background: rgba(24, 24, 27, 0.8);
+      }
     }
 
     .nav-inner {
@@ -163,23 +145,24 @@
       align-items: center;
       gap: var(--space-3);
       font-weight: 600;
-      font-size: 1.125rem;
-      color: var(--text-primary);
+      font-size: 1rem;
+      color: var(--text);
       text-decoration: none;
+      letter-spacing: -0.01em;
     }
 
     .logo-mark {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
-      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
       font-family: var(--font-mono);
-      font-size: 0.875rem;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .nav-links {
@@ -188,84 +171,82 @@
     }
 
     .nav-link {
-      color: var(--text-secondary);
+      color: var(--text-subtle);
       text-decoration: none;
-      font-size: 0.875rem;
+      font-size: 14px;
       font-weight: 500;
-      transition: color var(--transition-fast);
+      transition: color var(--duration-fast) var(--ease-out);
     }
 
     .nav-link:hover {
-      color: var(--text-primary);
+      color: var(--text);
     }
 
-    /* ===================================================================
-       BUTTONS
-       =================================================================== */
-
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      font-size: 0.875rem;
+      padding: 0 var(--space-4);
+      height: 36px;
+      font-size: 14px;
       font-weight: 500;
       font-family: inherit;
       border-radius: var(--radius-md);
       border: 1px solid transparent;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-base) var(--ease-out);
       text-decoration: none;
       white-space: nowrap;
     }
 
     .btn-primary {
-      background: var(--blue-600);
+      background: var(--accent);
       color: white;
-      border-color: var(--blue-600);
+      border-color: var(--accent);
     }
 
     .btn-primary:hover {
-      background: var(--blue-700);
-      border-color: var(--blue-700);
+      background: var(--accent-hover);
       transform: translateY(-1px);
       box-shadow: var(--shadow-md);
     }
 
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
     .btn-secondary {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: var(--bg-muted);
+      color: var(--text);
       border-color: var(--border);
     }
 
     .btn-secondary:hover {
-      background: var(--bg-secondary);
-      border-color: var(--border-strong);
+      background: var(--bg-subtle);
+      border-color: var(--border);
     }
 
     .btn-ghost {
       background: transparent;
-      color: var(--text-secondary);
+      color: var(--text-subtle);
     }
 
     .btn-ghost:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: var(--bg-muted);
+      color: var(--text);
     }
 
     .btn-lg {
-      padding: var(--space-3) var(--space-6);
-      font-size: 1rem;
+      height: 44px;
+      padding: 0 var(--space-6);
+      font-size: 15px;
     }
 
-    /* ===================================================================
-       LANDING PAGE - HERO
-       =================================================================== */
-
+    /* Hero */
     .hero {
-      padding-top: var(--space-24);
-      padding-bottom: var(--space-24);
+      padding: var(--space-24) 0;
       text-align: center;
     }
 
@@ -274,38 +255,39 @@
       align-items: center;
       gap: var(--space-2);
       padding: var(--space-2) var(--space-4);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 999px;
-      font-size: 0.875rem;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: var(--space-8);
+      color: var(--text-subtle);
+      margin-bottom: var(--space-12);
     }
 
-    .hero-badge-icon {
-      width: 16px;
-      height: 16px;
-      color: var(--blue-600);
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
     }
 
     .hero-title {
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-size: clamp(3rem, 8vw, 5rem);
       font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
       margin-bottom: var(--space-6);
-      background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-subtle) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
     .hero-description {
-      font-size: 1.25rem;
-      color: var(--text-secondary);
-      max-width: 48rem;
-      margin: 0 auto var(--space-10);
+      font-size: 1.125rem;
+      color: var(--text-subtle);
+      max-width: 560px;
+      margin: 0 auto var(--space-12);
       line-height: 1.6;
     }
 
@@ -316,13 +298,10 @@
       flex-wrap: wrap;
     }
 
-    /* ===================================================================
-       FEATURES GRID
-       =================================================================== */
-
+    /* Features */
     .features {
       padding: var(--space-24) 0;
-      background: var(--bg-secondary);
+      background: var(--bg-subtle);
     }
 
     .section-header {
@@ -333,13 +312,14 @@
     .section-title {
       font-size: 2.25rem;
       font-weight: 700;
+      letter-spacing: -0.02em;
       margin-bottom: var(--space-4);
     }
 
     .section-description {
-      font-size: 1.125rem;
-      color: var(--text-secondary);
-      max-width: 42rem;
+      font-size: 1.0625rem;
+      color: var(--text-subtle);
+      max-width: 640px;
       margin: 0 auto;
     }
 
@@ -351,63 +331,57 @@
 
     .feature-card {
       padding: var(--space-8);
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
+      background: var(--bg);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl);
-      transition: all var(--transition-base);
+      transition: all var(--duration-base) var(--ease-out);
     }
 
     .feature-card:hover {
-      transform: translateY(-4px);
+      transform: translateY(-2px);
       box-shadow: var(--shadow-lg);
-      border-color: var(--border-strong);
+      border-color: var(--border);
     }
 
     .feature-icon {
       width: 48px;
       height: 48px;
-      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
       border-radius: var(--radius-lg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
       margin-bottom: var(--space-4);
     }
 
     .feature-title {
-      font-size: 1.25rem;
+      font-size: 1.125rem;
       font-weight: 600;
       margin-bottom: var(--space-2);
+      letter-spacing: -0.01em;
     }
 
     .feature-description {
-      font-size: 0.938rem;
-      color: var(--text-secondary);
+      font-size: 14px;
+      color: var(--text-subtle);
       line-height: 1.6;
     }
 
-    /* ===================================================================
-       AUTH PAGE (Login/Signup)
-       =================================================================== */
-
+    /* Auth Page */
     .auth-page {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: var(--space-8);
-      background: linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary));
+      background: linear-gradient(to bottom, var(--bg) 0%, var(--bg-subtle) 100%);
     }
 
     .auth-card {
       width: 100%;
       max-width: 400px;
-      padding: var(--space-10);
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-xl);
+      padding: var(--space-12);
+      background: var(--bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
     }
 
     .auth-header {
@@ -417,18 +391,19 @@
 
     .auth-logo {
       display: inline-flex;
-      margin-bottom: var(--space-4);
+      margin-bottom: var(--space-6);
     }
 
     .auth-title {
-      font-size: 1.875rem;
+      font-size: 1.75rem;
       font-weight: 700;
+      letter-spacing: -0.02em;
       margin-bottom: var(--space-2);
     }
 
     .auth-subtitle {
-      color: var(--text-secondary);
-      font-size: 0.938rem;
+      color: var(--text-subtle);
+      font-size: 14px;
     }
 
     .oauth-buttons {
@@ -440,29 +415,29 @@
 
     .oauth-btn {
       width: 100%;
-      padding: var(--space-3) var(--space-4);
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-3);
-      background: var(--bg-secondary);
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      font-size: 0.938rem;
+      border-radius: var(--radius-md);
+      font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-base) var(--ease-out);
     }
 
     .oauth-btn:hover {
-      background: var(--bg-tertiary);
-      border-color: var(--border-strong);
+      background: var(--bg-muted);
+      border-color: var(--border);
       transform: translateY(-1px);
     }
 
     .oauth-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     .divider {
@@ -470,8 +445,11 @@
       align-items: center;
       gap: var(--space-4);
       margin: var(--space-6) 0;
-      color: var(--text-tertiary);
-      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .divider::before,
@@ -488,53 +466,50 @@
 
     .form-label {
       display: block;
-      font-size: 0.875rem;
+      font-size: 13px;
       font-weight: 500;
       margin-bottom: var(--space-2);
-      color: var(--text-primary);
+      color: var(--text);
     }
 
     .form-input {
       width: 100%;
-      padding: var(--space-3) var(--space-4);
-      background: var(--bg-secondary);
+      height: 44px;
+      padding: 0 var(--space-4);
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      font-size: 0.938rem;
+      font-size: 14px;
       font-family: inherit;
-      color: var(--text-primary);
-      transition: all var(--transition-fast);
+      color: var(--text);
+      transition: all var(--duration-fast) var(--ease-out);
     }
 
     .form-input:focus {
       outline: none;
-      background: var(--bg-primary);
-      border-color: var(--blue-600);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      background: var(--bg);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
     }
 
     .form-footer {
       margin-top: var(--space-6);
       text-align: center;
-      font-size: 0.875rem;
-      color: var(--text-secondary);
+      font-size: 13px;
+      color: var(--text-subtle);
     }
 
     .form-link {
-      color: var(--blue-600);
+      color: var(--accent);
       text-decoration: none;
       font-weight: 500;
     }
 
     .form-link:hover {
-      color: var(--blue-700);
-      text-decoration: underline;
+      color: var(--accent-hover);
     }
 
-    /* ===================================================================
-       CHAT INTERFACE
-       =================================================================== */
-
+    /* Chat Interface */
     .chat-page {
       display: flex;
       height: 100vh;
@@ -543,8 +518,8 @@
 
     .sidebar {
       width: 260px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border);
+      background: var(--bg-subtle);
+      border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       padding: var(--space-4);
@@ -556,19 +531,19 @@
 
     .new-chat-btn {
       width: 100%;
-      padding: var(--space-3);
-      background: var(--blue-600);
+      height: 40px;
+      background: var(--accent);
       color: white;
       border: none;
       border-radius: var(--radius-md);
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: 14px;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-base) var(--ease-out);
     }
 
     .new-chat-btn:hover {
-      background: var(--blue-700);
+      background: var(--accent-hover);
       transform: translateY(-1px);
     }
 
@@ -582,23 +557,23 @@
       padding: var(--space-3);
       margin-bottom: var(--space-1);
       border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      color: var(--text-secondary);
+      font-size: 13px;
+      color: var(--text-subtle);
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-fast) var(--ease-out);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .chat-item:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: var(--bg-muted);
+      color: var(--text);
     }
 
     .chat-item.active {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
+      background: var(--bg-muted);
+      color: var(--text);
       font-weight: 500;
     }
 
@@ -611,8 +586,8 @@
 
     .chat-header {
       height: 64px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -627,13 +602,15 @@
 
     .model-badge {
       padding: var(--space-1) var(--space-3);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
+      background: var(--bg-muted);
+      border: 1px solid var(--border-subtle);
       border-radius: 999px;
-      font-size: 0.75rem;
+      font-size: 11px;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: var(--text-subtle);
       font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .chat-messages {
@@ -643,7 +620,7 @@
     }
 
     .messages-container {
-      max-width: 48rem;
+      max-width: 720px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -663,13 +640,10 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
-      color: white;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
       flex-shrink: 0;
     }
 
@@ -677,26 +651,33 @@
       background: var(--gray-700);
     }
 
+    .avatar-letter {
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
     .message-content {
       flex: 1;
       padding: var(--space-4);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      font-size: 0.938rem;
+      font-size: 14px;
       line-height: 1.6;
     }
 
     .message.user .message-content {
-      background: var(--blue-600);
+      background: var(--accent);
       color: white;
-      border-color: var(--blue-600);
+      border-color: var(--accent);
     }
 
     .message-content code {
       font-family: var(--font-mono);
-      font-size: 0.875rem;
-      background: var(--bg-tertiary);
+      font-size: 13px;
+      background: var(--bg-muted);
       padding: 0.125rem 0.375rem;
       border-radius: var(--radius-sm);
     }
@@ -715,103 +696,102 @@
       padding: var(--space-8);
     }
 
-    .empty-state-icon {
+    .empty-icon {
       width: 64px;
       height: 64px;
-      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
       border-radius: var(--radius-xl);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin-bottom: var(--space-6);
+      margin-bottom: var(--space-8);
     }
 
-    .empty-state-title {
+    .empty-title {
       font-size: 1.5rem;
       font-weight: 600;
+      letter-spacing: -0.01em;
       margin-bottom: var(--space-2);
     }
 
-    .empty-state-description {
-      color: var(--text-secondary);
+    .empty-description {
+      color: var(--text-subtle);
+      font-size: 14px;
       margin-bottom: var(--space-8);
     }
 
     .suggestions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: var(--space-3);
-      max-width: 600px;
+      max-width: 560px;
     }
 
     .suggestion {
       padding: var(--space-4);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       text-align: left;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-base) var(--ease-out);
     }
 
     .suggestion:hover {
-      background: var(--bg-tertiary);
-      border-color: var(--border-strong);
-      transform: translateY(-2px);
+      background: var(--bg-muted);
+      border-color: var(--border);
+      transform: translateY(-1px);
     }
 
     .suggestion-title {
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: 13px;
       margin-bottom: var(--space-1);
     }
 
     .suggestion-text {
-      font-size: 0.813rem;
-      color: var(--text-secondary);
+      font-size: 12px;
+      color: var(--text-subtle);
     }
 
     .chat-input-wrapper {
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--border-subtle);
       padding: var(--space-6);
-      background: var(--bg-primary);
+      background: var(--bg);
     }
 
     .chat-input-container {
-      max-width: 48rem;
+      max-width: 720px;
       margin: 0 auto;
       position: relative;
     }
 
     .chat-input {
       width: 100%;
-      padding: var(--space-4) var(--space-12) var(--space-4) var(--space-4);
-      background: var(--bg-secondary);
+      padding: var(--space-4);
+      padding-right: 52px;
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      font-size: 0.938rem;
+      font-size: 14px;
       font-family: inherit;
-      color: var(--text-primary);
+      color: var(--text);
       resize: none;
-      min-height: 56px;
+      min-height: 52px;
       max-height: 200px;
       line-height: 1.5;
     }
 
     .chat-input:focus {
       outline: none;
-      border-color: var(--blue-600);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
     }
 
     .send-btn {
       position: absolute;
       right: var(--space-2);
       bottom: var(--space-2);
-      width: 40px;
-      height: 40px;
-      background: var(--blue-600);
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
       color: white;
       border: none;
       border-radius: var(--radius-md);
@@ -819,27 +799,24 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--transition-fast);
+      transition: all var(--duration-base) var(--ease-out);
     }
 
     .send-btn:hover:not(:disabled) {
-      background: var(--blue-700);
+      background: var(--accent-hover);
       transform: translateY(-1px);
     }
 
     .send-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
     }
 
-    /* ===================================================================
-       FOOTER
-       =================================================================== */
-
+    /* Footer */
     .footer {
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--border-subtle);
       padding: var(--space-16) 0;
-      background: var(--bg-secondary);
+      background: var(--bg-subtle);
     }
 
     .footer-content {
@@ -851,8 +828,8 @@
     }
 
     .footer-text {
-      color: var(--text-secondary);
-      font-size: 0.875rem;
+      color: var(--text-subtle);
+      font-size: 13px;
     }
 
     .footer-links {
@@ -861,32 +838,25 @@
     }
 
     .footer-link {
-      color: var(--text-secondary);
+      color: var(--text-subtle);
       text-decoration: none;
-      font-size: 0.875rem;
-      transition: color var(--transition-fast);
+      font-size: 13px;
+      font-weight: 500;
+      transition: color var(--duration-fast) var(--ease-out);
     }
 
     .footer-link:hover {
-      color: var(--text-primary);
+      color: var(--text);
     }
 
-    /* ===================================================================
-       RESPONSIVE
-       =================================================================== */
-
+    /* Responsive */
     @media (max-width: 768px) {
       .hero {
-        padding-top: var(--space-16);
-        padding-bottom: var(--space-16);
+        padding: var(--space-16) 0;
       }
 
       .hero-title {
         font-size: 2.5rem;
-      }
-
-      .hero-description {
-        font-size: 1rem;
       }
 
       .nav-links {
@@ -908,9 +878,7 @@
   </style>
 </head>
 <body>
-  <!-- ===================================================================
-       LANDING PAGE
-       =================================================================== -->
+  <!-- Landing Page -->
   <div id="landing-page">
     <nav class="nav">
       <div class="container nav-inner">
@@ -929,24 +897,22 @@
 
     <div class="hero container">
       <div class="hero-badge">
-        <svg class="hero-badge-icon" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-        </svg>
-        400,000+ lines of production-ready code
+        <div class="badge-dot"></div>
+        Production-ready AI coding assistant
       </div>
 
       <h1 class="hero-title">
-        Your AI Coding<br>Assistant
+        AI Coding<br>Assistant
       </h1>
 
       <p class="hero-description">
         Ship faster with AI-powered code generation, debugging, and refactoring.
-        Built for developers who want to focus on problems, not syntax.
+        Focus on problems, not syntax.
       </p>
 
       <div class="hero-cta">
         <button class="btn btn-primary btn-lg" onclick="showAuth('signup')">
-          Start Coding Free →
+          Start Coding Free
         </button>
         <button class="btn btn-secondary btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
           See How It Works
@@ -959,63 +925,62 @@
         <div class="section-header">
           <h2 class="section-title">Built for Real Development</h2>
           <p class="section-description">
-            Not just a chatbot. A complete AI coding environment with context awareness,
+            Complete AI coding environment with context awareness,
             multi-file editing, and deep codebase understanding.
           </p>
         </div>
 
         <div class="features-grid">
           <div class="feature-card">
-            <div class="feature-icon">⚡</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Context-Aware AI</h3>
             <p class="feature-description">
               Understands your entire codebase, dependencies, and architecture.
-              Makes suggestions that actually fit your project.
+              Suggestions that fit your project.
             </p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🎯</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Multi-File Editing</h3>
             <p class="feature-description">
               Edit multiple files atomically. Refactor across your codebase with
-              confidence that everything stays in sync.
+              confidence.
             </p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🔍</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Deep Code Search</h3>
             <p class="feature-description">
-              Semantic search that understands intent. Find functions, patterns,
-              and usage examples across your entire project.
+              Semantic search that understands intent. Find functions and patterns
+              across your project.
             </p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🛠️</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Tool Integration</h3>
             <p class="feature-description">
-              Works with your existing tools: git, npm, docker, CI/CD.
-              Extends your workflow, doesn't replace it.
+              Works with git, npm, docker, and CI/CD. Extends your workflow,
+              doesn't replace it.
             </p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🔒</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Private & Secure</h3>
             <p class="feature-description">
-              Your code stays yours. Local-first architecture with optional cloud sync.
-              Never used for model training.
+              Your code stays yours. Local-first architecture with optional sync.
+              Never used for training.
             </p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">⚙️</div>
+            <div class="feature-icon"></div>
             <h3 class="feature-title">Fully Extensible</h3>
             <p class="feature-description">
-              Custom prompts, plugins, and workflows. Build your own tools on top
-              of our open API.
+              Custom prompts, plugins, and workflows. Build tools on our open API.
             </p>
           </div>
         </div>
@@ -1024,7 +989,7 @@
 
     <footer class="footer">
       <div class="container footer-content">
-        <p class="footer-text">© 2026 Agent CLI. Open source under MIT license.</p>
+        <p class="footer-text">© 2026 Agent CLI · Open source MIT license</p>
         <div class="footer-links">
           <a href="#" class="footer-link">GitHub</a>
           <a href="#" class="footer-link">Documentation</a>
@@ -1035,9 +1000,7 @@
     </footer>
   </div>
 
-  <!-- ===================================================================
-       AUTH PAGE (Login/Signup)
-       =================================================================== -->
+  <!-- Auth Page -->
   <div id="auth-page" class="auth-page hidden">
     <div class="auth-card">
       <div class="auth-header">
@@ -1045,7 +1008,7 @@
           <div class="logo-mark">A</div>
         </div>
         <h2 class="auth-title" id="auth-title">Welcome Back</h2>
-        <p class="auth-subtitle" id="auth-subtitle">Sign in to continue coding with AI</p>
+        <p class="auth-subtitle" id="auth-subtitle">Sign in to continue</p>
       </div>
 
       <div class="oauth-buttons">
@@ -1087,12 +1050,12 @@
             class="form-input"
             type="password"
             id="password"
-            placeholder="••••••••"
+            placeholder="Enter your password"
             required
           />
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-2);">
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-2);">
           <span id="auth-btn-text">Sign In</span>
         </button>
       </form>
@@ -1108,13 +1071,11 @@
     </div>
   </div>
 
-  <!-- ===================================================================
-       CHAT PAGE
-       =================================================================== -->
+  <!-- Chat Page -->
   <div id="chat-page" class="chat-page hidden">
     <div class="sidebar">
       <div class="sidebar-header">
-        <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
+        <button class="new-chat-btn" onclick="newChat()">New Chat</button>
       </div>
 
       <div class="chat-list">
@@ -1135,40 +1096,35 @@
           </div>
           <div class="model-badge">Claude Opus 5</div>
         </div>
-        <div class="row" style="gap: var(--space-3);">
-          <button class="btn btn-ghost" onclick="showLanding()">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            Home
-          </button>
-        </div>
+        <button class="btn btn-ghost" onclick="showLanding()">
+          Home
+        </button>
       </div>
 
       <div class="chat-messages" id="messages">
         <div class="empty-state">
-          <div class="empty-state-icon">💻</div>
-          <h3 class="empty-state-title">Ready to code?</h3>
-          <p class="empty-state-description">
-            Ask me to write code, debug errors, refactor, or explain complex logic.
+          <div class="empty-icon"></div>
+          <h3 class="empty-title">Ready to code?</h3>
+          <p class="empty-description">
+            Ask me to write code, debug errors, refactor, or explain logic.
           </p>
 
           <div class="suggestions">
             <div class="suggestion" onclick="sendSuggestion('Build a REST API with Express and TypeScript')">
               <div class="suggestion-title">Build API</div>
-              <div class="suggestion-text">REST API with Express + TypeScript</div>
+              <div class="suggestion-text">Express + TypeScript</div>
             </div>
             <div class="suggestion" onclick="sendSuggestion('Debug React component rendering issue')">
               <div class="suggestion-title">Debug Error</div>
-              <div class="suggestion-text">React component rendering issue</div>
+              <div class="suggestion-text">React rendering issue</div>
             </div>
             <div class="suggestion" onclick="sendSuggestion('Write unit tests for authentication service')">
               <div class="suggestion-title">Write Tests</div>
-              <div class="suggestion-text">Unit tests for auth service</div>
+              <div class="suggestion-text">Auth service tests</div>
             </div>
             <div class="suggestion" onclick="sendSuggestion('Refactor this code to be more maintainable')">
-              <div class="suggestion-title">Refactor</div>
-              <div class="suggestion-text">Make code more maintainable</div>
+              <div class="suggestion-title">Refactor Code</div>
+              <div class="suggestion-text">Improve maintainability</div>
             </div>
           </div>
         </div>
@@ -1185,8 +1141,8 @@
             oninput="autoResize(this)"
           ></textarea>
           <button class="send-btn" onclick="sendMessage()" id="send-btn">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
             </svg>
           </button>
         </div>
@@ -1195,11 +1151,7 @@
   </div>
 
   <script>
-    // ===================================================================
-    // NAVIGATION
-    // ===================================================================
-
-    let authMode = 'login'; // 'login' or 'signup'
+    let authMode = 'login';
 
     function showLanding() {
       document.getElementById('landing-page').classList.remove('hidden');
@@ -1229,49 +1181,28 @@
     function updateAuthUI() {
       const isLogin = authMode === 'login';
       document.getElementById('auth-title').textContent = isLogin ? 'Welcome Back' : 'Create Account';
-      document.getElementById('auth-subtitle').textContent = isLogin
-        ? 'Sign in to continue coding with AI'
-        : 'Start coding with AI in seconds';
+      document.getElementById('auth-subtitle').textContent = isLogin ? 'Sign in to continue' : 'Start coding in seconds';
       document.getElementById('auth-btn-text').textContent = isLogin ? 'Sign In' : 'Sign Up';
-      document.getElementById('auth-footer-text').textContent = isLogin
-        ? "Don't have an account?"
-        : 'Already have an account?';
+      document.getElementById('auth-footer-text').textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
       document.getElementById('auth-footer-link').textContent = isLogin ? 'Sign up' : 'Sign in';
     }
 
-    // ===================================================================
-    // AUTH
-    // ===================================================================
-
     function oauthLogin(provider) {
-      console.log(`OAuth login with ${provider}`);
-      // In production, this would redirect to OAuth flow
-      setTimeout(() => {
-        showChat();
-      }, 500);
+      console.log(`OAuth: ${provider}`);
+      setTimeout(() => showChat(), 500);
     }
 
     function handleAuth(e) {
       e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      console.log(`${authMode}:`, email);
-      // In production, this would call your auth API
       showChat();
     }
-
-    // ===================================================================
-    // CHAT
-    // ===================================================================
 
     function newChat() {
       document.getElementById('messages').innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">💻</div>
-          <h3 class="empty-state-title">Ready to code?</h3>
-          <p class="empty-state-description">
-            Ask me to write code, debug errors, refactor, or explain complex logic.
-          </p>
+          <div class="empty-icon"></div>
+          <h3 class="empty-title">Ready to code?</h3>
+          <p class="empty-description">Ask me to write code, debug errors, refactor, or explain logic.</p>
         </div>
       `;
       document.getElementById('input').value = '';
@@ -1285,7 +1216,6 @@
     function sendMessage() {
       const input = document.getElementById('input');
       const message = input.value.trim();
-
       if (!message) return;
 
       const messagesContainer = document.getElementById('messages');
@@ -1297,11 +1227,12 @@
 
       const container = messagesContainer.querySelector('.messages-container') || messagesContainer;
 
-      // User message
       const userMsg = document.createElement('div');
       userMsg.className = 'message user';
       userMsg.innerHTML = `
-        <div class="message-avatar">You</div>
+        <div class="message-avatar">
+          <div class="avatar-letter">U</div>
+        </div>
         <div class="message-content">${escapeHtml(message)}</div>
       `;
       container.appendChild(userMsg);
@@ -1310,16 +1241,17 @@
       input.style.height = 'auto';
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-      // AI response (simulated)
       setTimeout(() => {
         const aiMsg = document.createElement('div');
         aiMsg.className = 'message';
         aiMsg.innerHTML = `
-          <div class="message-avatar">AI</div>
+          <div class="message-avatar">
+            <div class="avatar-letter">A</div>
+          </div>
           <div class="message-content">
             I'll help you with that. Here's what I recommend:<br><br>
             <code>// Your code solution will appear here</code><br><br>
-            Would you like me to explain any part of this approach?
+            Would you like me to explain any part?
           </div>
         `;
         container.appendChild(aiMsg);

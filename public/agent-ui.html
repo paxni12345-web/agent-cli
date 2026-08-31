@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent CLI - Web Interface</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --accent-primary: #3b82f6;
+      --accent-secondary: #6366f1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --border-color: #334155;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      grid-template-rows: 60px 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--success);
+      color: white;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .header-btn:hover {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .tool-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tool-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tool-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .tool-item.active {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .tool-count {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 800px;
+    }
+
+    .message.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+      background: var(--accent-secondary);
+    }
+
+    .message-content {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .message.user .message-content {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .message-text {
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .tool-execution {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .tool-execution-header {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--accent-primary);
+    }
+
+    .tool-execution-result {
+      color: var(--text-secondary);
+      font-family: 'Courier New', monospace;
+    }
+
+    .input-container {
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .message-input {
+      width: 100%;
+      min-height: 48px;
+      max-height: 200px;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+
+    .message-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .send-btn {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      height: 48px;
+    }
+
+    .send-btn:hover {
+      background: #2563eb;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .right-panel {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-tertiary);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .metric-item:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label {
+      color: var(--text-secondary);
+    }
+
+    .metric-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .metric-value.success {
+      color: var(--success);
+    }
+
+    .metric-value.error {
+      color: var(--error);
+    }
+
+    .config-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .config-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .toggle.active {
+      background: var(--accent-primary);
+    }
+
+    .toggle-slider {
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: all 0.3s;
+    }
+
+    .toggle.active .toggle-slider {
+      left: 22px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .thinking-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">Agent CLI</div>
+        <div class="status-badge" id="statusBadge">Ready</div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="clearChat()">Clear</button>
+        <button class="header-btn" onclick="exportMetrics()">Export</button>
+        <button class="header-btn" onclick="showReport()">Report</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Available Tools</div>
+        <div class="tool-list" id="toolList">
+          <div class="tool-item">
+            <span>read_file</span>
+            <span class="tool-count">0</span>
+          </div>
+          <div class="tool-item">
+            <span>write_file</span>
+            <span class="tool-count">0</span>
+          </div>
+          <div class="tool-item">
+            <span>list_files</span>
+            <span class="tool-count">0</span>
+          </div>
+          <div class="tool-item">
+            <span>search_code</span>
+            <span class="tool-count">0</span>
+          </div>
+          <div class="tool-item">
+            <span>shell</span>
+            <span class="tool-count">0</span>
+          </div>
+          <div class="tool-item">
+            <span>git_commit</span>
+            <span class="tool-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Recent Errors</div>
+        <div id="recentErrors" style="font-size: 12px; color: var(--text-muted);">
+          No errors
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="chat-container" id="chatContainer">
+        <div class="message">
+          <div class="message-avatar">A</div>
+          <div class="message-content">
+            <div class="message-text">Hello! I'm your Agent CLI. I can help you with software engineering tasks using available tools. What would you like me to do?</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <div class="input-wrapper">
+          <textarea
+            class="message-input"
+            id="messageInput"
+            placeholder="Type your message..."
+            rows="1"
+          ></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+    </main>
+
+    <aside class="right-panel">
+      <div class="panel-section">
+        <div class="panel-title">Performance</div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalCalls">0</div>
+            <div class="stat-label">Total Calls</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="successRate">100%</div>
+            <div class="stat-label">Success Rate</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">Metrics</div>
+        <div id="metricsContainer">
+          <div class="metric-item">
+            <span class="metric-label">Avg Duration</span>
+            <span class="metric-value" id="avgDuration">0ms</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Cache Hit Rate</span>
+            <span class="metric-value" id="cacheHitRate">0%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Retry Rate</span>
+            <span class="metric-value" id="retryRate">0%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Iterations</span>
+            <span class="metric-value" id="iterations">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">Configuration</div>
+        <div class="config-grid">
+          <div class="config-item">
+            <span class="config-label">Tool Retry</span>
+            <div class="toggle active" onclick="toggleConfig(this, 'retry')">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+          <div class="config-item">
+            <span class="config-label">Caching</span>
+            <div class="toggle active" onclick="toggleConfig(this, 'cache')">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+          <div class="config-item">
+            <span class="config-label">Validation</span>
+            <div class="toggle active" onclick="toggleConfig(this, 'validation')">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+          <div class="config-item">
+            <span class="config-label">Auto Recovery</span>
+            <div class="toggle active" onclick="toggleConfig(this, 'recovery')">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+          <div class="config-item">
+            <span class="config-label">Debug Mode</span>
+            <div class="toggle" onclick="toggleConfig(this, 'debug')">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    let config = {
+      retry: true,
+      cache: true,
+      validation: true,
+      recovery: true,
+      debug: false
+    };
+
+    let stats = {
+      totalCalls: 0,
+      successCalls: 0,
+      avgDuration: 0,
+      cacheHits: 0,
+      retries: 0,
+      iterations: 0
+    };
+
+    let toolUsage = {};
+    let isProcessing = false;
+
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+
+      if (!message || isProcessing) return;
+
+      input.value = '';
+      isProcessing = true;
+      updateStatus('Processing');
+
+      addMessage('user', message);
+      showThinking();
+
+      fetch('/api/agent/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          config
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        removeThinking();
+        addMessage('assistant', data.response, data.toolExecutions);
+        updateStats(data.stats);
+        updateToolUsage(data.toolUsage);
+        isProcessing = false;
+        updateStatus('Ready');
+      })
+      .catch(err => {
+        removeThinking();
+        addMessage('assistant', 'Error: ' + err.message);
+        isProcessing = false;
+        updateStatus('Error');
+      });
+    }
+
+    function addMessage(role, text, toolExecutions = []) {
+      const container = document.getElementById('chatContainer');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.textContent = role === 'user' ? 'U' : 'A';
+
+      const content = document.createElement('div');
+      content.className = 'message-content';
+
+      const textDiv = document.createElement('div');
+      textDiv.className = 'message-text';
+      textDiv.textContent = text;
+      content.appendChild(textDiv);
+
+      if (toolExecutions && toolExecutions.length > 0) {
+        toolExecutions.forEach(exec => {
+          const toolDiv = document.createElement('div');
+          toolDiv.className = 'tool-execution';
+
+          const header = document.createElement('div');
+          header.className = 'tool-execution-header';
+          header.textContent = `Tool: ${exec.tool}`;
+
+          const result = document.createElement('div');
+          result.className = 'tool-execution-result';
+          result.textContent = exec.result.success
+            ? `Success: ${exec.result.output?.substring(0, 100)}...`
+            : `Error: ${exec.result.error}`;
+
+          toolDiv.appendChild(header);
+          toolDiv.appendChild(result);
+          content.appendChild(toolDiv);
+        });
+      }
+
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(content);
+      container.appendChild(messageDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showThinking() {
+      const container = document.getElementById('chatContainer');
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.id = 'thinkingIndicator';
+      thinkingDiv.className = 'thinking-indicator';
+      thinkingDiv.innerHTML = '<div class="loading"></div><span>Agent is thinking...</span>';
+      container.appendChild(thinkingDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function removeThinking() {
+      const indicator = document.getElementById('thinkingIndicator');
+      if (indicator) indicator.remove();
+    }
+
+    function updateStatus(status) {
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = status;
+      badge.style.background = status === 'Ready' ? 'var(--success)'
+        : status === 'Processing' ? 'var(--warning)'
+        : 'var(--error)';
+    }
+
+    function updateStats(newStats) {
+      if (!newStats) return;
+
+      stats.totalCalls = newStats.totalCalls || 0;
+      stats.successCalls = newStats.successCalls || 0;
+      stats.avgDuration = newStats.avgDuration || 0;
+      stats.cacheHits = newStats.cacheHits || 0;
+      stats.retries = newStats.retries || 0;
+      stats.iterations = newStats.iterations || 0;
+
+      document.getElementById('totalCalls').textContent = stats.totalCalls;
+
+      const successRate = stats.totalCalls > 0
+        ? Math.round((stats.successCalls / stats.totalCalls) * 100)
+        : 100;
+      document.getElementById('successRate').textContent = successRate + '%';
+
+      document.getElementById('avgDuration').textContent = Math.round(stats.avgDuration) + 'ms';
+
+      const cacheRate = stats.totalCalls > 0
+        ? Math.round((stats.cacheHits / stats.totalCalls) * 100)
+        : 0;
+      document.getElementById('cacheHitRate').textContent = cacheRate + '%';
+
+      const retryRate = stats.totalCalls > 0
+        ? Math.round((stats.retries / stats.totalCalls) * 100)
+        : 0;
+      document.getElementById('retryRate').textContent = retryRate + '%';
+
+      document.getElementById('iterations').textContent = stats.iterations;
+    }
+
+    function updateToolUsage(usage) {
+      if (!usage) return;
+
+      Object.keys(usage).forEach(tool => {
+        toolUsage[tool] = usage[tool];
+      });
+
+      const toolList = document.getElementById('toolList');
+      toolList.innerHTML = '';
+
+      Object.keys(toolUsage).forEach(tool => {
+        const item = document.createElement('div');
+        item.className = 'tool-item';
+        item.innerHTML = `<span>${tool}</span><span class="tool-count">${toolUsage[tool]}</span>`;
+        toolList.appendChild(item);
+      });
+    }
+
+    function toggleConfig(element, key) {
+      element.classList.toggle('active');
+      config[key] = element.classList.contains('active');
+    }
+
+    function clearChat() {
+      const container = document.getElementById('chatContainer');
+      container.innerHTML = '';
+      addMessage('assistant', 'Chat cleared. How can I help you?');
+    }
+
+    function exportMetrics() {
+      const data = {
+        stats,
+        toolUsage,
+        config,
+        timestamp: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agent-metrics-${Date.now()}.json`;
+      a.click();
+    }
+
+    function showReport() {
+      fetch('/api/agent/report')
+        .then(res => res.json())
+        .then(data => {
+          addMessage('assistant', 'Performance Report:\n\n' + JSON.stringify(data, null, 2));
+        })
+        .catch(err => {
+          addMessage('assistant', 'Error getting report: ' + err.message);
+        });
+    }
+
+    document.getElementById('messageInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    window.addEventListener('load', () => {
+      fetch('/api/agent/status')
+        .then(res => res.json())
+        .then(data => {
+          updateStatus('Ready');
+          if (data.stats) updateStats(data.stats);
+          if (data.toolUsage) updateToolUsage(data.toolUsage);
+        })
+        .catch(() => updateStatus('Error'));
+    });
+  </script>
+</body>
+</html>

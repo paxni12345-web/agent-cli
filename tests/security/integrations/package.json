@@ -1,0 +1,98 @@
+{
+  "name": "integration-security-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive security tests for cloud integration modules",
+  "scripts": {
+    "test": "jest --config=tests/security/integrations/jest.config.js",
+    "test:watch": "jest --config=tests/security/integrations/jest.config.js --watch",
+    "test:coverage": "jest --config=tests/security/integrations/jest.config.js --coverage",
+    "test:aws": "jest tests/security/integrations/aws-integration.security.test.ts",
+    "test:azure": "jest tests/security/integrations/azure-integration.security.test.ts",
+    "test:gcp": "jest tests/security/integrations/gcp-integration.security.test.ts",
+    "test:general": "jest tests/security/integrations/general-integration.security.test.ts",
+    "test:all": "./tests/security/integrations/run-tests.sh",
+    "test:verbose": "./tests/security/integrations/run-tests.sh -v",
+    "test:ci": "./tests/security/integrations/run-tests.sh -c"
+  },
+  "keywords": [
+    "security",
+    "penetration-testing",
+    "integration-tests",
+    "aws",
+    "azure",
+    "gcp",
+    "cloud-security"
+  ],
+  "testCategories": {
+    "injection": [
+      "SQL Injection",
+      "Command Injection",
+      "XSS",
+      "NoSQL Injection",
+      "LDAP Injection",
+      "XML Injection"
+    ],
+    "authentication": [
+      "Credential Validation",
+      "Token Expiration",
+      "Signature Verification",
+      "Header Manipulation",
+      "MFA Enforcement"
+    ],
+    "authorization": [
+      "RBAC/IAM",
+      "Privilege Escalation",
+      "Resource Boundaries",
+      "Cross-Account Access"
+    ],
+    "pathTraversal": [
+      "Directory Traversal",
+      "Path Normalization",
+      "Container/Bucket Names"
+    ],
+    "cryptography": [
+      "Weak Algorithms",
+      "Key Strength",
+      "Hardcoded Credentials",
+      "Certificate Validation",
+      "Key Rotation"
+    ],
+    "sessionManagement": [
+      "Token Rotation",
+      "Session Fixation",
+      "Session Binding",
+      "Timeout Enforcement"
+    ],
+    "csrf": [
+      "Token Validation",
+      "SameSite Cookies",
+      "Origin Validation",
+      "OAuth State"
+    ],
+    "rateLimiting": [
+      "Per-User Limits",
+      "Token Bucket",
+      "Burst Protection",
+      "Replay Prevention"
+    ]
+  },
+  "securityStandards": [
+    "OWASP Top 10",
+    "CWE Top 25",
+    "NIST Cybersecurity Framework",
+    "Cloud Security Alliance",
+    "PCI DSS",
+    "HIPAA",
+    "GDPR",
+    "SOC 2",
+    "ISO 27001"
+  ],
+  "coverage": {
+    "target": {
+      "branches": 80,
+      "functions": 80,
+      "lines": 80,
+      "statements": 80
+    }
+  }
+}

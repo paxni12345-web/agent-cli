@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # Agent CLI Application
+  agent-cli:
+    build:
+      context: .
+      target: production
+    container_name: agent-cli-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://postgres:password@postgres:5432/agentcli
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - agent-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: agent-cli-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - agent-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: agent-cli-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=agentcli
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - agent-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Development Mode (optional)
+  agent-cli-dev:
+    build:
+      context: .
+      target: development
+    container_name: agent-cli-dev
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - agent-network
+    command: npm run dev
+    profiles:
+      - dev
+
+networks:
+  agent-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:

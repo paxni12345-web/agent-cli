@@ -1,0 +1,13 @@
+# Test artifacts
+*.db
+*.db-journal
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temp files
+tmp/
+temp/
+*.tmp

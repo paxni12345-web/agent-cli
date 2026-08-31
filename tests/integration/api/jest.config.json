@@ -1,0 +1,35 @@
+{
+  "name": "api-integration-tests",
+  "description": "Integration test suite configuration for API modules",
+  "testMatch": [
+    "**/tests/integration/api/**/*.test.ts"
+  ],
+  "testEnvironment": "node",
+  "setupFilesAfterEnv": [
+    "<rootDir>/tests/integration/api/setup.ts"
+  ],
+  "testTimeout": 60000,
+  "maxWorkers": 4,
+  "bail": false,
+  "verbose": true,
+  "collectCoverageFrom": [
+    "src/api/**/*.ts",
+    "src/database/**/*.ts",
+    "src/security/**/*.ts",
+    "!**/*.d.ts",
+    "!**/*.test.ts"
+  ],
+  "coverageThresholds": {
+    "global": {
+      "branches": 70,
+      "functions": 70,
+      "lines": 70,
+      "statements": 70
+    }
+  },
+  "globals": {
+    "ts-jest": {
+      "isolatedModules": true
+    }
+  }
+}

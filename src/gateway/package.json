@@ -1,0 +1,41 @@
+{
+  "name": "api-gateway-validation",
+  "version": "1.0.0",
+  "description": "Comprehensive API Gateway with advanced request validation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node src/gateway/ValidationTests.ts",
+    "dev": "ts-node-dev src/gateway/ValidationExamples.ts",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "ts-node-dev": "^2.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "api-gateway",
+    "validation",
+    "security",
+    "middleware",
+    "rate-limiting",
+    "xss-prevention",
+    "sql-injection",
+    "zod",
+    "request-validation"
+  ],
+  "author": "API Gateway Team",
+  "license": "MIT"
+}

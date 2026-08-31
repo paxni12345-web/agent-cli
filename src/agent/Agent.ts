@@ -27,6 +27,7 @@ import { PermissionManager } from '../types/index.js';
 import { ToolCallValidator } from './ToolCallValidator.js';
 import { ErrorRecoverySystem } from './ErrorRecoverySystem.js';
 import { ToolPerformanceMonitor } from './ToolPerformanceMonitor.js';
+import { CircuitBreaker } from './CircuitBreaker.js';
 
 /**
  * Main Agent class that orchestrates autonomous AI-powered tasks
@@ -48,6 +49,7 @@ export class Agent {
   private validator: ToolCallValidator;
   private errorRecovery: ErrorRecoverySystem;
   private performanceMonitor: ToolPerformanceMonitor;
+  private circuitBreaker: CircuitBreaker;
 
   /**
    * Constructs a new Agent instance
@@ -90,6 +92,45 @@ export class Agent {
     this.validator = new ToolCallValidator();
     this.errorRecovery = new ErrorRecoverySystem();
     this.performanceMonitor = new ToolPerformanceMonitor();
+    this.circuitBreaker = new CircuitBreaker();
+  }
+
+  /**
+   * Clean up old cache entries to prevent memory leaks
+   * @private
+   */
+  private cleanupOldCache(): void {
+    const MAX_CACHE_SIZE = 1000;
+
+    if (this.toolCache.size > MAX_CACHE_SIZE) {
+      const entries = Array.from(this.toolCache.entries());
+      const sorted = entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toDelete = sorted.slice(0, Math.floor(MAX_CACHE_SIZE / 2));
+
+      toDelete.forEach(([key]) => this.toolCache.delete(key));
+
+      if (this.config.debug) {
+        console.log(`[Memory] Cleaned up ${toDelete.length} old cache entries`);
+      }
+    }
+  }
+
+  /**
+   * Trim conversation history to prevent memory bloat
+   * @private
+   */
+  private trimConversationHistory(): void {
+    const MAX_MESSAGES = 50;
+
+    if (this.state.conversationMessages.length > MAX_MESSAGES) {
+      const systemMsgs = this.state.conversationMessages.filter(m => m.role === 'system');
+      const recentMsgs = this.state.conversationMessages.slice(-MAX_MESSAGES + systemMsgs.length);
+      this.state.conversationMessages = [...systemMsgs, ...recentMsgs];
+
+      if (this.config.debug) {
+        console.log(`[Memory] Trimmed conversation to ${this.state.conversationMessages.length} messages`);
+      }
+    }
   }
 
   /**
@@ -114,6 +155,10 @@ export class Agent {
     this.state.status = 'thinking';
     this.state.currentTask = userMessage;
     this.state.iterationCount = 0;
+
+    // Cleanup old data before starting
+    this.cleanupOldCache();
+    this.trimConversationHistory();
 
     // Add user message to conversation
     this.addMessage({
@@ -238,6 +283,24 @@ export class Agent {
     let currentToolCall = toolCall;
     const maxRetries = this.config.enableToolRetry ? this.config.maxToolRetries! : 1;
 
+    // Check circuit breaker
+    if (this.circuitBreaker.isOpen(toolCall.name)) {
+      const state = this.circuitBreaker.getState(toolCall.name);
+      const cooldownSec = Math.ceil(state.cooldownRemaining / 1000);
+
+      if (this.config.debug) {
+        console.log(`\n⚡ Circuit breaker OPEN for '${toolCall.name}' (cooldown: ${cooldownSec}s)`);
+      }
+
+      return {
+        success: false,
+        error: `Tool '${toolCall.name}' is temporarily unavailable due to repeated failures. Cooldown: ${cooldownSec}s`,
+        isError: true,
+        retryable: false,
+        executionTime: Date.now() - startTime,
+      };
+    }
+
     // Check cache first
     if (this.config.enableToolCache) {
       const cacheKey = this.getCacheKey(toolCall);
@@ -272,6 +335,9 @@ export class Agent {
 
         // If successful, cache and return
         if (result.success) {
+          // Record success in circuit breaker
+          this.circuitBreaker.recordSuccess(currentToolCall.name);
+
           // Update stats
           this.updateToolStats(currentToolCall.name, true, Date.now() - startTime);
 
@@ -347,6 +413,9 @@ export class Agent {
 
     // All retries failed
     this.updateToolStats(currentToolCall.name, false, Date.now() - startTime);
+
+    // Record failure in circuit breaker
+    this.circuitBreaker.recordFailure(currentToolCall.name);
 
     // Record failed execution
     const execution: ToolExecution = {

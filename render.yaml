@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: agent-cli
+    runtime: docker
+    repo: https://github.com/paxni12345-web/agent-cli
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true

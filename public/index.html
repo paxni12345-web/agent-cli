@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent CLI - Web Interface</title>
+  <title>Agent CLI - AI Coding Assistant for Developers</title>
   <style>
-    /* ========================================================================
-       RESET & BASE STYLES
-       ======================================================================== */
+    /* ===================================================================
+       DESIGN SYSTEM - Agent CLI
+       Aesthetic: Technical Calm - Precise, minimal, professional
+       Inspiration: Linear, Vercel, Stripe - tools for makers
+       =================================================================== */
+
     * {
       margin: 0;
       padding: 0;
@@ -15,1040 +18,1176 @@
     }
 
     :root {
-      /* Pink-toned whites */
-      --bg-primary: #FFF5F7;
-      --bg-secondary: #FFE8ED;
-      --bg-tertiary: #FFD6E0;
-      --bg-hover: #FFC2D4;
+      /* Typography Scale */
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
 
-      /* Text colors */
-      --text-primary: #2D1B2E;
-      --text-secondary: #6B4B6D;
-      --text-muted: #A78BA9;
+      /* Color Palette - Neutral with Precision */
+      --gray-50: #fafafa;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d4d4d4;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
 
-      /* Accent colors */
-      --accent-pink: #FF69B4;
-      --accent-rose: #FF85C1;
-      --accent-purple: #E85FB6;
+      /* Accent - Focused Blue */
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --blue-700: #1d4ed8;
 
-      /* Status colors */
-      --success: #FFB3D9;
-      --warning: #FFA8C5;
-      --error: #FF6B9D;
+      /* Semantic Colors */
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
 
-      /* Borders & shadows */
-      --border-color: #FFD1E3;
-      --shadow-sm: 0 2px 8px rgba(255, 105, 180, 0.1);
-      --shadow-md: 0 4px 16px rgba(255, 105, 180, 0.15);
-      --shadow-lg: 0 8px 32px rgba(255, 105, 180, 0.2);
+      /* Light Theme (default) */
+      --bg-primary: #ffffff;
+      --bg-secondary: var(--gray-50);
+      --bg-tertiary: var(--gray-100);
+      --text-primary: var(--gray-900);
+      --text-secondary: var(--gray-600);
+      --text-tertiary: var(--gray-400);
+      --border: var(--gray-200);
+      --border-strong: var(--gray-300);
 
-      /* Spacing */
-      --header-height: 64px;
-      --sidebar-width: 280px;
-      --input-height: 120px;
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+      /* Spacing Scale */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      --space-24: 6rem;
+
+      /* Border Radius */
+      --radius-sm: 0.25rem;
+      --radius-md: 0.375rem;
+      --radius-lg: 0.5rem;
+      --radius-xl: 0.75rem;
+      --radius-2xl: 1rem;
+
+      /* Transitions */
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: var(--gray-900);
+        --bg-secondary: var(--gray-800);
+        --bg-tertiary: var(--gray-700);
+        --text-primary: var(--gray-50);
+        --text-secondary: var(--gray-400);
+        --text-tertiary: var(--gray-500);
+        --border: var(--gray-800);
+        --border-strong: var(--gray-700);
+      }
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-primary);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      overflow: hidden;
-      height: 100vh;
     }
 
-    /* ========================================================================
-       LAYOUT
-       ======================================================================== */
-    .app-container {
+    /* ===================================================================
+       LAYOUT PRIMITIVES
+       =================================================================== */
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: var(--space-6);
+      padding-right: var(--space-6);
+    }
+
+    .stack {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      max-width: 100vw;
-      overflow: hidden;
     }
 
-    /* ========================================================================
-       HEADER
-       ======================================================================== */
-    .header {
-      height: var(--header-height);
-      background: linear-gradient(135deg, #FFE8ED 0%, #FFD6E0 100%);
-      border-bottom: 2px solid var(--border-color);
+    .row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ===================================================================
+       NAVIGATION
+       =================================================================== */
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-inner {
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
-      box-shadow: var(--shadow-sm);
-      z-index: 100;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent-pink);
+      gap: var(--space-3);
+      font-weight: 600;
+      font-size: 1.125rem;
+      color: var(--text-primary);
       text-decoration: none;
     }
 
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-      border-radius: 12px;
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      font-weight: 700;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: var(--space-8);
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+    }
+
+    /* ===================================================================
+       BUTTONS
+       =================================================================== */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--blue-600);
+      color: white;
+      border-color: var(--blue-600);
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-700);
+      border-color: var(--blue-700);
+      transform: translateY(-1px);
       box-shadow: var(--shadow-md);
     }
 
-    .header-right {
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-secondary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-lg {
+      padding: var(--space-3) var(--space-6);
+      font-size: 1rem;
+    }
+
+    /* ===================================================================
+       LANDING PAGE - HERO
+       =================================================================== */
+
+    .hero {
+      padding-top: var(--space-24);
+      padding-bottom: var(--space-24);
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-8);
+    }
+
+    .hero-badge-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--blue-600);
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-6);
+      background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-description {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      max-width: 48rem;
+      margin: 0 auto var(--space-10);
+      line-height: 1.6;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ===================================================================
+       FEATURES GRID
+       =================================================================== */
+
+    .features {
+      padding: var(--space-24) 0;
+      background: var(--bg-secondary);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: var(--space-16);
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin-bottom: var(--space-4);
+    }
+
+    .section-description {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--space-6);
+    }
+
+    .feature-card {
+      padding: var(--space-8);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      transition: all var(--transition-base);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--border-strong);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
-      gap: 16px;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: var(--space-4);
     }
 
-    .status-indicator {
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+    }
+
+    .feature-description {
+      font-size: 0.938rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ===================================================================
+       AUTH PAGE (Login/Signup)
+       =================================================================== */
+
+    .auth-page {
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: white;
-      border-radius: 20px;
-      font-size: 14px;
-      box-shadow: var(--shadow-sm);
+      justify-content: center;
+      padding: var(--space-8);
+      background: linear-gradient(to bottom right, var(--bg-primary), var(--bg-secondary));
     }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      animation: pulse 2s infinite;
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      padding: var(--space-10);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    .auth-header {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .auth-logo {
+      display: inline-flex;
+      margin-bottom: var(--space-4);
+    }
+
+    .auth-title {
+      font-size: 1.875rem;
+      font-weight: 700;
+      margin-bottom: var(--space-2);
+    }
+
+    .auth-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.938rem;
+    }
+
+    .oauth-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .oauth-btn {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      font-size: 0.938rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .oauth-btn:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .oauth-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin: var(--space-6) 0;
+      color: var(--text-tertiary);
+      font-size: 0.875rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: var(--space-2);
+      color: var(--text-primary);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 0.938rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      transition: all var(--transition-fast);
+    }
+
+    .form-input:focus {
+      outline: none;
+      background: var(--bg-primary);
+      border-color: var(--blue-600);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-footer {
+      margin-top: var(--space-6);
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .form-link {
+      color: var(--blue-600);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .form-link:hover {
+      color: var(--blue-700);
+      text-decoration: underline;
+    }
+
+    /* ===================================================================
+       CHAT INTERFACE
+       =================================================================== */
+
+    .chat-page {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: var(--space-4);
+    }
+
+    .sidebar-header {
+      margin-bottom: var(--space-4);
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: var(--space-3);
+      background: var(--blue-600);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .new-chat-btn:hover {
+      background: var(--blue-700);
+      transform: translateY(-1px);
+    }
+
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: var(--space-2);
+    }
+
+    .chat-item {
+      padding: var(--space-3);
+      margin-bottom: var(--space-1);
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .chat-item.active {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      height: 64px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-6);
+    }
+
+    .chat-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
     }
 
     .model-badge {
-      padding: 8px 16px;
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-      color: white;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      box-shadow: var(--shadow-md);
-    }
-
-    /* ========================================================================
-       MAIN CONTENT
-       ======================================================================== */
-    .main-content {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    /* ========================================================================
-       SIDEBAR (Optional)
-       ======================================================================== */
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--bg-secondary);
-      border-right: 2px solid var(--border-color);
-      padding: 24px;
-      overflow-y: auto;
-      display: none; /* Hidden by default, toggle with button */
-    }
-
-    .sidebar.visible {
-      display: block;
-    }
-
-    .sidebar-section {
-      margin-bottom: 32px;
-    }
-
-    .sidebar-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-    }
-
-    .sidebar-item {
-      padding: 12px;
-      background: white;
-      border-radius: 12px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 2px solid transparent;
-    }
-
-    .sidebar-item:hover {
+      padding: var(--space-1) var(--space-3);
       background: var(--bg-tertiary);
-      border-color: var(--accent-pink);
-      transform: translateX(4px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
     }
 
-    /* ========================================================================
-       CHAT AREA
-       ======================================================================== */
-    .chat-area {
+    .chat-messages {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
+      padding: var(--space-8);
     }
 
     .messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 32px;
-      scroll-behavior: smooth;
-    }
-
-    /* Custom scrollbar */
-    .messages-container::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .messages-container::-webkit-scrollbar-track {
-      background: var(--bg-secondary);
-      border-radius: 4px;
-    }
-
-    .messages-container::-webkit-scrollbar-thumb {
-      background: var(--accent-pink);
-      border-radius: 4px;
-    }
-
-    .messages-container::-webkit-scrollbar-thumb:hover {
-      background: var(--accent-purple);
-    }
-
-    /* Empty state */
-    .empty-state {
+      max-width: 48rem;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: var(--text-muted);
-      text-align: center;
-      padding: 48px;
+      gap: var(--space-6);
     }
 
-    .empty-state-icon {
-      font-size: 64px;
-      margin-bottom: 24px;
-      opacity: 0.5;
-    }
-
-    .empty-state-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-    }
-
-    .empty-state-text {
-      font-size: 16px;
-      max-width: 400px;
-    }
-
-    /* Message bubble */
     .message {
-      margin-bottom: 24px;
-      animation: slideIn 0.3s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .message-header {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: var(--space-4);
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
     }
 
     .message-avatar {
       width: 32px;
       height: 32px;
       border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
       flex-shrink: 0;
     }
 
     .message.user .message-avatar {
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-rose));
-      color: white;
-    }
-
-    .message.assistant .message-avatar {
-      background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
-      color: white;
-    }
-
-    .message.system .message-avatar {
-      background: var(--bg-tertiary);
-      color: var(--text-secondary);
-    }
-
-    .message-sender {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .message.user .message-sender {
-      color: var(--accent-pink);
-    }
-
-    .message.assistant .message-sender {
-      color: var(--accent-purple);
-    }
-
-    .message-time {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-left: auto;
+      background: var(--gray-700);
     }
 
     .message-content {
-      background: white;
-      border-radius: 16px;
-      padding: 16px 20px;
-      box-shadow: var(--shadow-sm);
-      margin-left: 44px;
-      border: 2px solid transparent;
-      transition: all 0.2s;
+      flex: 1;
+      padding: var(--space-4);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      font-size: 0.938rem;
       line-height: 1.6;
     }
 
     .message.user .message-content {
-      background: linear-gradient(135deg, #FFE8ED 0%, #FFD6E0 100%);
-      border-color: var(--accent-pink);
-    }
-
-    .message.assistant .message-content {
-      background: white;
-      border-color: var(--border-color);
-    }
-
-    .message-content:hover {
-      box-shadow: var(--shadow-md);
-    }
-
-    .message-metadata {
-      display: flex;
-      gap: 16px;
-      margin-top: 8px;
-      margin-left: 44px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .metadata-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* Thinking indicator */
-    .thinking-indicator {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-      margin-left: 44px;
-      padding: 16px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: var(--shadow-sm);
-      width: fit-content;
-    }
-
-    .thinking-dots {
-      display: flex;
-      gap: 6px;
-    }
-
-    .thinking-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-pink);
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-
-    .thinking-dot:nth-child(1) {
-      animation-delay: -0.32s;
-    }
-
-    .thinking-dot:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-
-    .thinking-time {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-left: 8px;
-      font-family: monospace;
-    }
-
-    /* Code block styling */
-    .code-block {
-      background: #2D1B2E;
-      border-radius: 12px;
-      padding: 16px;
-      margin: 12px 0;
-      position: relative;
-      font-family: 'Courier New', monospace;
-      overflow-x: auto;
-    }
-
-    .code-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .code-language {
-      color: var(--accent-pink);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .code-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .code-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--blue-600);
       color: white;
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.2s;
+      border-color: var(--blue-600);
     }
 
-    .code-btn:hover {
-      background: var(--accent-pink);
-      border-color: var(--accent-pink);
+    .message-content code {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      background: var(--bg-tertiary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
     }
 
-    .code-content {
-      color: #E0E0E0;
-      font-size: 13px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
+    .message.user .message-content code {
+      background: rgba(255, 255, 255, 0.2);
     }
 
-    @keyframes bounce {
-      0%, 80%, 100% {
-        transform: scale(0);
-        opacity: 0.5;
-      }
-      40% {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    /* ========================================================================
-       INPUT AREA
-       ======================================================================== */
-    .input-area {
-      background: var(--bg-secondary);
-      border-top: 2px solid var(--border-color);
-      padding: 24px;
-      box-shadow: 0 -4px 16px rgba(255, 105, 180, 0.1);
-    }
-
-    .input-container {
-      max-width: 1200px;
-      margin: 0 auto;
+    .empty-state {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-8);
     }
 
-    .input-wrapper {
+    .empty-state-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      border-radius: var(--radius-xl);
       display: flex;
-      gap: 12px;
-      align-items: flex-end;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: var(--space-6);
     }
 
-    .input-field {
-      flex: 1;
-      background: white;
-      border: 2px solid var(--border-color);
-      border-radius: 16px;
-      padding: 16px 20px;
-      font-size: 15px;
+    .empty-state-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-state-description {
+      color: var(--text-secondary);
+      margin-bottom: var(--space-8);
+    }
+
+    .suggestions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-3);
+      max-width: 600px;
+    }
+
+    .suggestion {
+      padding: var(--space-4);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      text-align: left;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .suggestion:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+
+    .suggestion-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: var(--space-1);
+    }
+
+    .suggestion-text {
+      font-size: 0.813rem;
+      color: var(--text-secondary);
+    }
+
+    .chat-input-wrapper {
+      border-top: 1px solid var(--border);
+      padding: var(--space-6);
+      background: var(--bg-primary);
+    }
+
+    .chat-input-container {
+      max-width: 48rem;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .chat-input {
+      width: 100%;
+      padding: var(--space-4) var(--space-12) var(--space-4) var(--space-4);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      font-size: 0.938rem;
       font-family: inherit;
       color: var(--text-primary);
       resize: none;
       min-height: 56px;
       max-height: 200px;
-      transition: all 0.2s;
-      box-shadow: var(--shadow-sm);
+      line-height: 1.5;
     }
 
-    .input-field:focus {
+    .chat-input:focus {
       outline: none;
-      border-color: var(--accent-pink);
-      box-shadow: var(--shadow-md);
+      border-color: var(--blue-600);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
-    .input-field::placeholder {
-      color: var(--text-muted);
-    }
-
-    .send-button {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-      border: none;
-      border-radius: 16px;
+    .send-btn {
+      position: absolute;
+      right: var(--space-2);
+      bottom: var(--space-2);
+      width: 40px;
+      height: 40px;
+      background: var(--blue-600);
       color: white;
-      font-size: 20px;
+      border: none;
+      border-radius: var(--radius-md);
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: var(--shadow-md);
-      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all var(--transition-fast);
     }
 
-    .send-button:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
+    .send-btn:hover:not(:disabled) {
+      background: var(--blue-700);
+      transform: translateY(-1px);
     }
 
-    .send-button:active {
-      transform: translateY(0);
-    }
-
-    .send-button:disabled {
+    .send-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      transform: none;
     }
 
-    .input-hints {
+    /* ===================================================================
+       FOOTER
+       =================================================================== */
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: var(--space-16) 0;
+      background: var(--bg-secondary);
+    }
+
+    .footer-content {
       display: flex;
-      gap: 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-      padding: 0 4px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4);
     }
 
-    .input-hint {
+    .footer-text {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .footer-links {
       display: flex;
-      align-items: center;
-      gap: 4px;
+      gap: var(--space-6);
     }
 
-    .hint-kbd {
-      background: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 11px;
-      border: 1px solid var(--border-color);
+    .footer-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color var(--transition-fast);
     }
 
-    /* ========================================================================
-       BUTTONS & CONTROLS
-       ======================================================================== */
-    .btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-      color: white;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-secondary {
-      background: white;
+    .footer-link:hover {
       color: var(--text-primary);
-      border: 2px solid var(--border-color);
     }
 
-    .btn-secondary:hover {
-      background: var(--bg-tertiary);
-      border-color: var(--accent-pink);
-    }
-
-    /* ========================================================================
+    /* ===================================================================
        RESPONSIVE
-       ======================================================================== */
+       =================================================================== */
+
     @media (max-width: 768px) {
-      :root {
-        --sidebar-width: 100%;
+      .hero {
+        padding-top: var(--space-16);
+        padding-bottom: var(--space-16);
       }
 
-      .header {
-        padding: 0 16px;
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .hero-description {
+        font-size: 1rem;
+      }
+
+      .nav-links {
+        display: none;
       }
 
       .sidebar {
-        position: fixed;
-        top: var(--header-height);
-        left: 0;
-        height: calc(100vh - var(--header-height));
-        z-index: 50;
-        box-shadow: var(--shadow-lg);
+        display: none;
       }
 
-      .messages-container {
-        padding: 16px;
+      .features-grid {
+        grid-template-columns: 1fr;
       }
 
-      .input-area {
-        padding: 16px;
+      .suggestions {
+        grid-template-columns: 1fr;
       }
-
-      .message-content {
-        margin-left: 0;
-      }
-
-      .message-metadata {
-        margin-left: 0;
-      }
-
-      .thinking-indicator {
-        margin-left: 0;
-      }
-    }
-
-    /* ========================================================================
-       SETTINGS MODAL
-       ======================================================================== */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      animation: fadeIn 0.2s;
-    }
-
-    .modal {
-      background: white;
-      border-radius: 24px;
-      padding: 32px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: var(--shadow-lg);
-      animation: slideUp 0.3s;
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--border-color);
-    }
-
-    .modal-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent-pink);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .modal-close {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-      color: var(--text-secondary);
-      font-size: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .modal-close:hover {
-      background: var(--accent-pink);
-      color: white;
-      transform: rotate(90deg);
-    }
-
-    .settings-section {
-      margin-bottom: 24px;
-    }
-
-    .settings-label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-
-    .settings-input,
-    .settings-select {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      font-size: 15px;
-      font-family: inherit;
-      color: var(--text-primary);
-      background: white;
-      transition: all 0.2s;
-    }
-
-    .settings-input:focus,
-    .settings-select:focus {
-      outline: none;
-      border-color: var(--accent-pink);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .settings-help {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .settings-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 2px solid var(--border-color);
-    }
-
-    .btn-save {
-      flex: 1;
-      padding: 12px 24px;
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .btn-save:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-cancel {
-      padding: 12px 24px;
-      background: white;
-      color: var(--text-secondary);
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-cancel:hover {
-      background: var(--bg-tertiary);
-      border-color: var(--accent-pink);
-    }
-    .hidden {
-      display: none !important;
-    }
-
-    .fade-in {
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-left">
+  <!-- ===================================================================
+       LANDING PAGE
+       =================================================================== -->
+  <div id="landing-page">
+    <nav class="nav">
+      <div class="container nav-inner">
         <a href="#" class="logo">
-          <div class="logo-icon">🤖</div>
-          <span>Agent CLI</span>
+          <div class="logo-mark">A</div>
+          Agent CLI
         </a>
+        <div class="nav-links">
+          <a href="#features" class="nav-link">Features</a>
+          <a href="#" class="nav-link">Docs</a>
+          <a href="#" class="nav-link">Pricing</a>
+        </div>
+        <button class="btn btn-primary" onclick="showAuth('login')">Get Started</button>
+      </div>
+    </nav>
+
+    <div class="hero container">
+      <div class="hero-badge">
+        <svg class="hero-badge-icon" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+        </svg>
+        400,000+ lines of production-ready code
       </div>
 
-      <div class="header-right">
-        <div class="status-indicator">
-          <div class="status-dot"></div>
-          <span id="status-text">Ready</span>
-        </div>
-        <div class="model-badge" id="model-badge">
-          Claude Opus 4
-        </div>
-        <button class="btn btn-secondary" onclick="openSettings()">
-          ⚙️
+      <h1 class="hero-title">
+        Your AI Coding<br>Assistant
+      </h1>
+
+      <p class="hero-description">
+        Ship faster with AI-powered code generation, debugging, and refactoring.
+        Built for developers who want to focus on problems, not syntax.
+      </p>
+
+      <div class="hero-cta">
+        <button class="btn btn-primary btn-lg" onclick="showAuth('signup')">
+          Start Coding Free →
         </button>
-        <button class="btn btn-secondary" onclick="toggleSidebar()">
-          ☰
+        <button class="btn btn-secondary btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
+          See How It Works
         </button>
       </div>
-    </header>
-
-    <div class="main-content">
-      <!-- Sidebar (Optional) -->
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-section">
-          <div class="sidebar-title">Recent Chats</div>
-          <div class="sidebar-item">
-            <div style="font-weight: 600; margin-bottom: 4px;">Bug Fix Session</div>
-            <div style="font-size: 12px; color: var(--text-muted);">2 hours ago</div>
-          </div>
-          <div class="sidebar-item">
-            <div style="font-weight: 600; margin-bottom: 4px;">React Component</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Yesterday</div>
-          </div>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="sidebar-title">Settings</div>
-          <div class="sidebar-item" onclick="showSettings()">
-            ⚙️ Preferences
-          </div>
-          <div class="sidebar-item" onclick="clearChat()">
-            🗑️ Clear Chat
-          </div>
-        </div>
-      </aside>
-
-      <!-- Chat Area -->
-      <main class="chat-area">
-        <div class="messages-container" id="messages">
-          <!-- Empty State -->
-          <div class="empty-state" id="empty-state">
-            <div class="empty-state-icon">💬</div>
-            <div class="empty-state-title">Start a conversation</div>
-            <div class="empty-state-text">
-              Ask me anything! I'm here to help you with coding, debugging, and more.
-            </div>
-          </div>
-
-          <!-- Messages will be inserted here -->
-        </div>
-
-        <!-- Input Area -->
-        <div class="input-area">
-          <div class="input-container">
-            <div class="input-wrapper">
-              <textarea
-                id="message-input"
-                class="input-field"
-                placeholder="Type your message..."
-                rows="1"
-                onkeydown="handleKeyDown(event)"
-                oninput="autoResize(this)"
-              ></textarea>
-              <button class="send-button" onclick="sendMessage()" id="send-button">
-                ➤
-              </button>
-            </div>
-            <div class="input-hints">
-              <div class="input-hint">
-                <span class="hint-kbd">Enter</span>
-                <span>to send</span>
-              </div>
-              <div class="input-hint">
-                <span class="hint-kbd">Shift+Enter</span>
-                <span>for new line</span>
-              </div>
-              <div class="input-hint">
-                <span class="hint-kbd">/help</span>
-                <span>for commands</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal-overlay hidden">
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">
-            ⚙️ Settings
-          </div>
-          <button class="modal-close" onclick="closeSettings()">
-            ×
-          </button>
+    <div id="features" class="features">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Built for Real Development</h2>
+          <p class="section-description">
+            Not just a chatbot. A complete AI coding environment with context awareness,
+            multi-file editing, and deep codebase understanding.
+          </p>
         </div>
 
-        <div class="settings-section">
-          <label class="settings-label">API Provider</label>
-          <select id="api-provider" class="settings-select">
-            <option value="anthropic">Anthropic (Claude)</option>
-            <option value="openai">OpenAI (GPT)</option>
-            <option value="maxplus">MaxPlus AI (Custom)</option>
-            <option value="demo">Demo Mode (No API)</option>
-          </select>
-          <div class="settings-help">
-            Choose your AI provider
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 class="feature-title">Context-Aware AI</h3>
+            <p class="feature-description">
+              Understands your entire codebase, dependencies, and architecture.
+              Makes suggestions that actually fit your project.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3 class="feature-title">Multi-File Editing</h3>
+            <p class="feature-description">
+              Edit multiple files atomically. Refactor across your codebase with
+              confidence that everything stays in sync.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3 class="feature-title">Deep Code Search</h3>
+            <p class="feature-description">
+              Semantic search that understands intent. Find functions, patterns,
+              and usage examples across your entire project.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🛠️</div>
+            <h3 class="feature-title">Tool Integration</h3>
+            <p class="feature-description">
+              Works with your existing tools: git, npm, docker, CI/CD.
+              Extends your workflow, doesn't replace it.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3 class="feature-title">Private & Secure</h3>
+            <p class="feature-description">
+              Your code stays yours. Local-first architecture with optional cloud sync.
+              Never used for model training.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">⚙️</div>
+            <h3 class="feature-title">Fully Extensible</h3>
+            <p class="feature-description">
+              Custom prompts, plugins, and workflows. Build your own tools on top
+              of our open API.
+            </p>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="settings-section">
-          <label class="settings-label">API Endpoint (Optional)</label>
+    <footer class="footer">
+      <div class="container footer-content">
+        <p class="footer-text">© 2026 Agent CLI. Open source under MIT license.</p>
+        <div class="footer-links">
+          <a href="#" class="footer-link">GitHub</a>
+          <a href="#" class="footer-link">Documentation</a>
+          <a href="#" class="footer-link">Privacy</a>
+          <a href="#" class="footer-link">Terms</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================
+       AUTH PAGE (Login/Signup)
+       =================================================================== -->
+  <div id="auth-page" class="auth-page hidden">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo logo">
+          <div class="logo-mark">A</div>
+        </div>
+        <h2 class="auth-title" id="auth-title">Welcome Back</h2>
+        <p class="auth-subtitle" id="auth-subtitle">Sign in to continue coding with AI</p>
+      </div>
+
+      <div class="oauth-buttons">
+        <button class="oauth-btn" onclick="oauthLogin('github')">
+          <svg class="oauth-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          Continue with GitHub
+        </button>
+
+        <button class="oauth-btn" onclick="oauthLogin('google')">
+          <svg class="oauth-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="divider">or</div>
+
+      <form id="auth-form" onsubmit="handleAuth(event)">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
           <input
-            type="text"
-            id="api-endpoint"
-            class="settings-input"
-            placeholder="https://api.example.com/v1/messages"
+            class="form-input"
+            type="email"
+            id="email"
+            placeholder="you@example.com"
+            required
           />
-          <div class="settings-help">
-            Custom API endpoint (leave empty for default)
-          </div>
         </div>
 
-        <div class="settings-section">
-          <label class="settings-label">API Key</label>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
           <input
+            class="form-input"
             type="password"
-            id="api-key"
-            class="settings-input"
-            placeholder="sk-ant-... or sk-..."
+            id="password"
+            placeholder="••••••••"
+            required
           />
-          <div class="settings-help">
-            Your API key (stored locally in browser)
-          </div>
         </div>
 
-        <div class="settings-section">
-          <label class="settings-label">Model Name</label>
-          <input
-            type="text"
-            id="model-name"
-            class="settings-input"
-            placeholder="claude-opus-4"
-          />
-          <div class="settings-help">
-            e.g., claude-opus-4, claude-sonnet-4, gpt-4-turbo
-          </div>
-        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-2);">
+          <span id="auth-btn-text">Sign In</span>
+        </button>
+      </form>
 
-        <div class="settings-section">
-          <label class="settings-label">System Prompt (Optional)</label>
-          <textarea
-            id="system-prompt"
-            class="settings-input"
-            rows="3"
-            placeholder="You are a helpful coding assistant..."
-          ></textarea>
-          <div class="settings-help">
-            Custom instructions for the AI
-          </div>
-        </div>
+      <p class="form-footer">
+        <span id="auth-footer-text">Don't have an account?</span>
+        <a href="#" class="form-link" onclick="toggleAuthMode(); return false;">
+          <span id="auth-footer-link">Sign up</span>
+        </a>
+        <br>
+        <a href="#" class="form-link" onclick="showLanding(); return false;">Back to home</a>
+      </p>
+    </div>
+  </div>
 
-        <div class="settings-section">
-          <label class="settings-label">Theme</label>
-          <select id="theme" class="settings-select">
-            <option value="pink">Pink White (Default)</option>
-            <option value="blue">Blue White</option>
-            <option value="green">Green White</option>
-            <option value="purple">Purple White</option>
-          </select>
-          <div class="settings-help">
-            Choose your color theme
-          </div>
-        </div>
+  <!-- ===================================================================
+       CHAT PAGE
+       =================================================================== -->
+  <div id="chat-page" class="chat-page hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
+      </div>
 
-        <div class="settings-actions">
-          <button class="btn-save" onclick="saveSettings()">
-            💾 Save Settings
+      <div class="chat-list">
+        <div class="chat-item active">Build REST API with Express</div>
+        <div class="chat-item">Debug React component error</div>
+        <div class="chat-item">Write unit tests for auth</div>
+        <div class="chat-item">Optimize database queries</div>
+        <div class="chat-item">Refactor user service</div>
+      </div>
+    </div>
+
+    <div class="main-chat">
+      <div class="chat-header">
+        <div class="chat-info">
+          <div class="logo">
+            <div class="logo-mark">A</div>
+            <span>Agent CLI</span>
+          </div>
+          <div class="model-badge">Claude Opus 5</div>
+        </div>
+        <div class="row" style="gap: var(--space-3);">
+          <button class="btn btn-ghost" onclick="showLanding()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            Home
           </button>
-          <button class="btn-cancel" onclick="closeSettings()">
-            Cancel
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messages">
+        <div class="empty-state">
+          <div class="empty-state-icon">💻</div>
+          <h3 class="empty-state-title">Ready to code?</h3>
+          <p class="empty-state-description">
+            Ask me to write code, debug errors, refactor, or explain complex logic.
+          </p>
+
+          <div class="suggestions">
+            <div class="suggestion" onclick="sendSuggestion('Build a REST API with Express and TypeScript')">
+              <div class="suggestion-title">Build API</div>
+              <div class="suggestion-text">REST API with Express + TypeScript</div>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Debug React component rendering issue')">
+              <div class="suggestion-title">Debug Error</div>
+              <div class="suggestion-text">React component rendering issue</div>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Write unit tests for authentication service')">
+              <div class="suggestion-title">Write Tests</div>
+              <div class="suggestion-text">Unit tests for auth service</div>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Refactor this code to be more maintainable')">
+              <div class="suggestion-title">Refactor</div>
+              <div class="suggestion-text">Make code more maintainable</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-wrapper">
+        <div class="chat-input-container">
+          <textarea
+            class="chat-input"
+            id="input"
+            placeholder="Ask me anything about code..."
+            rows="1"
+            onkeydown="handleInputKeydown(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button class="send-btn" onclick="sendMessage()" id="send-btn">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -1056,354 +1195,143 @@
   </div>
 
   <script>
-    // ========================================================================
-    // STATE
-    // ========================================================================
-    let messages = [];
-    let isThinking = false;
-    let thinkingStartTime = 0;
-    let thinkingTimer = null;
-    let settings = {
-      apiProvider: 'maxplus',
-      apiEndpoint: 'https://api.maxplus-ai.cc/claude-native/v1/messages',
-      apiKey: 'ccsk-66f2c55f1df186fb9431fb4270b7cf969f657772606b7b211f6d6733ddaccd36',
-      modelName: 'claude-opus-5',
-      systemPrompt: 'You are a helpful AI coding assistant. When providing code, always use proper markdown code blocks with language specification (e.g., ```javascript). Be concise but thorough.',
-      theme: 'pink',
-    };
+    // ===================================================================
+    // NAVIGATION
+    // ===================================================================
 
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
-    document.addEventListener('DOMContentLoaded', () => {
-      // Load settings from localStorage
-      loadSettings();
+    let authMode = 'login'; // 'login' or 'signup'
 
-      // Add welcome message
-      addSystemMessage('Welcome to Agent CLI! 🎉\n\nI\'m your AI coding assistant. Ask me anything about programming, debugging, or project help.\n\n💡 Click ⚙️ to configure your API provider and model.');
+    function showLanding() {
+      document.getElementById('landing-page').classList.remove('hidden');
+      document.getElementById('auth-page').classList.add('hidden');
+      document.getElementById('chat-page').classList.add('hidden');
+    }
 
-      // Focus input
-      document.getElementById('message-input').focus();
-    });
+    function showAuth(mode) {
+      authMode = mode;
+      updateAuthUI();
+      document.getElementById('landing-page').classList.add('hidden');
+      document.getElementById('auth-page').classList.remove('hidden');
+      document.getElementById('chat-page').classList.add('hidden');
+    }
 
-    // ========================================================================
-    // MESSAGE HANDLING
-    // ========================================================================
-    async function sendMessage() {
-      const input = document.getElementById('message-input');
+    function showChat() {
+      document.getElementById('landing-page').classList.add('hidden');
+      document.getElementById('auth-page').classList.add('hidden');
+      document.getElementById('chat-page').classList.remove('hidden');
+    }
+
+    function toggleAuthMode() {
+      authMode = authMode === 'login' ? 'signup' : 'login';
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      const isLogin = authMode === 'login';
+      document.getElementById('auth-title').textContent = isLogin ? 'Welcome Back' : 'Create Account';
+      document.getElementById('auth-subtitle').textContent = isLogin
+        ? 'Sign in to continue coding with AI'
+        : 'Start coding with AI in seconds';
+      document.getElementById('auth-btn-text').textContent = isLogin ? 'Sign In' : 'Sign Up';
+      document.getElementById('auth-footer-text').textContent = isLogin
+        ? "Don't have an account?"
+        : 'Already have an account?';
+      document.getElementById('auth-footer-link').textContent = isLogin ? 'Sign up' : 'Sign in';
+    }
+
+    // ===================================================================
+    // AUTH
+    // ===================================================================
+
+    function oauthLogin(provider) {
+      console.log(`OAuth login with ${provider}`);
+      // In production, this would redirect to OAuth flow
+      setTimeout(() => {
+        showChat();
+      }, 500);
+    }
+
+    function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      console.log(`${authMode}:`, email);
+      // In production, this would call your auth API
+      showChat();
+    }
+
+    // ===================================================================
+    // CHAT
+    // ===================================================================
+
+    function newChat() {
+      document.getElementById('messages').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">💻</div>
+          <h3 class="empty-state-title">Ready to code?</h3>
+          <p class="empty-state-description">
+            Ask me to write code, debug errors, refactor, or explain complex logic.
+          </p>
+        </div>
+      `;
+      document.getElementById('input').value = '';
+    }
+
+    function sendSuggestion(text) {
+      document.getElementById('input').value = text;
+      sendMessage();
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('input');
       const message = input.value.trim();
 
-      if (!message || isThinking) return;
+      if (!message) return;
 
-      // Add user message
-      addMessage('user', message);
+      const messagesContainer = document.getElementById('messages');
+      const emptyState = messagesContainer.querySelector('.empty-state');
 
-      // Clear input
+      if (emptyState) {
+        messagesContainer.innerHTML = '<div class="messages-container"></div>';
+      }
+
+      const container = messagesContainer.querySelector('.messages-container') || messagesContainer;
+
+      // User message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.innerHTML = `
+        <div class="message-avatar">You</div>
+        <div class="message-content">${escapeHtml(message)}</div>
+      `;
+      container.appendChild(userMsg);
+
       input.value = '';
       input.style.height = 'auto';
-
-      // Handle commands
-      if (message.startsWith('/')) {
-        handleCommand(message);
-        return;
-      }
-
-      // Show thinking indicator
-      showThinking();
-
-      try {
-        // Call API
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: message,
-            model: settings.modelName,
-            provider: settings.apiProvider,
-            apiEndpoint: settings.apiEndpoint,
-            apiKey: settings.apiKey,
-            systemPrompt: settings.systemPrompt,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('API request failed');
-        }
-
-        const data = await response.json();
-
-        // Hide thinking and show response
-        hideThinking();
-        addMessage('assistant', data.content, data.metadata);
-
-      } catch (error) {
-        console.error('Error:', error);
-        hideThinking();
-        addSystemMessage('❌ Sorry, something went wrong. Please try again.');
-      }
-    }
-
-    function addMessage(role, content, metadata = {}) {
-      const messagesContainer = document.getElementById('messages');
-      const emptyState = document.getElementById('empty-state');
-
-      // Hide empty state
-      if (emptyState) {
-        emptyState.classList.add('hidden');
-      }
-
-      // Create message element
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${role}`;
-
-      const avatar = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : '⚙️';
-      const sender = role === 'user' ? 'You' : role === 'assistant' ? 'Agent' : 'System';
-      const time = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-
-      messageDiv.innerHTML = `
-        <div class="message-header">
-          <div class="message-avatar">${avatar}</div>
-          <div class="message-sender">${sender}</div>
-          <div class="message-time">${time}</div>
-        </div>
-        <div class="message-content">${formatContent(content)}</div>
-        ${metadata.tokens || metadata.duration ? `
-          <div class="message-metadata">
-            ${metadata.tokens ? `<div class="metadata-item">🔢 ${metadata.tokens} tokens</div>` : ''}
-            ${metadata.duration ? `<div class="metadata-item">⏱ ${metadata.duration}ms</div>` : ''}
-          </div>
-        ` : ''}
-      `;
-
-      messagesContainer.appendChild(messageDiv);
-      scrollToBottom();
-
-      // Store message
-      messages.push({ role, content, time, metadata });
-    }
-
-    function addSystemMessage(content) {
-      addMessage('system', content);
-    }
-
-    function formatContent(content) {
-      // Parse code blocks with language
-      content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-        const language = lang || 'text';
-        const blockId = 'code-' + Math.random().toString(36).substr(2, 9);
-        return `<div class="code-block" id="${blockId}">
-          <div class="code-header">
-            <span class="code-language">${language}</span>
-            <div class="code-actions">
-              <button class="code-btn" onclick="copyCode('${blockId}')">📋 Copy</button>
-              <button class="code-btn" onclick="saveAsFile('${blockId}', '${language}')">💾 Save</button>
-            </div>
-          </div>
-          <pre class="code-content">${escapeHtml(code.trim())}</pre>
-        </div>`;
-      });
-
-      // Format inline code
-      content = content.replace(/`([^`]+)`/g, '<code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace;">$1</code>');
-
-      // Format line breaks
-      content = content.replace(/\n/g, '<br>');
-
-      return content;
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function copyCode(blockId) {
-      const block = document.getElementById(blockId);
-      const code = block.querySelector('.code-content').textContent;
-
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = block.querySelector('.code-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '✓ Copied!';
-        btn.style.background = 'var(--accent-pink)';
-
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.style.background = '';
-        }, 2000);
-      }).catch(err => {
-        alert('Failed to copy: ' + err);
-      });
-    }
-
-    function saveAsFile(blockId, language) {
-      const block = document.getElementById(blockId);
-      const code = block.querySelector('.code-content').textContent;
-
-      // Determine file extension
-      const extensions = {
-        javascript: 'js',
-        typescript: 'ts',
-        python: 'py',
-        java: 'java',
-        cpp: 'cpp',
-        c: 'c',
-        html: 'html',
-        css: 'css',
-        json: 'json',
-        xml: 'xml',
-        bash: 'sh',
-        shell: 'sh',
-        sql: 'sql',
-        php: 'php',
-        ruby: 'rb',
-        go: 'go',
-        rust: 'rs',
-        swift: 'swift',
-        kotlin: 'kt',
-      };
-
-      const ext = extensions[language.toLowerCase()] || 'txt';
-      const filename = prompt('Enter filename:', `code.${ext}`);
-
-      if (filename) {
-        const blob = new Blob([code], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        addSystemMessage(`✅ File saved: ${filename}`);
-      }
-    }
-
-    function showThinking() {
-      isThinking = true;
-      thinkingStartTime = Date.now();
-      updateStatus('Thinking');
-
-      const messagesContainer = document.getElementById('messages');
-      const thinkingDiv = document.createElement('div');
-      thinkingDiv.id = 'thinking-indicator';
-      thinkingDiv.className = 'thinking-indicator';
-      thinkingDiv.innerHTML = `
-        <div class="thinking-dots">
-          <div class="thinking-dot"></div>
-          <div class="thinking-dot"></div>
-          <div class="thinking-dot"></div>
-        </div>
-        <span>Agent is thinking...</span>
-        <span class="thinking-time" id="thinking-time">0s</span>
-      `;
-
-      messagesContainer.appendChild(thinkingDiv);
-      scrollToBottom();
-
-      // Update timer every 100ms
-      thinkingTimer = setInterval(() => {
-        const elapsed = ((Date.now() - thinkingStartTime) / 1000).toFixed(1);
-        const timeEl = document.getElementById('thinking-time');
-        if (timeEl) {
-          timeEl.textContent = elapsed + 's';
-        }
-      }, 100);
-    }
-
-    function hideThinking() {
-      isThinking = false;
-      updateStatus('Ready');
-
-      if (thinkingTimer) {
-        clearInterval(thinkingTimer);
-        thinkingTimer = null;
-      }
-
-      const thinkingDiv = document.getElementById('thinking-indicator');
-      if (thinkingDiv) {
-        thinkingDiv.remove();
-      }
-    }
-
-    function generateResponse(message) {
-      // Simple demo responses (replace with actual AI API)
-      const responses = [
-        `I understand you're asking about: "${message}"\n\nLet me help you with that! Here's what I suggest:\n\n1. First, analyze the problem\n2. Break it down into steps\n3. Implement the solution\n\nWould you like me to elaborate on any of these steps?`,
-        `Great question! Based on what you've asked, here's my response:\n\n${message}\n\nI've analyzed this and here are some key points to consider...`,
-        `Thanks for your message! I'm processing: "${message}"\n\nHere's what I found:\n• Point 1\n• Point 2\n• Point 3\n\nLet me know if you need more details!`
-      ];
-
-      return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    // ========================================================================
-    // COMMANDS
-    // ========================================================================
-    function handleCommand(command) {
-      const cmd = command.toLowerCase().split(' ')[0];
-
-      switch (cmd) {
-        case '/help':
-          addSystemMessage(`Available Commands:\n\n/help - Show this help message\n/clear - Clear chat history\n/status - Show current status\n/about - About Agent CLI`);
-          break;
-
-        case '/clear':
-          clearChat();
-          break;
-
-        case '/status':
-          addSystemMessage(`Status: Ready\nMessages: ${messages.length}\nModel: Claude Opus 4\nMode: Normal`);
-          break;
-
-        case '/about':
-          addSystemMessage(`Agent CLI v0.1.0\n\nA beautiful web interface for AI-powered coding assistance.\n\nBuilt with love 💖`);
-          break;
-
-        default:
-          addSystemMessage(`Unknown command: ${command}\nType /help for available commands.`);
-      }
-    }
-
-    function clearChat() {
-      const messagesContainer = document.getElementById('messages');
-      messagesContainer.innerHTML = `
-        <div class="empty-state" id="empty-state">
-          <div class="empty-state-icon">💬</div>
-          <div class="empty-state-title">Start a conversation</div>
-          <div class="empty-state-text">
-            Ask me anything! I'm here to help you with coding, debugging, and more.
-          </div>
-        </div>
-      `;
-      messages = [];
-    }
-
-    // ========================================================================
-    // UI HELPERS
-    // ========================================================================
-    function scrollToBottom() {
-      const messagesContainer = document.getElementById('messages');
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      // AI response (simulated)
+      setTimeout(() => {
+        const aiMsg = document.createElement('div');
+        aiMsg.className = 'message';
+        aiMsg.innerHTML = `
+          <div class="message-avatar">AI</div>
+          <div class="message-content">
+            I'll help you with that. Here's what I recommend:<br><br>
+            <code>// Your code solution will appear here</code><br><br>
+            Would you like me to explain any part of this approach?
+          </div>
+        `;
+        container.appendChild(aiMsg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 1000);
     }
 
-    function updateStatus(status) {
-      const statusText = document.getElementById('status-text');
-      statusText.textContent = status;
-    }
-
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.classList.toggle('visible');
+    function handleInputKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
     }
 
     function autoResize(textarea) {
@@ -1411,117 +1339,10 @@
       textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
     }
 
-    function handleKeyDown(event) {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-      }
-    }
-
-    function showSettings() {
-      openSettings();
-    }
-
-    // ========================================================================
-    // SETTINGS
-    // ========================================================================
-    function openSettings() {
-      const modal = document.getElementById('settings-modal');
-      modal.classList.remove('hidden');
-
-      // Load current settings into form
-      document.getElementById('api-provider').value = settings.apiProvider;
-      document.getElementById('api-endpoint').value = settings.apiEndpoint || '';
-      document.getElementById('api-key').value = settings.apiKey;
-      document.getElementById('model-name').value = settings.modelName;
-      document.getElementById('system-prompt').value = settings.systemPrompt;
-      document.getElementById('theme').value = settings.theme;
-    }
-
-    function closeSettings() {
-      const modal = document.getElementById('settings-modal');
-      modal.classList.add('hidden');
-    }
-
-    function saveSettings() {
-      // Get values from form
-      settings.apiProvider = document.getElementById('api-provider').value;
-      settings.apiEndpoint = document.getElementById('api-endpoint').value;
-      settings.apiKey = document.getElementById('api-key').value;
-      settings.modelName = document.getElementById('model-name').value;
-      settings.systemPrompt = document.getElementById('system-prompt').value;
-      settings.theme = document.getElementById('theme').value;
-
-      // Save to localStorage
-      localStorage.setItem('agentCliSettings', JSON.stringify(settings));
-
-      // Update UI
-      updateModelBadge();
-      applyTheme();
-
-      // Show confirmation
-      addSystemMessage(`✅ Settings saved!\n\nProvider: ${settings.apiProvider}\nModel: ${settings.modelName}\nTheme: ${settings.theme}`);
-
-      // Close modal
-      closeSettings();
-    }
-
-    function loadSettings() {
-      const saved = localStorage.getItem('agentCliSettings');
-      if (saved) {
-        try {
-          settings = JSON.parse(saved);
-          updateModelBadge();
-          applyTheme();
-        } catch (e) {
-          console.error('Failed to load settings:', e);
-        }
-      }
-    }
-
-    function updateModelBadge() {
-      const badge = document.getElementById('model-badge');
-      badge.textContent = settings.modelName || 'Claude Opus 4';
-    }
-
-    function applyTheme() {
-      const root = document.documentElement;
-
-      const themes = {
-        pink: {
-          primary: '#FFF5F7',
-          secondary: '#FFE8ED',
-          tertiary: '#FFD6E0',
-          accent: '#FF69B4',
-        },
-        blue: {
-          primary: '#F0F8FF',
-          secondary: '#E6F3FF',
-          tertiary: '#CCE5FF',
-          accent: '#4169E1',
-        },
-        green: {
-          primary: '#F0FFF0',
-          secondary: '#E6FFE6',
-          tertiary: '#CCFFCC',
-          accent: '#32CD32',
-        },
-        purple: {
-          primary: '#F8F0FF',
-          secondary: '#F0E6FF',
-          tertiary: '#E0CCFF',
-          accent: '#9370DB',
-        },
-      };
-
-      const theme = themes[settings.theme] || themes.pink;
-
-      root.style.setProperty('--bg-primary', theme.primary);
-      root.style.setProperty('--bg-secondary', theme.secondary);
-      root.style.setProperty('--bg-tertiary', theme.tertiary);
-      root.style.setProperty('--accent-pink', theme.accent);
-      root.style.setProperty('--accent-rose', theme.accent);
-      root.style.setProperty('--accent-purple', theme.accent);
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
   </script>
 </body>

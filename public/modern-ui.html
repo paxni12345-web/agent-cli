@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent CLI - Your AI Coding Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --text: #1a1a1a;
+      --text-secondary: #6c757d;
+      --text-muted: #adb5bd;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --border: #dee2e6;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --text: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --border: #334155;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Landing Page */
+    .landing {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 2rem;
+      height: 2rem;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+      max-width: 56rem;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(to right, var(--text), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 42rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 0.875rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+      gap: 2rem;
+      padding: 4rem 2rem;
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-icon {
+      width: 3rem;
+      height: 3rem;
+      background: var(--accent);
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.938rem;
+    }
+
+    /* Login Page */
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-secondary) 100%);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 28rem;
+      padding: 3rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header h2 {
+      font-size: 1.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--text-secondary);
+    }
+
+    .oauth-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .oauth-btn {
+      width: 100%;
+      padding: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .oauth-btn:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-1px);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Chat Page */
+    .chat-page {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 16rem;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    .sidebar-header {
+      margin-bottom: 1rem;
+    }
+
+    .new-chat {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .new-chat:hover {
+      background: var(--accent-hover);
+    }
+
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+
+    .chat-item {
+      padding: 0.75rem;
+      margin-bottom: 0.25rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text);
+    }
+
+    .chat-item.active {
+      background: var(--bg-tertiary);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      height: 4rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .message {
+      display: flex;
+      gap: 1rem;
+      max-width: 48rem;
+    }
+
+    .message.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .message-content {
+      flex: 1;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .message.user .message-content {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .chat-input-wrapper {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+    }
+
+    .chat-input-container {
+      max-width: 48rem;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .chat-input {
+      width: 100%;
+      padding: 1rem 3.5rem 1rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      resize: none;
+      min-height: 3.5rem;
+      max-height: 12rem;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .send-btn {
+      position: absolute;
+      right: 0.5rem;
+      bottom: 0.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .send-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .suggestions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+      gap: 1rem;
+      max-width: 42rem;
+    }
+
+    .suggestion {
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .suggestion:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-2px);
+    }
+
+    .suggestion strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .suggestion span {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Hide sections by default */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Landing Page -->
+  <div id="landing" class="landing">
+    <nav class="nav">
+      <div class="logo">
+        <div class="logo-icon">A</div>
+        Agent CLI
+      </div>
+      <button class="btn btn-primary" onclick="showLogin()">Get Started</button>
+    </nav>
+
+    <div class="hero">
+      <div class="badge">
+        <span>✨</span>
+        Powered by Advanced AI Models
+      </div>
+
+      <h1>Your AI Coding Assistant</h1>
+
+      <p>
+        Build faster with AI-powered code generation, debugging, and documentation.
+        Agent CLI helps developers ship better code in less time.
+      </p>
+
+      <div class="cta-buttons">
+        <button class="btn btn-primary" onclick="showLogin()">
+          Start Coding →
+        </button>
+        <button class="btn btn-secondary" onclick="scrollToFeatures()">
+          Learn More
+        </button>
+      </div>
+    </div>
+
+    <div id="features" class="features">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Lightning Fast</h3>
+        <p>Generate code, fix bugs, and write tests in seconds with AI assistance</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Context-Aware</h3>
+        <p>Understands your entire codebase and provides relevant suggestions</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure & Private</h3>
+        <p>Your code stays private. We never train models on your data</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Page -->
+  <div id="login" class="login-page hidden">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo" style="justify-content: center; margin-bottom: 1rem;">
+          <div class="logo-icon">A</div>
+          Agent CLI
+        </div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to continue coding with AI</p>
+      </div>
+
+      <div class="oauth-buttons">
+        <button class="oauth-btn" onclick="loginWithGitHub()">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          Continue with GitHub
+        </button>
+
+        <button class="oauth-btn" onclick="loginWithGoogle()">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="divider">or</div>
+
+      <button class="btn btn-primary" style="width: 100%;" onclick="showChat()">
+        Continue as Guest
+      </button>
+
+      <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.875rem;">
+        By signing in, you agree to our Terms and Privacy Policy
+      </p>
+    </div>
+  </div>
+
+  <!-- Chat Page -->
+  <div id="chat" class="chat-page hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat" onclick="newChat()">+ New Chat</button>
+      </div>
+
+      <div class="chat-list">
+        <div class="chat-item active">Debug React Component</div>
+        <div class="chat-item">Create REST API</div>
+        <div class="chat-item">Write Unit Tests</div>
+        <div class="chat-item">Optimize Database Query</div>
+      </div>
+    </div>
+
+    <div class="main-chat">
+      <div class="chat-header">
+        <div>
+          <strong>Agent CLI</strong>
+          <span style="color: var(--text-secondary); font-size: 0.875rem; margin-left: 0.5rem;">Claude Opus 4</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="showLanding()">
+            Home
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messages">
+        <div class="empty-state">
+          <h3>How can I help you code today?</h3>
+          <p>Ask me to generate code, debug errors, write tests, or refactor</p>
+
+          <div class="suggestions">
+            <div class="suggestion" onclick="sendSuggestion('Write a Python function to sort a list')">
+              <strong>Generate Code</strong>
+              <span>Write a Python function to sort a list</span>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Debug this React error')">
+              <strong>Debug Error</strong>
+              <span>Debug this React error</span>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Write unit tests for API')">
+              <strong>Write Tests</strong>
+              <span>Write unit tests for API</span>
+            </div>
+            <div class="suggestion" onclick="sendSuggestion('Optimize SQL query')">
+              <strong>Optimize</strong>
+              <span>Optimize SQL query</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-wrapper">
+        <div class="chat-input-container">
+          <textarea
+            class="chat-input"
+            id="input"
+            placeholder="Ask me anything about code..."
+            rows="1"
+            onkeydown="handleKeyDown(event)"
+          ></textarea>
+          <button class="send-btn" onclick="sendMessage()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Navigation
+    function showLanding() {
+      document.getElementById('landing').classList.remove('hidden');
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('chat').classList.add('hidden');
+    }
+
+    function showLogin() {
+      document.getElementById('landing').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('chat').classList.add('hidden');
+    }
+
+    function showChat() {
+      document.getElementById('landing').classList.add('hidden');
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('chat').classList.remove('hidden');
+    }
+
+    function scrollToFeatures() {
+      document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // OAuth
+    function loginWithGitHub() {
+      alert('GitHub OAuth would redirect here');
+      showChat();
+    }
+
+    function loginWithGoogle() {
+      alert('Google OAuth would redirect here');
+      showChat();
+    }
+
+    // Chat
+    function newChat() {
+      document.getElementById('messages').innerHTML = `
+        <div class="empty-state">
+          <h3>How can I help you code today?</h3>
+          <p>Ask me to generate code, debug errors, write tests, or refactor</p>
+        </div>
+      `;
+      document.getElementById('input').value = '';
+    }
+
+    function sendSuggestion(text) {
+      document.getElementById('input').value = text;
+      sendMessage();
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('input');
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      const messagesContainer = document.getElementById('messages');
+      const emptyState = messagesContainer.querySelector('.empty-state');
+      if (emptyState) {
+        emptyState.remove();
+      }
+
+      // User message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.innerHTML = `
+        <div class="avatar">You</div>
+        <div class="message-content">${escapeHtml(message)}</div>
+      `;
+      messagesContainer.appendChild(userMsg);
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      // AI response (simulated)
+      setTimeout(() => {
+        const aiMsg = document.createElement('div');
+        aiMsg.className = 'message';
+        aiMsg.innerHTML = `
+          <div class="avatar" style="background: #8b5cf6;">AI</div>
+          <div class="message-content">
+            I'd be happy to help with that! Here's what I can do:<br><br>
+            <code style="background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 0.25rem;">
+              // Your code will appear here
+            </code>
+          </div>
+        `;
+        messagesContainer.appendChild(aiMsg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 1000);
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Auto-resize textarea
+    document.getElementById('input').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 192) + 'px';
+    });
+  </script>
+</body>
+</html>

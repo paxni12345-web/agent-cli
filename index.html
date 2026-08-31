@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent CLI - AI Coding Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -15,102 +12,33 @@
     }
 
     :root {
-      /* Typography */
-      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-
-      /* Color System - Refined Palette */
+      --white: #ffffff;
+      --black: #000000;
       --gray-50: #fafafa;
-      --gray-100: #f4f4f5;
-      --gray-200: #e4e4e7;
-      --gray-300: #d4d4d8;
-      --gray-400: #a1a1aa;
-      --gray-500: #71717a;
-      --gray-600: #52525b;
-      --gray-700: #3f3f46;
-      --gray-800: #27272a;
-      --gray-900: #18181b;
-
-      /* Accent - Sophisticated Blue */
-      --blue-400: #60a5fa;
-      --blue-500: #3b82f6;
-      --blue-600: #2563eb;
-      --blue-700: #1d4ed8;
-
-      /* Light Theme */
-      --bg: #ffffff;
-      --bg-subtle: var(--gray-50);
-      --bg-muted: var(--gray-100);
-      --text: var(--gray-900);
-      --text-subtle: var(--gray-600);
-      --text-muted: var(--gray-400);
-      --border: var(--gray-200);
-      --border-subtle: rgba(0, 0, 0, 0.06);
-      --accent: var(--blue-600);
-      --accent-hover: var(--blue-700);
-
-      /* Shadows - Subtle Depth */
-      --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-
-      /* Spacing */
-      --space-1: 0.25rem;
-      --space-2: 0.5rem;
-      --space-3: 0.75rem;
-      --space-4: 1rem;
-      --space-6: 1.5rem;
-      --space-8: 2rem;
-      --space-12: 3rem;
-      --space-16: 4rem;
-      --space-24: 6rem;
-
-      /* Radius */
-      --radius-sm: 0.375rem;
-      --radius-md: 0.5rem;
-      --radius-lg: 0.75rem;
-      --radius-xl: 1rem;
-
-      /* Transitions */
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-      --duration-fast: 150ms;
-      --duration-base: 200ms;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: var(--gray-900);
-        --bg-subtle: var(--gray-800);
-        --bg-muted: var(--gray-700);
-        --text: var(--gray-50);
-        --text-subtle: var(--gray-400);
-        --text-muted: var(--gray-500);
-        --border: rgba(255, 255, 255, 0.1);
-        --border-subtle: rgba(255, 255, 255, 0.06);
-        --accent: var(--blue-500);
-        --accent-hover: var(--blue-400);
-      }
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d4d4d4;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
     }
 
     body {
-      font-family: var(--font-sans);
-      font-size: 15px;
-      line-height: 1.6;
-      color: var(--text);
-      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--black);
+      background: var(--white);
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-feature-settings: 'kern' 1, 'liga' 1;
     }
 
-    /* Layout */
     .container {
-      width: 100%;
-      max-width: 1280px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 var(--space-6);
+      padding: 0 24px;
     }
 
     .hidden {
@@ -119,756 +47,504 @@
 
     /* Nav */
     .nav {
-      position: sticky;
+      position: fixed;
       top: 0;
-      z-index: 50;
+      left: 0;
+      right: 0;
+      z-index: 100;
       background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(12px) saturate(180%);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .nav {
-        background: rgba(24, 24, 27, 0.8);
-      }
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--gray-200);
     }
 
     .nav-inner {
-      height: 64px;
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
     .logo {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
+      font-size: 20px;
       font-weight: 600;
-      font-size: 1rem;
-      color: var(--text);
+      letter-spacing: -0.02em;
+      color: var(--black);
       text-decoration: none;
-      letter-spacing: -0.01em;
-    }
-
-    .logo-mark {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-family: var(--font-mono);
-      font-size: 14px;
-      font-weight: 600;
     }
 
     .nav-links {
       display: flex;
-      gap: var(--space-8);
+      gap: 32px;
     }
 
     .nav-link {
-      color: var(--text-subtle);
+      color: var(--gray-600);
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color var(--duration-fast) var(--ease-out);
+      font-size: 15px;
+      transition: color 0.2s;
     }
 
     .nav-link:hover {
-      color: var(--text);
+      color: var(--black);
     }
 
-    /* Buttons */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-2);
-      padding: 0 var(--space-4);
-      height: 36px;
-      font-size: 14px;
+      padding: 10px 24px;
+      font-size: 15px;
       font-weight: 500;
-      font-family: inherit;
-      border-radius: var(--radius-md);
-      border: 1px solid transparent;
+      border: 1px solid var(--black);
+      background: var(--black);
+      color: var(--white);
+      border-radius: 8px;
       cursor: pointer;
-      transition: all var(--duration-base) var(--ease-out);
+      transition: all 0.2s;
       text-decoration: none;
-      white-space: nowrap;
+      display: inline-block;
     }
 
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .btn-primary:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-primary:active {
-      transform: translateY(0);
+    .btn:hover {
+      background: var(--gray-800);
     }
 
     .btn-secondary {
-      background: var(--bg-muted);
-      color: var(--text);
-      border-color: var(--border);
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--gray-300);
     }
 
     .btn-secondary:hover {
-      background: var(--bg-subtle);
-      border-color: var(--border);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-subtle);
-    }
-
-    .btn-ghost:hover {
-      background: var(--bg-muted);
-      color: var(--text);
-    }
-
-    .btn-lg {
-      height: 44px;
-      padding: 0 var(--space-6);
-      font-size: 15px;
+      background: var(--gray-50);
     }
 
     /* Hero */
     .hero {
-      padding: var(--space-24) 0;
+      padding: 200px 0 120px;
       text-align: center;
     }
 
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-subtle);
-      margin-bottom: var(--space-12);
-    }
-
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--accent);
-      border-radius: 50%;
-    }
-
     .hero-title {
-      font-size: clamp(3rem, 8vw, 5rem);
-      font-weight: 700;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      margin-bottom: var(--space-6);
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-subtle) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: clamp(48px, 8vw, 96px);
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 24px;
     }
 
-    .hero-description {
-      font-size: 1.125rem;
-      color: var(--text-subtle);
-      max-width: 560px;
-      margin: 0 auto var(--space-12);
-      line-height: 1.6;
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--gray-600);
+      max-width: 600px;
+      margin: 0 auto 40px;
     }
 
     .hero-cta {
       display: flex;
-      gap: var(--space-4);
+      gap: 16px;
       justify-content: center;
       flex-wrap: wrap;
     }
 
     /* Features */
     .features {
-      padding: var(--space-24) 0;
-      background: var(--bg-subtle);
-    }
-
-    .section-header {
-      text-align: center;
-      margin-bottom: var(--space-16);
-    }
-
-    .section-title {
-      font-size: 2.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: var(--space-4);
-    }
-
-    .section-description {
-      font-size: 1.0625rem;
-      color: var(--text-subtle);
-      max-width: 640px;
-      margin: 0 auto;
+      padding: 120px 0;
+      background: var(--gray-50);
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--space-6);
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--gray-200);
+      border: 1px solid var(--gray-200);
     }
 
-    .feature-card {
-      padding: var(--space-8);
-      background: var(--bg);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      transition: all var(--duration-base) var(--ease-out);
-    }
-
-    .feature-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-      border-color: var(--border);
-    }
-
-    .feature-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
-      border-radius: var(--radius-lg);
-      margin-bottom: var(--space-4);
+    .feature {
+      padding: 48px;
+      background: var(--white);
     }
 
     .feature-title {
-      font-size: 1.125rem;
+      font-size: 18px;
       font-weight: 600;
-      margin-bottom: var(--space-2);
+      margin-bottom: 8px;
       letter-spacing: -0.01em;
     }
 
     .feature-description {
-      font-size: 14px;
-      color: var(--text-subtle);
+      font-size: 15px;
+      color: var(--gray-600);
       line-height: 1.6;
     }
 
-    /* Auth Page */
+    /* Auth */
     .auth-page {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: var(--space-8);
-      background: linear-gradient(to bottom, var(--bg) 0%, var(--bg-subtle) 100%);
+      padding: 48px 24px;
     }
 
     .auth-card {
       width: 100%;
       max-width: 400px;
-      padding: var(--space-12);
-      background: var(--bg);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .auth-header {
-      text-align: center;
-      margin-bottom: var(--space-8);
-    }
-
-    .auth-logo {
-      display: inline-flex;
-      margin-bottom: var(--space-6);
     }
 
     .auth-title {
-      font-size: 1.75rem;
-      font-weight: 700;
+      font-size: 32px;
+      font-weight: 600;
       letter-spacing: -0.02em;
-      margin-bottom: var(--space-2);
+      margin-bottom: 8px;
     }
 
     .auth-subtitle {
-      color: var(--text-subtle);
-      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 32px;
     }
 
     .oauth-buttons {
       display: flex;
       flex-direction: column;
-      gap: var(--space-3);
-      margin-bottom: var(--space-6);
+      gap: 12px;
+      margin-bottom: 24px;
     }
 
     .oauth-btn {
-      width: 100%;
-      height: 44px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: var(--space-3);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 14px;
+      gap: 12px;
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 15px;
       font-weight: 500;
       cursor: pointer;
-      transition: all var(--duration-base) var(--ease-out);
+      transition: all 0.2s;
     }
 
     .oauth-btn:hover {
-      background: var(--bg-muted);
-      border-color: var(--border);
-      transform: translateY(-1px);
-    }
-
-    .oauth-icon {
-      width: 18px;
-      height: 18px;
+      background: var(--gray-50);
     }
 
     .divider {
-      display: flex;
-      align-items: center;
-      gap: var(--space-4);
-      margin: var(--space-6) 0;
-      color: var(--text-muted);
-      font-size: 13px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .divider::before,
-    .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
+      text-align: center;
+      margin: 24px 0;
+      color: var(--gray-500);
+      font-size: 14px;
     }
 
     .form-group {
-      margin-bottom: var(--space-4);
+      margin-bottom: 16px;
     }
 
     .form-label {
       display: block;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
-      margin-bottom: var(--space-2);
-      color: var(--text);
+      margin-bottom: 8px;
     }
 
     .form-input {
       width: 100%;
-      height: 44px;
-      padding: 0 var(--space-4);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--text);
-      transition: all var(--duration-fast) var(--ease-out);
+      height: 48px;
+      padding: 0 16px;
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s;
     }
 
     .form-input:focus {
       outline: none;
-      background: var(--bg);
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+      border-color: var(--black);
     }
 
     .form-footer {
-      margin-top: var(--space-6);
+      margin-top: 24px;
       text-align: center;
-      font-size: 13px;
-      color: var(--text-subtle);
+      font-size: 14px;
+      color: var(--gray-600);
     }
 
     .form-link {
-      color: var(--accent);
+      color: var(--black);
       text-decoration: none;
-      font-weight: 500;
     }
 
     .form-link:hover {
-      color: var(--accent-hover);
+      text-decoration: underline;
     }
 
-    /* Chat Interface */
+    /* Chat */
     .chat-page {
       display: flex;
       height: 100vh;
-      overflow: hidden;
     }
 
     .sidebar {
-      width: 260px;
-      background: var(--bg-subtle);
-      border-right: 1px solid var(--border-subtle);
-      display: flex;
-      flex-direction: column;
-      padding: var(--space-4);
-    }
-
-    .sidebar-header {
-      margin-bottom: var(--space-4);
+      width: 280px;
+      background: var(--gray-50);
+      border-right: 1px solid var(--gray-200);
+      padding: 24px;
     }
 
     .new-chat-btn {
       width: 100%;
       height: 40px;
-      background: var(--accent);
-      color: white;
+      background: var(--black);
+      color: var(--white);
       border: none;
-      border-radius: var(--radius-md);
-      font-weight: 600;
-      font-size: 14px;
+      border-radius: 8px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all var(--duration-base) var(--ease-out);
+      transition: all 0.2s;
+      margin-bottom: 16px;
     }
 
     .new-chat-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-    }
-
-    .chat-list {
-      flex: 1;
-      overflow-y: auto;
-      margin-top: var(--space-2);
+      background: var(--gray-800);
     }
 
     .chat-item {
-      padding: var(--space-3);
-      margin-bottom: var(--space-1);
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      color: var(--text-subtle);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--gray-600);
       cursor: pointer;
-      transition: all var(--duration-fast) var(--ease-out);
+      margin-bottom: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .chat-item:hover {
-      background: var(--bg-muted);
-      color: var(--text);
-    }
-
+    .chat-item:hover,
     .chat-item.active {
-      background: var(--bg-muted);
-      color: var(--text);
-      font-weight: 500;
+      background: var(--white);
+      color: var(--black);
     }
 
     .main-chat {
       flex: 1;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
     .chat-header {
-      height: 64px;
-      background: var(--bg-subtle);
-      border-bottom: 1px solid var(--border-subtle);
+      height: 72px;
+      border-bottom: 1px solid var(--gray-200);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 var(--space-6);
-    }
-
-    .chat-info {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-    }
-
-    .model-badge {
-      padding: var(--space-1) var(--space-3);
-      background: var(--bg-muted);
-      border: 1px solid var(--border-subtle);
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-subtle);
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      padding: 0 24px;
     }
 
     .chat-messages {
       flex: 1;
       overflow-y: auto;
-      padding: var(--space-8);
+      padding: 48px 24px;
     }
 
     .messages-container {
-      max-width: 720px;
+      max-width: 800px;
       margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-6);
     }
 
     .message {
       display: flex;
-      gap: var(--space-4);
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
     .message.user {
       flex-direction: row-reverse;
     }
 
-    .message-avatar {
+    .avatar {
       width: 32px;
       height: 32px;
+      background: var(--black);
+      color: var(--white);
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
       flex-shrink: 0;
     }
 
-    .message.user .message-avatar {
-      background: var(--gray-700);
-    }
-
-    .avatar-letter {
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: var(--font-mono);
+    .message.user .avatar {
+      background: var(--gray-300);
+      color: var(--black);
     }
 
     .message-content {
       flex: 1;
-      padding: var(--space-4);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      font-size: 14px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: 12px;
+      font-size: 15px;
       line-height: 1.6;
     }
 
     .message.user .message-content {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .message-content code {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      background: var(--bg-muted);
-      padding: 0.125rem 0.375rem;
-      border-radius: var(--radius-sm);
-    }
-
-    .message.user .message-content code {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--black);
+      color: var(--white);
     }
 
     .empty-state {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       text-align: center;
-      padding: var(--space-8);
-    }
-
-    .empty-icon {
-      width: 64px;
-      height: 64px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-700) 100%);
-      border-radius: var(--radius-xl);
-      margin-bottom: var(--space-8);
+      padding: 80px 24px;
     }
 
     .empty-title {
-      font-size: 1.5rem;
+      font-size: 24px;
       font-weight: 600;
+      margin-bottom: 8px;
       letter-spacing: -0.01em;
-      margin-bottom: var(--space-2);
     }
 
-    .empty-description {
-      color: var(--text-subtle);
-      font-size: 14px;
-      margin-bottom: var(--space-8);
+    .empty-subtitle {
+      color: var(--gray-600);
+      margin-bottom: 32px;
     }
 
     .suggestions {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-3);
-      max-width: 560px;
+      gap: 12px;
+      max-width: 600px;
+      margin: 0 auto;
     }
 
     .suggestion {
-      padding: var(--space-4);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      padding: 16px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
       text-align: left;
       cursor: pointer;
-      transition: all var(--duration-base) var(--ease-out);
+      transition: all 0.2s;
     }
 
     .suggestion:hover {
-      background: var(--bg-muted);
-      border-color: var(--border);
-      transform: translateY(-1px);
+      background: var(--gray-100);
     }
 
     .suggestion-title {
       font-weight: 600;
-      font-size: 13px;
-      margin-bottom: var(--space-1);
+      font-size: 14px;
+      margin-bottom: 4px;
     }
 
     .suggestion-text {
-      font-size: 12px;
-      color: var(--text-subtle);
+      font-size: 13px;
+      color: var(--gray-600);
     }
 
     .chat-input-wrapper {
-      border-top: 1px solid var(--border-subtle);
-      padding: var(--space-6);
-      background: var(--bg);
+      border-top: 1px solid var(--gray-200);
+      padding: 24px;
     }
 
     .chat-input-container {
-      max-width: 720px;
+      max-width: 800px;
       margin: 0 auto;
       position: relative;
     }
 
     .chat-input {
       width: 100%;
-      padding: var(--space-4);
-      padding-right: 52px;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--text);
-      resize: none;
-      min-height: 52px;
+      min-height: 56px;
       max-height: 200px;
-      line-height: 1.5;
+      padding: 16px 56px 16px 16px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-300);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
     }
 
     .chat-input:focus {
       outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+      border-color: var(--black);
     }
 
     .send-btn {
       position: absolute;
-      right: var(--space-2);
-      bottom: var(--space-2);
-      width: 36px;
-      height: 36px;
-      background: var(--accent);
-      color: white;
+      right: 8px;
+      bottom: 8px;
+      width: 40px;
+      height: 40px;
+      background: var(--black);
+      color: var(--white);
       border: none;
-      border-radius: var(--radius-md);
+      border-radius: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--duration-base) var(--ease-out);
     }
 
-    .send-btn:hover:not(:disabled) {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-    }
-
-    .send-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    .send-btn:hover {
+      background: var(--gray-800);
     }
 
     /* Footer */
     .footer {
-      border-top: 1px solid var(--border-subtle);
-      padding: var(--space-16) 0;
-      background: var(--bg-subtle);
+      padding: 80px 0;
+      border-top: 1px solid var(--gray-200);
     }
 
     .footer-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-4);
     }
 
     .footer-text {
-      color: var(--text-subtle);
-      font-size: 13px;
+      color: var(--gray-600);
+      font-size: 14px;
     }
 
     .footer-links {
       display: flex;
-      gap: var(--space-6);
+      gap: 24px;
     }
 
     .footer-link {
-      color: var(--text-subtle);
+      color: var(--gray-600);
       text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      transition: color var(--duration-fast) var(--ease-out);
+      font-size: 14px;
     }
 
     .footer-link:hover {
-      color: var(--text);
+      color: var(--black);
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .hero {
-        padding: var(--space-16) 0;
+        padding: 160px 0 80px;
       }
 
       .hero-title {
-        font-size: 2.5rem;
+        font-size: 48px;
       }
 
       .nav-links {
         display: none;
       }
 
-      .sidebar {
-        display: none;
-      }
-
       .features-grid {
         grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
       }
 
       .suggestions {
@@ -878,109 +554,70 @@
   </style>
 </head>
 <body>
-  <!-- Landing Page -->
-  <div id="landing-page">
+  <!-- Landing -->
+  <div id="landing">
     <nav class="nav">
       <div class="container nav-inner">
-        <a href="#" class="logo">
-          <div class="logo-mark">A</div>
-          Agent CLI
-        </a>
+        <a href="#" class="logo">Agent CLI</a>
         <div class="nav-links">
           <a href="#features" class="nav-link">Features</a>
           <a href="#" class="nav-link">Docs</a>
           <a href="#" class="nav-link">Pricing</a>
         </div>
-        <button class="btn btn-primary" onclick="showAuth('login')">Get Started</button>
+        <button class="btn" onclick="showAuth('login')">Get Started</button>
       </div>
     </nav>
 
     <div class="hero container">
-      <div class="hero-badge">
-        <div class="badge-dot"></div>
-        Production-ready AI coding assistant
-      </div>
-
-      <h1 class="hero-title">
-        AI Coding<br>Assistant
-      </h1>
-
-      <p class="hero-description">
-        Ship faster with AI-powered code generation, debugging, and refactoring.
-        Focus on problems, not syntax.
+      <h1 class="hero-title">AI Coding Assistant</h1>
+      <p class="hero-subtitle">
+        Build faster with AI-powered code generation, debugging, and refactoring.
       </p>
-
       <div class="hero-cta">
-        <button class="btn btn-primary btn-lg" onclick="showAuth('signup')">
-          Start Coding Free
-        </button>
-        <button class="btn btn-secondary btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
-          See How It Works
+        <button class="btn" onclick="showAuth('signup')">Start Coding Free</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
+          Learn More
         </button>
       </div>
     </div>
 
     <div id="features" class="features">
       <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">Built for Real Development</h2>
-          <p class="section-description">
-            Complete AI coding environment with context awareness,
-            multi-file editing, and deep codebase understanding.
-          </p>
-        </div>
-
         <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon"></div>
-            <h3 class="feature-title">Context-Aware AI</h3>
+          <div class="feature">
+            <h3 class="feature-title">Context-Aware</h3>
             <p class="feature-description">
-              Understands your entire codebase, dependencies, and architecture.
-              Suggestions that fit your project.
+              Understands your codebase, dependencies, and architecture.
             </p>
           </div>
-
-          <div class="feature-card">
-            <div class="feature-icon"></div>
+          <div class="feature">
             <h3 class="feature-title">Multi-File Editing</h3>
             <p class="feature-description">
-              Edit multiple files atomically. Refactor across your codebase with
-              confidence.
+              Edit multiple files atomically with full confidence.
             </p>
           </div>
-
-          <div class="feature-card">
-            <div class="feature-icon"></div>
-            <h3 class="feature-title">Deep Code Search</h3>
+          <div class="feature">
+            <h3 class="feature-title">Deep Search</h3>
             <p class="feature-description">
-              Semantic search that understands intent. Find functions and patterns
-              across your project.
+              Semantic search across your entire project.
             </p>
           </div>
-
-          <div class="feature-card">
-            <div class="feature-icon"></div>
+          <div class="feature">
             <h3 class="feature-title">Tool Integration</h3>
             <p class="feature-description">
-              Works with git, npm, docker, and CI/CD. Extends your workflow,
-              doesn't replace it.
+              Works with git, npm, docker, and CI/CD.
             </p>
           </div>
-
-          <div class="feature-card">
-            <div class="feature-icon"></div>
+          <div class="feature">
             <h3 class="feature-title">Private & Secure</h3>
             <p class="feature-description">
-              Your code stays yours. Local-first architecture with optional sync.
-              Never used for training.
+              Your code stays yours. Never used for training.
             </p>
           </div>
-
-          <div class="feature-card">
-            <div class="feature-icon"></div>
-            <h3 class="feature-title">Fully Extensible</h3>
+          <div class="feature">
+            <h3 class="feature-title">Extensible</h3>
             <p class="feature-description">
-              Custom prompts, plugins, and workflows. Build tools on our open API.
+              Custom prompts, plugins, and open API.
             </p>
           </div>
         </div>
@@ -989,38 +626,31 @@
 
     <footer class="footer">
       <div class="container footer-content">
-        <p class="footer-text">© 2026 Agent CLI · Open source MIT license</p>
+        <p class="footer-text">© 2026 Agent CLI</p>
         <div class="footer-links">
           <a href="#" class="footer-link">GitHub</a>
-          <a href="#" class="footer-link">Documentation</a>
+          <a href="#" class="footer-link">Docs</a>
           <a href="#" class="footer-link">Privacy</a>
-          <a href="#" class="footer-link">Terms</a>
         </div>
       </div>
     </footer>
   </div>
 
-  <!-- Auth Page -->
-  <div id="auth-page" class="auth-page hidden">
+  <!-- Auth -->
+  <div id="auth" class="auth-page hidden">
     <div class="auth-card">
-      <div class="auth-header">
-        <div class="auth-logo logo">
-          <div class="logo-mark">A</div>
-        </div>
-        <h2 class="auth-title" id="auth-title">Welcome Back</h2>
-        <p class="auth-subtitle" id="auth-subtitle">Sign in to continue</p>
-      </div>
+      <h2 class="auth-title" id="auth-title">Welcome Back</h2>
+      <p class="auth-subtitle" id="auth-subtitle">Sign in to continue</p>
 
       <div class="oauth-buttons">
         <button class="oauth-btn" onclick="oauthLogin('github')">
-          <svg class="oauth-icon" fill="currentColor" viewBox="0 0 24 24">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
           Continue with GitHub
         </button>
-
         <button class="oauth-btn" onclick="oauthLogin('google')">
-          <svg class="oauth-icon" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -1032,99 +662,67 @@
 
       <div class="divider">or</div>
 
-      <form id="auth-form" onsubmit="handleAuth(event)">
+      <form onsubmit="handleAuth(event)">
         <div class="form-group">
-          <label class="form-label" for="email">Email</label>
-          <input
-            class="form-input"
-            type="email"
-            id="email"
-            placeholder="you@example.com"
-            required
-          />
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="you@example.com" required />
         </div>
-
         <div class="form-group">
-          <label class="form-label" for="password">Password</label>
-          <input
-            class="form-input"
-            type="password"
-            id="password"
-            placeholder="Enter your password"
-            required
-          />
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" placeholder="Enter password" required />
         </div>
-
-        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-2);">
-          <span id="auth-btn-text">Sign In</span>
+        <button type="submit" class="btn" style="width:100%">
+          <span id="auth-btn">Sign In</span>
         </button>
       </form>
 
       <p class="form-footer">
-        <span id="auth-footer-text">Don't have an account?</span>
-        <a href="#" class="form-link" onclick="toggleAuthMode(); return false;">
-          <span id="auth-footer-link">Sign up</span>
+        <span id="auth-footer">Don't have an account?</span>
+        <a href="#" class="form-link" onclick="toggleAuth();return false">
+          <span id="auth-link">Sign up</span>
         </a>
-        <br>
-        <a href="#" class="form-link" onclick="showLanding(); return false;">Back to home</a>
+        <br><br>
+        <a href="#" class="form-link" onclick="showLanding();return false">Back to home</a>
       </p>
     </div>
   </div>
 
-  <!-- Chat Page -->
-  <div id="chat-page" class="chat-page hidden">
+  <!-- Chat -->
+  <div id="chat" class="chat-page hidden">
     <div class="sidebar">
-      <div class="sidebar-header">
-        <button class="new-chat-btn" onclick="newChat()">New Chat</button>
-      </div>
-
-      <div class="chat-list">
-        <div class="chat-item active">Build REST API with Express</div>
-        <div class="chat-item">Debug React component error</div>
-        <div class="chat-item">Write unit tests for auth</div>
-        <div class="chat-item">Optimize database queries</div>
-        <div class="chat-item">Refactor user service</div>
-      </div>
+      <button class="new-chat-btn" onclick="newChat()">New Chat</button>
+      <div class="chat-item active">Build REST API</div>
+      <div class="chat-item">Debug React error</div>
+      <div class="chat-item">Write unit tests</div>
+      <div class="chat-item">Optimize queries</div>
     </div>
 
     <div class="main-chat">
       <div class="chat-header">
-        <div class="chat-info">
-          <div class="logo">
-            <div class="logo-mark">A</div>
-            <span>Agent CLI</span>
-          </div>
-          <div class="model-badge">Claude Opus 5</div>
-        </div>
-        <button class="btn btn-ghost" onclick="showLanding()">
-          Home
-        </button>
+        <div class="logo">Agent CLI</div>
+        <button class="btn btn-secondary" onclick="showLanding()">Home</button>
       </div>
 
       <div class="chat-messages" id="messages">
         <div class="empty-state">
-          <div class="empty-icon"></div>
           <h3 class="empty-title">Ready to code?</h3>
-          <p class="empty-description">
-            Ask me to write code, debug errors, refactor, or explain logic.
-          </p>
-
+          <p class="empty-subtitle">Ask me to write, debug, or refactor code.</p>
           <div class="suggestions">
-            <div class="suggestion" onclick="sendSuggestion('Build a REST API with Express and TypeScript')">
+            <div class="suggestion" onclick="sendSuggestion('Build REST API with Express')">
               <div class="suggestion-title">Build API</div>
               <div class="suggestion-text">Express + TypeScript</div>
             </div>
-            <div class="suggestion" onclick="sendSuggestion('Debug React component rendering issue')">
+            <div class="suggestion" onclick="sendSuggestion('Debug React error')">
               <div class="suggestion-title">Debug Error</div>
-              <div class="suggestion-text">React rendering issue</div>
+              <div class="suggestion-text">React rendering</div>
             </div>
-            <div class="suggestion" onclick="sendSuggestion('Write unit tests for authentication service')">
+            <div class="suggestion" onclick="sendSuggestion('Write unit tests')">
               <div class="suggestion-title">Write Tests</div>
-              <div class="suggestion-text">Auth service tests</div>
+              <div class="suggestion-text">Auth service</div>
             </div>
-            <div class="suggestion" onclick="sendSuggestion('Refactor this code to be more maintainable')">
-              <div class="suggestion-title">Refactor Code</div>
-              <div class="suggestion-text">Improve maintainability</div>
+            <div class="suggestion" onclick="sendSuggestion('Refactor code')">
+              <div class="suggestion-title">Refactor</div>
+              <div class="suggestion-text">Improve quality</div>
             </div>
           </div>
         </div>
@@ -1135,13 +733,12 @@
           <textarea
             class="chat-input"
             id="input"
-            placeholder="Ask me anything about code..."
-            rows="1"
-            onkeydown="handleInputKeydown(event)"
-            oninput="autoResize(this)"
+            placeholder="Ask me anything..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,200)+'px'"
           ></textarea>
-          <button class="send-btn" onclick="sendMessage()" id="send-btn">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <button class="send-btn" onclick="sendMessage()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
             </svg>
           </button>
@@ -1154,42 +751,42 @@
     let authMode = 'login';
 
     function showLanding() {
-      document.getElementById('landing-page').classList.remove('hidden');
-      document.getElementById('auth-page').classList.add('hidden');
-      document.getElementById('chat-page').classList.add('hidden');
+      document.getElementById('landing').classList.remove('hidden');
+      document.getElementById('auth').classList.add('hidden');
+      document.getElementById('chat').classList.add('hidden');
     }
 
     function showAuth(mode) {
       authMode = mode;
-      updateAuthUI();
-      document.getElementById('landing-page').classList.add('hidden');
-      document.getElementById('auth-page').classList.remove('hidden');
-      document.getElementById('chat-page').classList.add('hidden');
+      updateAuth();
+      document.getElementById('landing').classList.add('hidden');
+      document.getElementById('auth').classList.remove('hidden');
+      document.getElementById('chat').classList.add('hidden');
     }
 
     function showChat() {
-      document.getElementById('landing-page').classList.add('hidden');
-      document.getElementById('auth-page').classList.add('hidden');
-      document.getElementById('chat-page').classList.remove('hidden');
+      document.getElementById('landing').classList.add('hidden');
+      document.getElementById('auth').classList.add('hidden');
+      document.getElementById('chat').classList.remove('hidden');
     }
 
-    function toggleAuthMode() {
+    function toggleAuth() {
       authMode = authMode === 'login' ? 'signup' : 'login';
-      updateAuthUI();
+      updateAuth();
     }
 
-    function updateAuthUI() {
+    function updateAuth() {
       const isLogin = authMode === 'login';
       document.getElementById('auth-title').textContent = isLogin ? 'Welcome Back' : 'Create Account';
-      document.getElementById('auth-subtitle').textContent = isLogin ? 'Sign in to continue' : 'Start coding in seconds';
-      document.getElementById('auth-btn-text').textContent = isLogin ? 'Sign In' : 'Sign Up';
-      document.getElementById('auth-footer-text').textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
-      document.getElementById('auth-footer-link').textContent = isLogin ? 'Sign up' : 'Sign in';
+      document.getElementById('auth-subtitle').textContent = isLogin ? 'Sign in to continue' : 'Start coding now';
+      document.getElementById('auth-btn').textContent = isLogin ? 'Sign In' : 'Sign Up';
+      document.getElementById('auth-footer').textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
+      document.getElementById('auth-link').textContent = isLogin ? 'Sign up' : 'Sign in';
     }
 
     function oauthLogin(provider) {
-      console.log(`OAuth: ${provider}`);
-      setTimeout(() => showChat(), 500);
+      console.log(provider);
+      setTimeout(() => showChat(), 300);
     }
 
     function handleAuth(e) {
@@ -1200,9 +797,8 @@
     function newChat() {
       document.getElementById('messages').innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon"></div>
           <h3 class="empty-title">Ready to code?</h3>
-          <p class="empty-description">Ask me to write code, debug errors, refactor, or explain logic.</p>
+          <p class="empty-subtitle">Ask me to write, debug, or refactor code.</p>
         </div>
       `;
       document.getElementById('input').value = '';
@@ -1218,63 +814,36 @@
       const message = input.value.trim();
       if (!message) return;
 
-      const messagesContainer = document.getElementById('messages');
-      const emptyState = messagesContainer.querySelector('.empty-state');
-
-      if (emptyState) {
-        messagesContainer.innerHTML = '<div class="messages-container"></div>';
+      const container = document.getElementById('messages');
+      const empty = container.querySelector('.empty-state');
+      if (empty) {
+        container.innerHTML = '<div class="messages-container"></div>';
       }
 
-      const container = messagesContainer.querySelector('.messages-container') || messagesContainer;
+      const msgs = container.querySelector('.messages-container') || container;
 
       const userMsg = document.createElement('div');
       userMsg.className = 'message user';
       userMsg.innerHTML = `
-        <div class="message-avatar">
-          <div class="avatar-letter">U</div>
-        </div>
-        <div class="message-content">${escapeHtml(message)}</div>
+        <div class="avatar">U</div>
+        <div class="message-content">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
       `;
-      container.appendChild(userMsg);
+      msgs.appendChild(userMsg);
 
       input.value = '';
       input.style.height = 'auto';
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      container.scrollTop = container.scrollHeight;
 
       setTimeout(() => {
         const aiMsg = document.createElement('div');
         aiMsg.className = 'message';
         aiMsg.innerHTML = `
-          <div class="message-avatar">
-            <div class="avatar-letter">A</div>
-          </div>
-          <div class="message-content">
-            I'll help you with that. Here's what I recommend:<br><br>
-            <code>// Your code solution will appear here</code><br><br>
-            Would you like me to explain any part?
-          </div>
+          <div class="avatar">A</div>
+          <div class="message-content">I'll help you with that. Here's my solution...</div>
         `;
-        container.appendChild(aiMsg);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }, 1000);
-    }
-
-    function handleInputKeydown(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    }
-
-    function autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+        msgs.appendChild(aiMsg);
+        container.scrollTop = container.scrollHeight;
+      }, 800);
     }
   </script>
 </body>

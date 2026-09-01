@@ -1,0 +1,1 @@
+{"version":3,"file":"AIProvider.js","sourceRoot":"","sources":["../../src/providers/AIProvider.ts"],"names":[],"mappings":"AAAA,iCAAiC;AAUjC,MAAM,OAAgB,cAAc;IAMxB,iBAAiB,CAAC,OAAoB;QAC9C,OAAO,OAAO,CAAC,YAAY,IAAI,EAAE,CAAC;IACpC,CAAC;IAES,YAAY,CAAC,WAAmB,EAAE,YAAoB;QAC9D,6CAA6C;QAC7C,OAAO,CAAC,CAAC;IACX,CAAC;CACF"}

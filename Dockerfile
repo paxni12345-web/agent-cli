@@ -1,21 +1,21 @@
-# Ultra-simple Dockerfile for Render
+# Pre-built Dockerfile (no TypeScript compilation needed)
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy everything
-COPY . .
+# Copy package files and pre-built dist
+COPY package*.json ./
+COPY dist ./dist
+COPY public ./public
 
-# Install and build in one step
-RUN npm install && npm run build || npm install typescript && npx tsc
-
-# Remove devDependencies
-RUN npm prune --production
+# Install production dependencies only (no build needed!)
+RUN npm ci --production --omit=dev && \
+    npm cache clean --force
 
 ENV NODE_ENV=production
 ENV PORT=10000
 
 EXPOSE 10000
 
-# Try multiple start commands
-CMD npm start || node dist/server.js || node dist/cli.js
+# Run pre-built server
+CMD ["node", "dist/server.js"]

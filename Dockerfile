@@ -16,4 +16,4 @@ ENV PORT=10000
 
 EXPOSE 10000
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server.cjs"]

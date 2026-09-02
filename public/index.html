@@ -7,7 +7,7 @@
   <meta name="description" content="เขียนโค้ด วิเคราะห์ และปรับปรุงโปรเจคของคุณด้วย AI ที่เข้าใจโค้ดอย่างลึกซึ้ง">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Noto+Serif+Thai:wght@300;400&family=Inter:wght@400;500&family=Noto+Sans+Thai:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Mitr:wght@600;700&family=Noto+Serif+Thai:wght@300;400&family=Inter:wght@400;500&family=Noto+Sans+Thai:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0B0F0E;
@@ -19,6 +19,7 @@
       --gold-deep: #B08F55;
       --serif: 'Fraunces', 'Noto Serif Thai', Georgia, serif;
       --sans: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
+      --display: 'Mitr', 'Noto Sans Thai', system-ui, sans-serif;
       --max: 1120px;
     }
 
@@ -36,6 +37,15 @@
     :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     .wrap { max-width: var(--max); margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
 
+    /* Film grain, uniform across the page */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 40; pointer-events: none;
+      opacity: 0.035; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 140px 140px;
+    }
+
     /* Navigation */
     .nav {
       position: sticky; top: 0; z-index: 10;
@@ -51,17 +61,21 @@
     .nav ul a:hover { color: var(--ink); }
 
     /* Hero */
-    .hero { padding: clamp(5rem, 14vh, 9rem) 0 clamp(4rem, 10vh, 6rem); border-bottom: 1px solid var(--line); }
+    .hero { position: relative; padding: clamp(5rem, 14vh, 9rem) 0 clamp(4rem, 10vh, 6rem); border-bottom: 1px solid var(--line); }
     .hero-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 3rem; align-items: end; }
     .hero h1 {
-      font-family: var(--serif);
-      font-weight: 300;
-      font-size: clamp(2.6rem, 6.5vw, 5.25rem);
-      line-height: 1.12;
-      letter-spacing: -0.01em;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(3.1rem, 9vw, 6.75rem);
+      line-height: 1.05;
+      letter-spacing: -0.015em;
       max-width: 16ch;
     }
-    .hero .rule { width: 4.5rem; height: 1px; background: var(--gold); margin: 2rem 0; }
+    .hero h1 .ch { display: inline-block; will-change: transform, opacity; }
+    .hero .rule {
+      width: 4.5rem; height: 1px; background: var(--gold); margin: 2rem 0;
+      transform-origin: left; transform: scaleX(0);
+    }
     .hero p { font-size: 1.1rem; color: var(--ink-2); max-width: 34ch; }
     .hero-aside { display: flex; flex-direction: column; gap: 1.5rem; padding-bottom: 0.35rem; }
     .cta {
@@ -77,6 +91,25 @@
     .status { display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem; color: var(--ink-2); }
     .status i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--line); display: inline-block; }
     .status.ok i { background: var(--gold); }
+
+    .scroll-cue {
+      position: absolute; left: 50%; bottom: 1.25rem; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.55rem;
+      font-size: 0.75rem; color: var(--ink-2); letter-spacing: 0.02em;
+    }
+    .scroll-cue-dot {
+      width: 0.4rem; height: 0.7rem; border: 1px solid var(--line); border-radius: 999px;
+      position: relative;
+    }
+    .scroll-cue-dot::before {
+      content: ''; position: absolute; top: 0.12rem; left: 50%;
+      width: 2px; height: 4px; border-radius: 999px;
+      background: var(--gold); transform: translateX(-50%);
+    }
+    @keyframes scrollDot {
+      0%, 100% { transform: translate(-50%, 0); opacity: 1; }
+      50% { transform: translate(-50%, 4px); opacity: 0.4; }
+    }
 
     /* Features */
     .features { padding: clamp(4rem, 10vh, 6rem) 0; }
@@ -143,17 +176,19 @@
     footer { border-top: 1px solid var(--line); padding: 2.5rem 0; color: var(--ink-2); font-size: 0.875rem; }
     footer .wrap { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 
-    /* One entrance, hero only */
+    /* One entrance, on load — hero heading/rule are scroll-driven instead */
     @media (prefers-reduced-motion: no-preference) {
-      .hero h1, .hero .rule, .hero p, .hero-aside {
+      .hero p, .hero-aside {
         animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
       }
-      .hero .rule { animation-delay: 0.12s; }
-      .hero p { animation-delay: 0.2s; }
-      .hero-aside { animation-delay: 0.3s; }
+      .hero p { animation-delay: 0.1s; }
+      .hero-aside { animation-delay: 0.2s; }
       @keyframes rise {
         from { opacity: 0; transform: translateY(14px); }
         to { opacity: 1; transform: none; }
+      }
+      .scroll-cue-dot::before {
+        animation: scrollDot 1.6s ease-in-out infinite;
       }
     }
 
@@ -166,6 +201,7 @@
       .nav ul { gap: 1.25rem; }
       .grid { grid-template-columns: 1fr; }
       .panel { padding: 1.75rem; }
+      .scroll-cue { display: none; }
     }
   </style>
 </head>
@@ -192,6 +228,10 @@
           <button type="button" class="cta login-trigger">เริ่มต้นใช้งาน</button>
           <div class="status" id="status" role="status"><i aria-hidden="true"></i><span>กำลังตรวจสอบสถานะระบบ</span></div>
         </div>
+      </div>
+      <div class="scroll-cue" aria-hidden="true">
+        <span class="scroll-cue-dot"></span>
+        เลื่อนลงเพื่อดูเพิ่ม
       </div>
     </section>
 
@@ -302,6 +342,73 @@
         }
         note.textContent = 'ยังไม่เปิดให้เข้าสู่ระบบในเวอร์ชันนี้';
       });
+    })();
+
+    (function () {
+      var heading = document.querySelector('.hero h1');
+      var rule = document.querySelector('.hero .rule');
+      if (!heading) return;
+
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduceMotion) {
+        if (rule) rule.style.transform = 'scaleX(1)';
+        return;
+      }
+
+      function splitGraphemes(text) {
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          var seg = new Intl.Segmenter('th', { granularity: 'grapheme' });
+          return Array.from(seg.segment(text), function (s) { return s.segment; });
+        }
+        return Array.from(text);
+      }
+
+      var original = heading.textContent;
+      var clusters = splitGraphemes(original);
+      heading.textContent = '';
+      heading.setAttribute('aria-label', original);
+
+      var chars = [];
+      clusters.forEach(function (ch) {
+        if (/\s/.test(ch)) {
+          heading.appendChild(document.createTextNode(ch));
+        } else {
+          var span = document.createElement('span');
+          span.className = 'ch';
+          span.setAttribute('aria-hidden', 'true');
+          span.textContent = ch;
+          heading.appendChild(span);
+          chars.push(span);
+        }
+      });
+
+      var total = chars.length;
+      var ticking = false;
+
+      function update() {
+        ticking = false;
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        var progress = Math.min(1, Math.max(0, window.scrollY / (vh * 0.55)));
+        for (var i = 0; i < total; i++) {
+          var start = (i / total) * 0.75;
+          var t = Math.min(1, Math.max(0, (progress - start) / 0.18));
+          var eased = t * t * (3 - 2 * t);
+          chars[i].style.opacity = eased;
+          chars[i].style.transform = 'translateY(' + ((1 - eased) * 0.55) + 'em)';
+        }
+        if (rule) rule.style.transform = 'scaleX(' + Math.min(1, progress / 0.75) + ')';
+      }
+
+      function onScroll() {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      update();
     })();
   </script>
 </body>

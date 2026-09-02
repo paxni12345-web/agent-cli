@@ -71,6 +71,7 @@
       font-weight: 500; border-radius: 2px;
       transition: background 0.2s;
       align-self: flex-start;
+      border: 0; cursor: pointer; font: inherit;
     }
     .cta:hover { background: var(--gold-deep); }
     .status { display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem; color: var(--ink-2); }
@@ -97,8 +98,20 @@
     .grid h3 { font-family: var(--serif); font-weight: 400; font-size: 1.3rem; margin-bottom: 0.6rem; }
     .grid p { color: var(--ink-2); font-size: 0.95rem; max-width: 30ch; }
 
-    /* Login */
-    .login { padding: clamp(4rem, 10vh, 6rem) 0; border-top: 1px solid var(--line); }
+    /* Login screen — hidden until requested */
+    .login { display: none; padding: clamp(4rem, 14vh, 7rem) 0; min-height: calc(100vh - 4.25rem); }
+    body.show-login .login { display: block; }
+    body.show-login .hero,
+    body.show-login .features { display: none; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.875rem; color: var(--ink-2);
+      margin: 0 auto 1.75rem; max-width: 26rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--gold); }
+
     .panel { max-width: 26rem; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); padding: 2.5rem; }
     .panel h2 { font-family: var(--serif); font-weight: 300; font-size: 1.9rem; margin-bottom: 0.4rem; }
     .panel .sub { color: var(--ink-2); font-size: 0.925rem; margin-bottom: 2rem; }
@@ -162,7 +175,7 @@
       <a href="#" class="brand">Agent<span>.</span>CLI</a>
       <ul>
         <li><a href="#features">ฟีเจอร์</a></li>
-        <li><a href="#login">เข้าสู่ระบบ</a></li>
+        <li><a href="#login" class="login-trigger">เข้าสู่ระบบ</a></li>
       </ul>
     </div>
   </nav>
@@ -176,7 +189,7 @@
           <p>เขียนโค้ด วิเคราะห์ และปรับปรุงโปรเจคของคุณด้วย AI ที่เข้าใจโค้ดอย่างลึกซึ้ง</p>
         </div>
         <div class="hero-aside">
-          <a href="#login" class="cta">เริ่มต้นใช้งาน</a>
+          <button type="button" class="cta login-trigger">เริ่มต้นใช้งาน</button>
           <div class="status" id="status" role="status"><i aria-hidden="true"></i><span>กำลังตรวจสอบสถานะระบบ</span></div>
         </div>
       </div>
@@ -218,6 +231,7 @@
 
     <section class="login" id="login">
       <div class="wrap">
+        <a href="#" class="back-link" id="back-link">‹ กลับหน้าหลัก</a>
         <form class="panel" id="login-form" novalidate>
           <h2>เข้าสู่ระบบ</h2>
           <p class="sub">ใช้อีเมลที่ลงทะเบียนไว้กับ Agent CLI</p>
@@ -255,6 +269,28 @@
           text.textContent = ok ? 'ระบบพร้อมใช้งาน' : 'ระบบขัดข้องบางส่วน';
         })
         .catch(function () { text.textContent = 'ไม่สามารถตรวจสอบสถานะได้'; });
+
+      function showLogin() {
+        document.body.classList.add('show-login');
+        window.scrollTo(0, 0);
+      }
+      function hideLogin() {
+        document.body.classList.remove('show-login');
+        window.scrollTo(0, 0);
+      }
+
+      var triggers = document.querySelectorAll('.login-trigger');
+      for (var i = 0; i < triggers.length; i++) {
+        triggers[i].addEventListener('click', function (e) {
+          e.preventDefault();
+          showLogin();
+        });
+      }
+
+      document.getElementById('back-link').addEventListener('click', function (e) {
+        e.preventDefault();
+        hideLogin();
+      });
 
       var form = document.getElementById('login-form');
       var note = document.getElementById('login-note');

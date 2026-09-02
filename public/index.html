@@ -4,324 +4,269 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent CLI - ผู้ช่วย AI สำหรับนักพัฒนา</title>
+  <meta name="description" content="เขียนโค้ด วิเคราะห์ และปรับปรุงโปรเจคของคุณด้วย AI ที่เข้าใจโค้ดอย่างลึกซึ้ง">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Noto+Serif+Thai:wght@300;400&family=Inter:wght@400;500&family=Noto+Sans+Thai:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     :root {
-      --slate-950: #0F1117;
-      --slate-900: #171A23;
-      --slate-800: #1E222E;
-      --slate-700: #2A2F3E;
-      --slate-600: #3D4354;
-      --slate-400: #8B92A7;
-      --slate-300: #B5BACB;
-      --amber-400: #FBBF24;
-      --amber-500: #F59E0B;
+      --bg: #0B0F0E;
+      --surface: #121917;
+      --ink: #E9E4D8;
+      --ink-2: #A9A79C;
+      --line: #26302C;
+      --gold: #C9A96E;
+      --gold-deep: #B08F55;
+      --serif: 'Fraunces', 'Noto Serif Thai', Georgia, serif;
+      --sans: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
+      --max: 1120px;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: var(--slate-950);
-      color: var(--slate-300);
-      line-height: 1.6;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
     }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
 
-    /* Navbar */
-    nav {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      backdrop-filter: blur(12px);
-      background: rgba(15, 17, 23, 0.8);
-      border-bottom: 1px solid rgba(139, 146, 167, 0.1);
-      z-index: 1000;
+    /* Navigation */
+    .nav {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(11, 15, 14, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
     }
-
-    .nav-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .logo {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--amber-400);
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--slate-300);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--amber-400);
-    }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 4.25rem; }
+    .brand { font-family: var(--serif); font-size: 1.25rem; letter-spacing: 0.01em; }
+    .brand span { color: var(--gold); }
+    .nav ul { display: flex; gap: 2rem; list-style: none; }
+    .nav ul a { font-size: 0.925rem; color: var(--ink-2); transition: color 0.2s; }
+    .nav ul a:hover { color: var(--ink); }
 
     /* Hero */
-    .hero {
-      padding: 8rem 2rem 4rem;
-      text-align: center;
-      max-width: 1200px;
-      margin: 0 auto;
+    .hero { padding: clamp(5rem, 14vh, 9rem) 0 clamp(4rem, 10vh, 6rem); border-bottom: 1px solid var(--line); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 3rem; align-items: end; }
+    .hero h1 {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-size: clamp(2.6rem, 6.5vw, 5.25rem);
+      line-height: 1.12;
+      letter-spacing: -0.01em;
+      max-width: 16ch;
     }
-
-    h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      margin-bottom: 1.5rem;
-      background: linear-gradient(135deg, #FFFFFF 0%, var(--amber-400) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .hero .rule { width: 4.5rem; height: 1px; background: var(--gold); margin: 2rem 0; }
+    .hero p { font-size: 1.1rem; color: var(--ink-2); max-width: 34ch; }
+    .hero-aside { display: flex; flex-direction: column; gap: 1.5rem; padding-bottom: 0.35rem; }
+    .cta {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0.95rem 1.75rem;
+      background: var(--gold); color: var(--bg);
+      font-weight: 500; border-radius: 2px;
+      transition: background 0.2s;
+      align-self: flex-start;
     }
-
-    .hero p {
-      font-size: 1.25rem;
-      color: var(--slate-400);
-      margin-bottom: 2rem;
-    }
-
-    .cta-button {
-      display: inline-block;
-      padding: 1rem 2rem;
-      background: var(--amber-400);
-      color: var(--slate-950);
-      text-decoration: none;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.3s;
-    }
-
-    .cta-button:hover {
-      background: var(--amber-500);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
-    }
+    .cta:hover { background: var(--gold-deep); }
+    .status { display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem; color: var(--ink-2); }
+    .status i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--line); display: inline-block; }
+    .status.ok i { background: var(--gold); }
 
     /* Features */
-    .features {
-      padding: 4rem 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
+    .features { padding: clamp(4rem, 10vh, 6rem) 0; }
+    .features header { max-width: 40ch; margin-bottom: 3.5rem; }
+    .features h2 {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+      line-height: 1.25;
     }
-
-    .features-grid {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
     }
+    .grid article { background: var(--bg); padding: 2.25rem 2rem; }
+    .grid h3 { font-family: var(--serif); font-weight: 400; font-size: 1.3rem; margin-bottom: 0.6rem; }
+    .grid p { color: var(--ink-2); font-size: 0.95rem; max-width: 30ch; }
 
-    .feature-card {
-      background: var(--slate-900);
-      border: 1px solid var(--slate-700);
-      border-radius: 10px;
-      padding: 2rem;
-      transition: all 0.3s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--amber-400);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-    }
-
-    .feature-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .feature-card h3 {
-      color: #FFFFFF;
-      margin-bottom: 0.5rem;
-      font-size: 1.25rem;
-    }
-
-    .feature-card p {
-      color: var(--slate-400);
-      font-size: 0.95rem;
-    }
-
-    /* Login Form */
-    .login-section {
-      padding: 4rem 2rem;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    .login-form {
-      background: var(--slate-900);
-      border: 1px solid var(--slate-700);
-      border-radius: 10px;
-      padding: 2rem;
-    }
-
-    .login-form h2 {
-      color: #FFFFFF;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: var(--slate-300);
-      font-size: 0.9rem;
-    }
-
-    .form-group input {
+    /* Login */
+    .login { padding: clamp(4rem, 10vh, 6rem) 0; border-top: 1px solid var(--line); }
+    .panel { max-width: 26rem; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); padding: 2.5rem; }
+    .panel h2 { font-family: var(--serif); font-weight: 300; font-size: 1.9rem; margin-bottom: 0.4rem; }
+    .panel .sub { color: var(--ink-2); font-size: 0.925rem; margin-bottom: 2rem; }
+    .field { margin-bottom: 1.25rem; }
+    .field label { display: block; font-size: 0.85rem; color: var(--ink-2); margin-bottom: 0.45rem; }
+    .field input {
       width: 100%;
-      padding: 0.75rem 1rem;
-      background: var(--slate-800);
-      border: 1px solid var(--slate-600);
-      border-radius: 6px;
-      color: #FFFFFF;
-      font-size: 1rem;
+      padding: 0.8rem 0.95rem;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font: inherit; font-size: 1rem;
+      border-radius: 2px;
       transition: border-color 0.2s;
     }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--amber-400);
-    }
-
-    .submit-button {
+    .field input::placeholder { color: #5E645E; }
+    .field input:focus { border-color: var(--gold); outline: none; }
+    .btn {
       width: 100%;
-      padding: 0.875rem;
-      background: var(--amber-400);
-      color: var(--slate-950);
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
+      padding: 0.9rem;
+      background: var(--ink); color: var(--bg);
+      border: 0; font: inherit; font-weight: 500;
+      border-radius: 2px; cursor: pointer;
       transition: background 0.2s;
     }
+    .btn:hover { background: #FFFFFF; }
+    .note { min-height: 1.5rem; margin-top: 1rem; font-size: 0.875rem; color: var(--gold); }
 
-    .submit-button:hover {
-      background: var(--amber-500);
+    footer { border-top: 1px solid var(--line); padding: 2.5rem 0; color: var(--ink-2); font-size: 0.875rem; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+    /* One entrance, hero only */
+    @media (prefers-reduced-motion: no-preference) {
+      .hero h1, .hero .rule, .hero p, .hero-aside {
+        animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .hero .rule { animation-delay: 0.12s; }
+      .hero p { animation-delay: 0.2s; }
+      .hero-aside { animation-delay: 0.3s; }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: none; }
+      }
     }
 
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 3rem 2rem;
-      border-top: 1px solid var(--slate-800);
-      color: var(--slate-400);
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 2.25rem; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .grid article { padding: 1.75rem 1.5rem; }
     }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2.5rem;
-      }
-
-      .hero p {
-        font-size: 1rem;
-      }
-
-      .nav-links {
-        gap: 1rem;
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 600px) {
+      .nav ul { gap: 1.25rem; }
+      .grid { grid-template-columns: 1fr; }
+      .panel { padding: 1.75rem; }
     }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="nav-container">
-      <div class="logo">Agent CLI</div>
-      <ul class="nav-links">
+  <nav class="nav" aria-label="หลัก">
+    <div class="wrap">
+      <a href="#" class="brand">Agent<span>.</span>CLI</a>
+      <ul>
         <li><a href="#features">ฟีเจอร์</a></li>
         <li><a href="#login">เข้าสู่ระบบ</a></li>
       </ul>
     </div>
   </nav>
 
-  <section class="hero">
-    <h1>ผู้ช่วย AI ที่ทรงพลัง<br>สำหรับนักพัฒนา</h1>
-    <p>เขียนโค้ด วิเคราะห์ และปรับปรุงโปรเจคของคุณด้วย AI ที่ฉลาดที่สุด</p>
-    <a href="#login" class="cta-button">เริ่มต้นใช้งาน</a>
-  </section>
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <h1>ผู้ช่วย AI ที่ทรงพลัง สำหรับนักพัฒนา</h1>
+          <div class="rule" aria-hidden="true"></div>
+          <p>เขียนโค้ด วิเคราะห์ และปรับปรุงโปรเจคของคุณด้วย AI ที่เข้าใจโค้ดอย่างลึกซึ้ง</p>
+        </div>
+        <div class="hero-aside">
+          <a href="#login" class="cta">เริ่มต้นใช้งาน</a>
+          <div class="status" id="status" role="status"><i aria-hidden="true"></i><span>กำลังตรวจสอบสถานะระบบ</span></div>
+        </div>
+      </div>
+    </section>
 
-  <section class="features" id="features">
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <h3>AI ที่ฉลาดมาก</h3>
-        <p>ใช้โมเดล Claude 5 ล่าสุดเพื่อการเข้าใจโค้ดที่ลึกซึ้ง</p>
+    <section class="features" id="features">
+      <div class="wrap">
+        <header>
+          <h2>ทุกอย่างที่นักพัฒนาต้องการ อยู่ในบรรทัดคำสั่งเดียว</h2>
+        </header>
+        <div class="grid">
+          <article>
+            <h3>AI ที่ฉลาดมาก</h3>
+            <p>ใช้โมเดล Claude 5 ล่าสุดเพื่อการเข้าใจโค้ดที่ลึกซึ้ง</p>
+          </article>
+          <article>
+            <h3>ทำงานเร็วทันใจ</h3>
+            <p>ตอบสนองรวดเร็ว ไม่ต้องรอนาน พร้อมใช้งานได้ทันที</p>
+          </article>
+          <article>
+            <h3>ปลอดภัยสูงสุด</h3>
+            <p>เข้ารหัสข้อมูลทั้งหมด ปกป้องโค้ดของคุณอย่างเต็มที่</p>
+          </article>
+          <article>
+            <h3>วิเคราะห์โค้ด</h3>
+            <p>ตรวจสอบคุณภาพโค้ด หาจุดที่ต้องปรับปรุงได้อัตโนมัติ</p>
+          </article>
+          <article>
+            <h3>Deploy ง่าย</h3>
+            <p>เชื่อมต่อกับ GitHub และ Render ได้โดยตรง</p>
+          </article>
+          <article>
+            <h3>สนทนาธรรมชาติ</h3>
+            <p>สั่งงานด้วยภาษาไทย เหมือนคุยกับเพื่อนร่วมงาน</p>
+          </article>
+        </div>
       </div>
+    </section>
 
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>ทำงานเร็วทันใจ</h3>
-        <p>ตอบสนองรวดเร็ว ไม่ต้องรอนาน พร้อมใช้งานได้ทันที</p>
+    <section class="login" id="login">
+      <div class="wrap">
+        <form class="panel" id="login-form" novalidate>
+          <h2>เข้าสู่ระบบ</h2>
+          <p class="sub">ใช้อีเมลที่ลงทะเบียนไว้กับ Agent CLI</p>
+          <div class="field">
+            <label for="email">อีเมล</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="password">รหัสผ่าน</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn">เข้าสู่ระบบ</button>
+          <p class="note" id="login-note" role="status"></p>
+        </form>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>ปลอดภัยสูงสุด</h3>
-        <p>เข้ารหัสข้อมูลทั้งหมด ปกป้องโค้ดของคุณอย่างเต็มที่</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>วิเคราะห์โค้ด</h3>
-        <p>ตรวจสอบคุณภาพโค้ด หาจุดที่ต้องปรับปรุงได้อัตโนมัติ</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🚀</div>
-        <h3>Deploy ง่าย</h3>
-        <p>เชื่อมต่อกับ GitHub และ Render ได้โดยตรง</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">💬</div>
-        <h3>สนทนาธรรมชาติ</h3>
-        <p>สั่งงานด้วยภาษาไทย เหมือนคุยกับเพื่อนร่วมงาน</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="login-section" id="login">
-    <form class="login-form">
-      <h2>เข้าสู่ระบบ</h2>
-      <div class="form-group">
-        <label for="email">อีเมล</label>
-        <input type="email" id="email" placeholder="you@example.com" required>
-      </div>
-      <div class="form-group">
-        <label for="password">รหัสผ่าน</label>
-        <input type="password" id="password" placeholder="••••••••" required>
-      </div>
-      <button type="submit" class="submit-button">เข้าสู่ระบบ</button>
-    </form>
-  </section>
+    </section>
+  </main>
 
   <footer>
-    <p>© 2026 Agent CLI. สร้างด้วย ❤️ สำหรับนักพัฒนา</p>
+    <div class="wrap">
+      <span>© 2026 Agent CLI</span>
+      <span>สร้างสำหรับนักพัฒนา</span>
+    </div>
   </footer>
+
+  <script>
+    (function () {
+      var el = document.getElementById('status');
+      var text = el.querySelector('span');
+      fetch('/api/health', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function (d) {
+          var ok = d && d.status === 'healthy';
+          el.classList.toggle('ok', ok);
+          text.textContent = ok ? 'ระบบพร้อมใช้งาน' : 'ระบบขัดข้องบางส่วน';
+        })
+        .catch(function () { text.textContent = 'ไม่สามารถตรวจสอบสถานะได้'; });
+
+      var form = document.getElementById('login-form');
+      var note = document.getElementById('login-note');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          note.textContent = 'กรุณากรอกอีเมลและรหัสผ่านให้ครบ';
+          return;
+        }
+        note.textContent = 'ยังไม่เปิดให้เข้าสู่ระบบในเวอร์ชันนี้';
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -6,11 +6,9 @@
 
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import cors from 'cors';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Compiled as CommonJS: __dirname is provided by the module wrapper.
 
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -11,9 +11,12 @@ RUN npm ci --only=production
 # Copy application files
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 ENV NODE_ENV=production
 ENV PORT=10000
 
 EXPOSE 10000
 
-CMD ["node", "dist/server.cjs"]
+CMD ["sh", "start.sh"]

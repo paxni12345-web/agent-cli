@@ -10,10 +10,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
-const url_1 = require("url");
 const cors_1 = __importDefault(require("cors"));
-const __filename = (0, url_1.fileURLToPath)(import.meta.url);
-const __dirname = path_1.default.dirname(__filename);
+const url_1 = require("url");
+// Fix for CommonJS compatibility
+const __filename = typeof import.meta !== 'undefined'
+    ? (0, url_1.fileURLToPath)(import.meta.url)
+    : __filename;
+const __dirname = typeof import.meta !== 'undefined'
+    ? path_1.default.dirname(__filename)
+    : __dirname;
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Rate limiting state

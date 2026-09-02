@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Production-ready autonomous AI coding agent CLI",
   "main": "dist/index.js",
-  "type": "module",
   "bin": {
     "agent": "./dist/cli.js",
     "agent-ui": "./dist/cli-ui.js",

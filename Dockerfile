@@ -1,9 +1,14 @@
-# Simplest Dockerfile - No npm ci
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy everything
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application files
 COPY . .
 
 ENV NODE_ENV=production
@@ -11,5 +16,4 @@ ENV PORT=10000
 
 EXPOSE 10000
 
-# Run directly (all deps already in node_modules if any)
 CMD ["node", "dist/server.js"]

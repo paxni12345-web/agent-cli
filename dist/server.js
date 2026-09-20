@@ -11,10 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const cors_1 = __importDefault(require("cors"));
-// CommonJS doesn't have import.meta or __filename/__dirname in strict mode
-// Use require.main.filename as fallback
-const __filename = require.main ? require.main.filename : process.cwd() + '/dist/server.js';
-const __dirname = path_1.default.dirname(__filename);
+// Compiled as CommonJS: __dirname is provided by the module wrapper.
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Rate limiting state

@@ -620,6 +620,13 @@ export class Agent {
   }
 
   /**
+   * Gets the tool registry (read-only access for reporting)
+   */
+  getToolRegistry(): ToolRegistry {
+    return this.toolRegistry;
+  }
+
+  /**
    * Gets error recovery system
    */
   getErrorRecovery(): ErrorRecoverySystem {

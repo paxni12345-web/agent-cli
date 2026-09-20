@@ -89,6 +89,13 @@ export interface JSONSchema {
   type: string;
   properties?: Record<string, unknown>;
   required?: string[];
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  minItems?: number;
+  maxItems?: number;
+  items?: JSONSchema;
   [key: string]: unknown;
 }
 

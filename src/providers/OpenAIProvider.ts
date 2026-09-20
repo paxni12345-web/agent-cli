@@ -2,17 +2,27 @@
 
 import OpenAI from 'openai';
 import { BaseAIProvider } from './AIProvider.js';
-import { ChatRequest, ChatResponse, ChatChunk, ToolCall, ProviderError } from '../types/index.js';
+import {
+  ChatRequest,
+  ChatResponse,
+  ChatChunk,
+  ToolCall,
+  ProviderError,
+  ContentBlock,
+} from '../types/index.js';
 
 export class OpenAIProvider extends BaseAIProvider {
   name = 'openai';
   private client: OpenAI;
   private model: string;
 
-  constructor(apiKey: string, options?: { baseUrl?: string; model?: string }) {
+  constructor(
+    apiKey: string,
+    options?: { baseUrl?: string; model?: string; client?: OpenAI }
+  ) {
     super();
     this.model = options?.model || 'gpt-4-turbo-preview';
-    this.client = new OpenAI({
+    this.client = options?.client ?? new OpenAI({
       apiKey,
       baseURL: options?.baseUrl,
     });
@@ -34,18 +44,10 @@ export class OpenAIProvider extends BaseAIProvider {
       // Add conversation messages
       for (const msg of request.messages) {
         if (msg.role !== 'system') {
-          if (typeof msg.content === 'string') {
-            messages.push({
-              role: msg.role,
-              content: msg.content,
-            } as any);
-          } else {
-            // Handle content blocks (tool results)
-            messages.push({
-              role: msg.role,
-              content: msg.content,
-            } as any);
-          }
+          messages.push({
+            role: msg.role,
+            content: this.toOpenAIContent(msg.content),
+          });
         }
       }
 
@@ -112,6 +114,24 @@ export class OpenAIProvider extends BaseAIProvider {
   }
 
   /**
+   * Converts internal content (string or ContentBlock[]) into OpenAI-compatible content.
+   * Tool-use/result blocks carry no meaning for OpenAI text content — flatten to text.
+   */
+  private toOpenAIContent(content: string | ContentBlock[]): string {
+    if (typeof content === 'string') {
+      return content;
+    }
+    return content
+      .map(block => {
+        if (block.type === 'text') return block.text ?? '';
+        if (block.type === 'tool_result') return block.content ?? '';
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  /**
    * Map tool choice to OpenAI format
    */
   private mapToolChoice(choice: ChatRequest['toolChoice']): any {
@@ -149,7 +169,7 @@ export class OpenAIProvider extends BaseAIProvider {
         if (msg.role !== 'system') {
           messages.push({
             role: msg.role,
-            content: msg.content,
+            content: this.toOpenAIContent(msg.content),
           });
         }
       }

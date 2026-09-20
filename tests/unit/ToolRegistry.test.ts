@@ -1,7 +1,7 @@
 // Basic unit tests for core components
 
-import { ToolRegistry } from '../src/tools/ToolRegistry';
-import { Tool, ToolContext, ToolResult } from '../src/types/index';
+import { ToolRegistry } from '../../src/tools/ToolRegistry.js';
+import { Tool } from '../../src/types/index.js';
 
 describe('ToolRegistry', () => {
   let registry: ToolRegistry;

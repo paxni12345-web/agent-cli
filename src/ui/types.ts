@@ -2,8 +2,17 @@
  * Type Definitions for UI Components
  */
 
+export interface ToolEvent {
+  id: string;
+  name: string;
+  status: 'running' | 'done' | 'failed';
+  startedAt: number;
+  durationMs?: number;
+  summary?: string;
+}
+
 export interface AgentStatus {
-  status: 'idle' | 'thinking' | 'executing' | 'completed' | 'error';
+  status: 'idle' | 'thinking' | 'executing';
   model: string;
   mode: 'normal' | 'fast' | 'ultra';
   workingDir: string;
@@ -21,21 +30,4 @@ export interface Message {
     duration?: number;
     tools?: string[];
   };
-}
-
-export interface ToolExecution {
-  id: string;
-  name: string;
-  status: 'running' | 'completed' | 'failed';
-  startTime: Date;
-  endTime?: Date;
-  output?: string;
-  error?: string;
-}
-
-export interface SystemNotification {
-  id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  message: string;
-  timestamp: Date;
 }

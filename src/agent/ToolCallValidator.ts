@@ -5,7 +5,7 @@
  * for tool calls to ensure stability and security.
  */
 
-import { ToolCall, JSONSchema, ValidationError } from '../types/index.js';
+import { ToolCall, JSONSchema } from '../types/index.js';
 
 export interface ValidationResult {
   valid: boolean;
@@ -52,6 +52,7 @@ export class ToolCallValidator {
       const result = this.validateArray(toolCall.input, schema);
       errors.push(...result.errors);
       warnings.push(...result.warnings);
+      sanitizedInput = toolCall.input;
     }
 
     return {

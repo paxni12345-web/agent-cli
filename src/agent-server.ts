@@ -1,39 +1,28 @@
-/**
- * Agent API Server - Full integration with Agent system
- */
-
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import cors from 'cors';
 import { Agent } from './agent/Agent.js';
 import { ToolRegistry } from './tools/ToolRegistry.js';
 import { AnthropicProvider } from './providers/AnthropicProvider.js';
-import { PermissionManager, Config } from './types/index.js';
-
-// Import tools
+import { Action, PermissionManager, PermissionResult, Config } from './types/index.js';
 import { ReadFileTool, WriteFileTool, ListFilesTool, EditFileTool } from './tools/FileTools.js';
 import { ShellTool } from './tools/ShellTool.js';
 import { SearchCodeTool } from './tools/SearchTool.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Simple permission manager for demo
+// Demo policy: approve everything.
 class SimplePermissionManager implements PermissionManager {
-  check(action: any) {
+  check(_action: Action): PermissionResult {
     return { allowed: true };
   }
 
-  async requestApproval(action: any): Promise<boolean> {
+  async requestApproval(_action: Action): Promise<boolean> {
     return true;
   }
 }
@@ -100,7 +89,8 @@ app.post('/api/agent/run', async (req, res) => {
     const { message, config: clientConfig } = req.body;
 
     if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+      res.status(400).json({ error: 'Message is required' });
+      return;
     }
 
     if (!agent) {
@@ -160,10 +150,11 @@ app.post('/api/agent/run', async (req, res) => {
 // Get agent status
 app.get('/api/agent/status', (req, res) => {
   if (!agent) {
-    return res.json({
+    res.json({
       status: 'not_initialized',
       tools: [],
     });
+    return;
   }
 
   const state = agent.getState();
@@ -183,7 +174,8 @@ app.get('/api/agent/status', (req, res) => {
 // Get performance report
 app.get('/api/agent/report', (req, res) => {
   if (!agent) {
-    return res.json({ error: 'Agent not initialized' });
+    res.json({ error: 'Agent not initialized' });
+    return;
   }
 
   const monitor = agent.getPerformanceMonitor();
@@ -200,7 +192,8 @@ app.get('/api/agent/report', (req, res) => {
 // Get tool metrics
 app.get('/api/agent/metrics/:toolName', (req, res) => {
   if (!agent) {
-    return res.json({ error: 'Agent not initialized' });
+    res.json({ error: 'Agent not initialized' });
+    return;
   }
 
   const { toolName } = req.params;
@@ -208,7 +201,8 @@ app.get('/api/agent/metrics/:toolName', (req, res) => {
   const metrics = monitor.getToolMetrics(toolName);
 
   if (!metrics) {
-    return res.status(404).json({ error: 'Tool not found' });
+    res.status(404).json({ error: 'Tool not found' });
+    return;
   }
 
   res.json(metrics);
@@ -217,7 +211,8 @@ app.get('/api/agent/metrics/:toolName', (req, res) => {
 // Export metrics
 app.get('/api/agent/export', (req, res) => {
   if (!agent) {
-    return res.json({ error: 'Agent not initialized' });
+    res.json({ error: 'Agent not initialized' });
+    return;
   }
 
   const data = agent.exportPerformanceData();

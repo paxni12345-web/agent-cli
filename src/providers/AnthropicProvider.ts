@@ -7,10 +7,15 @@ import { ChatRequest, ChatResponse, ChatChunk, ToolCall, ProviderError } from '.
 export class AnthropicProvider extends BaseAIProvider {
   name = 'anthropic';
   private client: Anthropic;
+  private model: string;
 
-  constructor(apiKey: string, options?: { baseUrl?: string }) {
+  constructor(
+    apiKey: string,
+    options?: { baseUrl?: string; model?: string; client?: Anthropic }
+  ) {
     super();
-    this.client = new Anthropic({
+    this.model = options?.model || 'claude-3-5-sonnet-20241022';
+    this.client = options?.client ?? new Anthropic({
       apiKey,
       baseURL: options?.baseUrl,
     });
@@ -23,7 +28,7 @@ export class AnthropicProvider extends BaseAIProvider {
 
       // Build API request
       const apiRequest: any = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: this.model,
         max_tokens: request.maxTokens || 8192,
         temperature: request.temperature || 0.7,
         system: systemPrompt || undefined,
@@ -80,24 +85,37 @@ export class AnthropicProvider extends BaseAIProvider {
 
   /**
    * Format messages for Anthropic API
-   * Handles both string and ContentBlock[] content
+   * Converts string or ContentBlock[] content into Anthropic-compatible blocks
    */
   private formatMessages(messages: ChatRequest['messages']): any[] {
     return messages
       .filter(m => m.role !== 'system')
       .map(m => {
         if (typeof m.content === 'string') {
-          return {
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          };
-        } else {
-          // Content blocks (for tool results)
-          return {
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          };
+          return { role: m.role, content: m.content };
         }
+
+        const blocks = m.content.map(block => {
+          if (block.type === 'tool_use') {
+            return {
+              type: 'tool_use' as const,
+              id: block.id ?? '',
+              name: block.name ?? '',
+              input: (block.input as Record<string, unknown>) ?? {},
+            };
+          }
+          if (block.type === 'tool_result') {
+            return {
+              type: 'tool_result' as const,
+              tool_use_id: block.tool_use_id ?? '',
+              content: block.content ?? '',
+              ...(block.is_error ? { is_error: true } : {}),
+            };
+          }
+          return { type: 'text' as const, text: block.text ?? '' };
+        });
+
+        return { role: m.role, content: blocks };
       });
   }
 
@@ -122,17 +140,12 @@ export class AnthropicProvider extends BaseAIProvider {
 
   async *stream(request: ChatRequest): AsyncIterable<ChatChunk> {
     try {
-      const messages = request.messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        }));
+      const messages = this.formatMessages(request.messages);
 
       const systemPrompt = this.buildSystemPrompt(request);
 
       const stream = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: this.model,
         max_tokens: request.maxTokens || 8192,
         temperature: request.temperature || 0.7,
         system: systemPrompt || undefined,

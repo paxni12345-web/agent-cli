@@ -2,28 +2,27 @@
  * Unit tests for OpenAI Provider
  */
 
-import { OpenAIProvider } from '../../src/providers/OpenAIProvider';
-import { ChatRequest } from '../../src/types';
-
-// Mock OpenAI SDK
-jest.mock('openai', () => {
-  return jest.fn().mockImplementation(() => ({
-    chat: {
-      completions: {
-        create: jest.fn(),
-      },
-    },
-  }));
-});
+import { jest } from '@jest/globals';
+import OpenAI from 'openai';
+import { OpenAIProvider } from '../../src/providers/OpenAIProvider.js';
+import { ChatRequest } from '../../src/types/index.js';
 
 describe('OpenAIProvider', () => {
   let provider: OpenAIProvider;
   let mockClient: any;
 
   beforeEach(() => {
-    const OpenAI = require('openai');
-    provider = new OpenAIProvider('test-api-key');
-    mockClient = new OpenAI();
+    mockClient = {
+      chat: {
+        completions: {
+          create: jest.fn(),
+        },
+      },
+    } as any;
+
+    provider = new OpenAIProvider('test-api-key', {
+      client: mockClient,
+    });
   });
 
   afterEach(() => {
@@ -152,6 +151,40 @@ describe('OpenAIProvider', () => {
       const call = mockClient.chat.completions.create.mock.calls[0][0];
       expect(call.messages[0].role).toBe('system');
       expect(call.messages[0].content).toBe('You are helpful');
+    });
+
+    it('should flatten tool_result content blocks to text', async () => {
+      const mockResponse = {
+        choices: [
+          {
+            message: { role: 'assistant', content: 'ok' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      };
+
+      mockClient.chat.completions.create.mockResolvedValue(mockResponse);
+
+      const request: ChatRequest = {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'call_1',
+                content: 'tool output text',
+              },
+            ],
+          },
+        ],
+      };
+
+      await provider.chat(request);
+
+      const call = mockClient.chat.completions.create.mock.calls[0][0];
+      expect(call.messages[0].content).toBe('tool output text');
     });
   });
 

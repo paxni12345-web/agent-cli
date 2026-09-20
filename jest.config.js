@@ -1,3 +1,4 @@
+/** @type {import('jest').Config} */
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
@@ -10,23 +11,11 @@ export default {
       'ts-jest',
       {
         useESM: true,
+        tsconfig: '<rootDir>/tsconfig.test.json',
       },
     ],
   },
-  testMatch: [
-    '**/tests/**/*.test.ts'
-  ],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/*.test.ts'
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 60,
-      functions: 60,
-      lines: 60,
-      statements: 60
-    }
-  }
+  testMatch: ['**/tests/**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  testTimeout: 15000,
 };

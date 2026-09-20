@@ -1,11 +1,9 @@
 /**
- * StatusBar Component - Bottom Status Bar
- * Shows real-time stats like Claude Code
+ * StatusBar — bottom bar with live token usage, tasks, and mode
  */
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import chalk from 'chalk';
 import { AgentStatus } from '../types.js';
 
 interface StatusBarProps {
@@ -13,68 +11,39 @@ interface StatusBarProps {
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
-  // Format large numbers with K/M suffix
   const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  // Calculate token usage percentage (assume 200K max)
+  // 200K context window assumption
   const tokenPercentage = Math.min((status.tokensUsed / 200000) * 100, 100);
-  const tokenBarWidth = 20;
-  const tokenFilled = Math.floor((tokenPercentage / 100) * tokenBarWidth);
-  const tokenEmpty = tokenBarWidth - tokenFilled;
+  const barWidth = 18;
+  const filled = Math.round((tokenPercentage / 100) * barWidth);
+  const empty = barWidth - filled;
 
-  // Token bar color based on usage
-  const getTokenColor = () => {
-    if (tokenPercentage > 80) return 'red';
-    if (tokenPercentage > 50) return 'yellow';
-    return 'green';
-  };
+  const barColor = tokenPercentage > 80 ? 'red' : tokenPercentage > 50 ? 'yellow' : 'green';
 
   return (
-    <Box
-      borderStyle="round"
-      borderColor="gray"
-      paddingX={1}
-      marginX={2}
-      marginBottom={1}
-    >
-      <Box justifyContent="space-between" width="100%">
-        {/* Left: Tasks */}
-        <Box gap={2}>
-          <Text color="green">
-            ✓ Tasks: {status.tasksCompleted}
+    <Box paddingLeft={2} paddingRight={2} paddingTop={0} paddingBottom={1}>
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingX={1}
+        justifyContent="space-between"
+        width="100%"
+      >
+        <Text color="green">✓ {status.tasksCompleted} tasks</Text>
+        <Text>
+          <Text color="gray">tok </Text>
+          <Text color={barColor}>
+            {'█'.repeat(filled)}
+            {'░'.repeat(empty)}
           </Text>
-        </Box>
-
-        {/* Center: Token Usage */}
-        <Box gap={1}>
-          <Text color="gray">Tokens:</Text>
-          <Text color={getTokenColor()}>
-            [{chalk[getTokenColor()]('█'.repeat(tokenFilled))}
-            {chalk.gray('░'.repeat(tokenEmpty))}]
-          </Text>
-          <Text color={getTokenColor()}>
-            {formatNumber(status.tokensUsed)}/200K
-          </Text>
-          <Text color="gray">
-            ({tokenPercentage.toFixed(0)}%)
-          </Text>
-        </Box>
-
-        {/* Right: Model */}
-        <Box gap={1}>
-          <Text color="gray">Model:</Text>
-          <Text color="cyan">
-            {status.model.split('-').pop()?.toUpperCase()}
-          </Text>
-        </Box>
+          <Text color={barColor}> {formatNumber(status.tokensUsed)}/200K</Text>
+        </Text>
+        <Text color="gray">ctrl+c exit</Text>
       </Box>
     </Box>
   );

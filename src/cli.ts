@@ -1,43 +1,78 @@
 #!/usr/bin/env node
 
-/**
- * CLI Entry Point with Enhanced Stability
- * Version: 1.0.0 - Stability Improvements
- *
- * Changes:
- * - Comprehensive error handling
- * - Graceful degradation
- * - Better resource cleanup
- * - Signal handling
- * - Timeout protection
- */
-
 import { Command } from 'commander';
 import * as readline from 'readline';
 import chalk from 'chalk';
-import ora from 'ora';
-import { Agent } from './agent/Agent';
-import { AnthropicProvider } from './providers/AnthropicProvider';
-import { OpenAIProvider } from './providers/OpenAIProvider';
-import { ToolRegistry } from './tools/ToolRegistry';
-import { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './tools/FileTools';
-import { ShellTool } from './tools/ShellTool';
-import { SearchCodeTool } from './tools/SearchTool';
-import { GitStatusTool, GitDiffTool, GitLogTool } from './tools/GitTools';
-import { DefaultPermissionManager } from './security/PermissionManager';
-import { ConfigLoader } from './config/ConfigLoader';
-import { Config, PermissionMode } from './types/index';
+import { Agent } from './agent/Agent.js';
+import { AnthropicProvider } from './providers/AnthropicProvider.js';
+import { OpenAIProvider } from './providers/OpenAIProvider.js';
+import { ToolRegistry } from './tools/ToolRegistry.js';
+import { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './tools/FileTools.js';
+import { ShellTool } from './tools/ShellTool.js';
+import { SearchCodeTool } from './tools/SearchTool.js';
+import { GitStatusTool, GitDiffTool, GitLogTool } from './tools/GitTools.js';
+import { DefaultPermissionManager } from './security/PermissionManager.js';
+import { ConfigLoader } from './config/ConfigLoader.js';
+import { Config, PermissionMode } from './types/index.js';
 
 const program = new Command();
 
-// Global state for cleanup
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+interface Spinner {
+  text: string;
+  start(): Spinner;
+  stop(): void;
+}
+
+function createSpinner(initialText: string): Spinner {
+  const interactive = Boolean(process.stdout.isTTY);
+  let text = initialText;
+  let frame = 0;
+  let timer: NodeJS.Timeout | null = null;
+
+  function render() {
+    process.stdout.write(`\r${chalk.cyan(SPINNER_FRAMES[frame])} ${chalk.gray(text)}`);
+    frame = (frame + 1) % SPINNER_FRAMES.length;
+  }
+
+  const spinner: Spinner = {
+    get text() {
+      return text;
+    },
+    set text(value: string) {
+      text = value;
+    },
+    start() {
+      if (!interactive) {
+        console.log(chalk.gray(text));
+        return spinner;
+      }
+      render();
+      timer = setInterval(render, 80);
+      return spinner;
+    },
+    stop() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (interactive) {
+        process.stdout.write('\r\x1b[K');
+      }
+    },
+  };
+
+  return spinner;
+}
+
 let rl: readline.Interface | null = null;
 let currentAgent: Agent | null = null;
 
 program
   .name('agent')
-  .description('Production-ready autonomous AI coding agent CLI')
-  .version('0.1.0');
+  .description('Autonomous AI coding agent CLI')
+  .version('0.2.0');
 
 program
   .command('init')
@@ -70,7 +105,7 @@ program
   .description('Start interactive chat session')
   .option('-p, --provider <provider>', 'AI provider (anthropic or openai)')
   .option('-m, --model <model>', 'Model to use')
-  .option('--permission-mode <mode>', 'Permission mode (auto, normal, strict)')
+  .option('--permission-mode <mode>', 'Permission mode (safe, normal, auto, dangerous)')
   .option('--max-iterations <number>', 'Maximum iterations', parseInt)
   .action(async (options) => {
     try {
@@ -98,6 +133,43 @@ program
     }
   });
 
+function printBanner(config: Config) {
+  const line = chalk.cyan('─'.repeat(62));
+  console.log();
+  console.log(line);
+  console.log(
+    chalk.cyanBright.bold('  ◆ AGENT CLI ') +
+      chalk.gray('v0.2.0') +
+      chalk.gray('  ·  autonomous coding agent')
+  );
+  console.log(line);
+  console.log(
+    '  ' +
+      chalk.gray('provider') +
+      '  ' +
+      chalk.white(config.provider) +
+      '    ' +
+      chalk.gray('model') +
+      '  ' +
+      chalk.white(config.model)
+  );
+  console.log(
+    '  ' +
+      chalk.gray('mode') +
+      '  ' +
+      chalk.magenta(config.permissionMode) +
+      '    ' +
+      chalk.gray('workspace') +
+      '  ' +
+      chalk.gray(config.workspaceRoot)
+  );
+  console.log(
+    '  ' + chalk.gray("type your message · ") + chalk.white('/help') + chalk.gray(' for commands')
+  );
+  console.log(line);
+  console.log();
+}
+
 async function startChat(options: any) {
   const configLoader = new ConfigLoader();
   let config: Config;
@@ -106,16 +178,14 @@ async function startChat(options: any) {
     config = await configLoader.load();
   } catch (error) {
     console.log(chalk.yellow('⚠ No configuration found, using defaults'));
-    config = configLoader.getDefaults();
+    config = ConfigLoader.getDefaults();
   }
 
-  // Override with CLI options
   if (options.provider) config.provider = options.provider;
   if (options.model) config.model = options.model;
-  if (options.permissionMode) config.permissionMode = options.permissionMode;
+  if (options.permissionMode) config.permissionMode = options.permissionMode as PermissionMode;
   if (options.maxIterations) config.maxIterations = options.maxIterations;
 
-  // Validate API key
   const apiKey = config.provider === 'anthropic'
     ? process.env.ANTHROPIC_API_KEY
     : process.env.OPENAI_API_KEY;
@@ -129,7 +199,6 @@ async function startChat(options: any) {
     process.exit(1);
   }
 
-  // Initialize provider with error handling
   let provider;
   try {
     provider = createProvider(config, apiKey);
@@ -139,7 +208,6 @@ async function startChat(options: any) {
     process.exit(1);
   }
 
-  // Initialize tool registry
   const toolRegistry = new ToolRegistry();
   try {
     toolRegistry.register(new ListFilesTool());
@@ -157,10 +225,8 @@ async function startChat(options: any) {
     process.exit(1);
   }
 
-  // Initialize permission manager
   const permissions = new DefaultPermissionManager(config.permissionMode);
 
-  // Initialize agent
   try {
     currentAgent = new Agent(provider, toolRegistry, permissions, config);
   } catch (error) {
@@ -169,17 +235,13 @@ async function startChat(options: any) {
     process.exit(1);
   }
 
-  console.log(chalk.cyan('\n🤖 Agent CLI v0.1.0'));
-  console.log(chalk.gray(`Provider: ${config.provider} | Model: ${config.model}`));
-  console.log(chalk.gray(`Permission Mode: ${config.permissionMode}`));
-  console.log(chalk.gray('\nType your message or /help for commands\n'));
+  printBanner(config);
 
-  // Create readline interface with error handling
   try {
     rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: chalk.cyan('You: '),
+      prompt: chalk.cyan('❯ '),
     });
   } catch (error) {
     console.error(chalk.red('✗ Failed to create readline interface:'));
@@ -197,7 +259,6 @@ async function startChat(options: any) {
       return;
     }
 
-    // Handle commands
     if (input.startsWith('/')) {
       try {
         await handleCommand(input, currentAgent!, config);
@@ -209,21 +270,20 @@ async function startChat(options: any) {
       return;
     }
 
-    // Process user message with timeout and error handling
-    const spinner = ora('Thinking...').start();
+    const spinner = createSpinner('Thinking...').start();
 
     try {
-      // Add timeout protection (5 minutes)
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Request timeout after 5 minutes')), 300000);
       });
 
-      const responsePromise = currentAgent!.processMessage(input);
+      const responsePromise = currentAgent!.run(input);
 
       const response = await Promise.race([responsePromise, timeoutPromise]);
 
       spinner.stop();
-      console.log(chalk.green('\nAgent:'), response);
+      console.log(chalk.magentaBright('\n◆ Agent'), chalk.gray('·'));
+      console.log(response);
       console.log();
     } catch (error) {
       spinner.stop();
@@ -253,7 +313,6 @@ async function startChat(options: any) {
     process.exit(0);
   });
 
-  // Handle errors on readline
   rl.on('error', (error) => {
     console.error(chalk.red('\n✗ Readline error:'));
     console.error(error.message);
@@ -269,7 +328,7 @@ async function runTask(task: string, options: any) {
   try {
     config = await configLoader.load();
   } catch {
-    config = configLoader.getDefaults();
+    config = ConfigLoader.getDefaults();
   }
 
   if (options.provider) config.provider = options.provider;
@@ -284,7 +343,7 @@ async function runTask(task: string, options: any) {
     process.exit(1);
   }
 
-  const spinner = ora('Initializing...').start();
+  const spinner = createSpinner('Initializing...').start();
 
   try {
     const provider = createProvider(config, apiKey);
@@ -305,17 +364,25 @@ async function runTask(task: string, options: any) {
 
     spinner.text = 'Processing task...';
 
-    // Add timeout protection
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Task timeout after 10 minutes')), 600000);
     });
 
-    const responsePromise = agent.processMessage(task);
+    const responsePromise = agent.run(task);
     const response = await Promise.race([responsePromise, timeoutPromise]);
 
     spinner.stop();
     console.log(chalk.green('\n✓ Task completed'));
     console.log('\n' + response);
+
+    const report = agent.getPerformanceMonitor().generateReport();
+    if (report.overview.totalExecutions > 0) {
+      console.log(
+        chalk.gray(
+          `\n  tools used: ${report.overview.totalExecutions} · success: ${report.overview.totalSuccess} · avg ${Math.round(report.overview.avgExecutionTime)}ms`
+        )
+      );
+    }
   } catch (error) {
     spinner.stop();
     console.error(chalk.red('\n✗ Task failed:'));
@@ -325,19 +392,24 @@ async function runTask(task: string, options: any) {
 }
 
 async function handleCommand(command: string, agent: Agent, config: Config) {
-  const cmd = command.substring(1).toLowerCase();
+  const [cmd, ...args] = command.substring(1).split(/\s+/);
+  const sub = args.join(' ');
 
-  switch (cmd) {
+  switch (cmd.toLowerCase()) {
     case 'help':
-      console.log('\nAvailable commands:');
-      console.log('  /help     - Show this help');
-      console.log('  /clear    - Clear conversation history');
-      console.log('  /reset    - Reset agent state');
-      console.log('  /status   - Show agent status');
-      console.log('  /tools    - List available tools');
-      console.log('  /config   - Show current configuration');
-      console.log('  /exit     - Exit the agent');
-      console.log();
+      console.log(`
+${chalk.cyanBright('Commands')}
+  ${chalk.white('/help')}            Show this help
+  ${chalk.white('/clear')}           Clear screen
+  ${chalk.white('/reset')}           Reset agent state (fresh conversation)
+  ${chalk.white('/status')}          Show agent status
+  ${chalk.white('/stats')}           Tool performance report (success rate, latency)
+  ${chalk.white('/tools')}           List available tools (from registry)
+  ${chalk.white('/config')}          Show current configuration
+  ${chalk.white('/history')}         Show recent tool executions
+  ${chalk.white('/model <name>')}    Switch model (e.g. /model gpt-4o)
+  ${chalk.white('/exit')}            Exit the agent
+`);
       break;
 
     case 'clear':
@@ -349,38 +421,98 @@ async function handleCommand(command: string, agent: Agent, config: Config) {
       console.log(chalk.green('✓ Agent state reset'));
       break;
 
-    case 'status':
+    case 'status': {
       const state = agent.getState();
-      console.log('\nAgent Status:');
-      console.log(`  Status: ${state.status}`);
-      console.log(`  Iterations: ${state.iterationCount}`);
-      console.log(`  Tool calls: ${state.history.length}`);
-      console.log();
+      const stats = agent.getToolStats();
+      console.log(`
+${chalk.cyanBright('Agent Status')}
+  ${chalk.gray('status:')}      ${state.status}
+  ${chalk.gray('iterations:')}  ${state.iterationCount}/${config.maxIterations}
+  ${chalk.gray('tool calls:')}  ${state.history.length}
+  ${chalk.gray('messages:')}    ${state.conversationMessages.length}
+  ${chalk.gray('tracked:')}     ${stats.size} tools
+`);
       break;
+    }
 
-    case 'tools':
-      console.log('\nAvailable Tools:');
-      console.log('  • list_files   - List files in workspace');
-      console.log('  • read_file    - Read file contents');
-      console.log('  • write_file   - Create or overwrite file');
-      console.log('  • edit_file    - Edit specific parts of file');
-      console.log('  • shell        - Execute shell commands');
-      console.log('  • search_code  - Search for code patterns');
-      console.log('  • git_status   - Show git status');
-      console.log('  • git_diff     - Show git diff');
-      console.log('  • git_log      - Show git log');
+    case 'stats': {
+      const report = agent.getPerformanceMonitor().generateReport();
+      console.log(`
+${chalk.cyanBright('Tool Performance')}`);
+      if (report.overview.totalExecutions === 0) {
+        console.log(chalk.gray('  No tool executions yet.'));
+      } else {
+        console.log(
+          `  ${chalk.gray('executions:')} ${report.overview.totalExecutions}  ` +
+            `${chalk.gray('success:')} ${chalk.green(String(report.overview.totalSuccess))}  ` +
+            `${chalk.gray('failed:')} ${chalk.red(String(report.overview.totalFailures))}  ` +
+            `${chalk.gray('avg:')} ${Math.round(report.overview.avgExecutionTime)}ms`
+        );
+        if (report.slowestTools.length > 0) {
+          console.log(`\n  ${chalk.gray('slowest tools:')}`);
+          for (const t of report.slowestTools.slice(0, 5)) {
+            console.log(`    ${chalk.white(t.tool)}  ${chalk.gray(Math.round(t.avgDuration) + 'ms')}`);
+          }
+        }
+        if (report.recommendations?.length > 0) {
+          console.log(`\n  ${chalk.gray('recommendations:')}`);
+          for (const rec of report.recommendations.slice(0, 3)) {
+            console.log(`    · ${rec}`);
+          }
+        }
+      }
       console.log();
       break;
+    }
+
+    case 'tools': {
+      const tools = agent.getToolRegistry().list();
+      console.log(`
+${chalk.cyanBright(`Available Tools (${tools.length})`)}`);
+      for (const tool of tools) {
+        console.log(`  ${chalk.cyan('●')} ${chalk.white(tool.name.padEnd(14))} ${chalk.gray(tool.description)}`);
+      }
+      console.log();
+      break;
+    }
 
     case 'config':
-      console.log('\nCurrent Configuration:');
-      console.log(`  Provider: ${config.provider}`);
-      console.log(`  Model: ${config.model}`);
-      console.log(`  Permission Mode: ${config.permissionMode}`);
-      console.log(`  Max Iterations: ${config.maxIterations}`);
-      console.log(`  Workspace: ${config.workspaceRoot}`);
-      console.log(`  Debug: ${config.debug}`);
+      console.log(`
+${chalk.cyanBright('Configuration')}
+  ${chalk.gray('provider:')}        ${config.provider}
+  ${chalk.gray('model:')}           ${config.model}
+  ${chalk.gray('permission mode:')} ${config.permissionMode}
+  ${chalk.gray('max iterations:')}  ${config.maxIterations}
+  ${chalk.gray('workspace:')}       ${config.workspaceRoot}
+  ${chalk.gray('debug:')}           ${config.debug}
+`);
+      break;
+
+    case 'history': {
+      const state = agent.getState();
+      console.log(`
+${chalk.cyanBright('Tool Executions (latest 10)')}`);
+      if (state.history.length === 0) {
+        console.log(chalk.gray('  No tool executions yet.'));
+      } else {
+        for (const exec of state.history.slice(-10)) {
+          const statusIcon = exec.result?.success ? chalk.green('✓') : chalk.red('✗');
+          console.log(
+            `  ${statusIcon} ${chalk.white(exec.tool.padEnd(14))} ${chalk.gray(String(exec.timestamp instanceof Date ? exec.timestamp.toLocaleTimeString() : ''))}`
+          );
+        }
+      }
       console.log();
+      break;
+    }
+
+    case 'model':
+      if (!sub) {
+        console.log(chalk.gray('Usage: /model <name>  (current: ' + config.model + ')'));
+      } else {
+        config.model = sub;
+        console.log(chalk.green(`✓ Model set to ${sub} (takes effect on the next provider request)`));
+      }
       break;
 
     case 'exit':
@@ -398,7 +530,7 @@ async function handleCommand(command: string, agent: Agent, config: Config) {
 function createProvider(config: Config, apiKey: string) {
   try {
     if (config.provider === 'anthropic') {
-      return new AnthropicProvider(apiKey, { baseUrl: config.baseUrl });
+      return new AnthropicProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
     } else if (config.provider === 'openai') {
       return new OpenAIProvider(apiKey, {
         baseUrl: config.baseUrl,
@@ -463,13 +595,12 @@ async function runDoctor() {
   console.log();
 }
 
-// Cleanup function
 function cleanup() {
   if (rl) {
     try {
       rl.close();
-    } catch (error) {
-      // Ignore cleanup errors
+    } catch {
+      // best-effort cleanup
     }
     rl = null;
   }
@@ -477,14 +608,13 @@ function cleanup() {
   if (currentAgent) {
     try {
       currentAgent.reset();
-    } catch (error) {
-      // Ignore cleanup errors
+    } catch {
+      // best-effort cleanup
     }
     currentAgent = null;
   }
 }
 
-// Signal handlers for graceful shutdown
 process.on('SIGINT', () => {
   console.log(chalk.gray('\n\nReceived SIGINT, shutting down gracefully...'));
   cleanup();
@@ -497,7 +627,6 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Global error handlers
 process.on('unhandledRejection', (reason, promise) => {
   console.error(chalk.red('\n✗ Unhandled Promise Rejection:'));
   console.error(reason);
@@ -513,7 +642,6 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Parse CLI arguments
 try {
   program.parse();
 } catch (error) {

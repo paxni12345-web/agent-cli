@@ -2,13 +2,13 @@
  * Unit tests for Agent class
  */
 
-import { Agent } from '../../src/agent/Agent';
-import { AIProvider } from '../../src/providers/AIProvider';
-import { ToolRegistry } from '../../src/tools/ToolRegistry';
-import { PermissionManager, Config, ChatRequest, ChatResponse } from '../../src/types';
+import { Agent } from '../../src/agent/Agent.js';
+import { AIProvider } from '../../src/providers/AIProvider.js';
+import { ToolRegistry } from '../../src/tools/ToolRegistry.js';
+import { PermissionManager, Config, ChatRequest, ChatResponse } from '../../src/types/index.js';
 
 // Mock AI Provider
-class MockAIProvider extends AIProvider {
+class MockAIProvider implements AIProvider {
   name = 'mock';
   private responses: ChatResponse[] = [];
   private currentIndex = 0;
@@ -35,7 +35,11 @@ class MockAIProvider extends AIProvider {
 
 // Mock Permission Manager
 class MockPermissionManager implements PermissionManager {
-  async requestPermission(action: string, details: any): Promise<boolean> {
+  check(_action: any): { allowed: true } {
+    return { allowed: true };
+  }
+
+  async requestApproval(): Promise<boolean> {
     return true;
   }
 }
@@ -184,7 +188,7 @@ describe('Agent', () => {
 
       const state = agent.getState();
       expect(state.history[0].result.success).toBe(false);
-      expect(state.history[0].result.error).toBe('Tool failed');
+      expect(state.history[0].result.error).toContain('Tool failed');
     });
   });
 

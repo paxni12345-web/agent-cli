@@ -1,12 +1,10 @@
 /**
- * InputBox Component - Message Input
- * Beautiful input field like Claude Code
+ * InputBox — input field with history navigation (↑/↓)
  */
 
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
-import chalk from 'chalk';
 
 interface InputBoxProps {
   value: string;
@@ -20,30 +18,22 @@ export const InputBox: React.FC<InputBoxProps> = ({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Type your message...',
+  placeholder = 'Type a message…',
   disabled = false,
 }) => {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  useInput((input, key) => {
-    // Enter - Submit
-    if (key.return && !disabled) {
-      if (value.trim()) {
-        setHistory((prev) => [...prev, value]);
-        setHistoryIndex(-1);
-        onSubmit(value);
-      }
-    }
+  useInput((_input, key) => {
+    if (disabled) return;
 
-    // Up arrow - Previous history
+    // Enter submits via TextInput; handle history navigation here
     if (key.upArrow && history.length > 0) {
-      const newIndex = historyIndex < history.length - 1 ? historyIndex + 1 : historyIndex;
+      const newIndex = Math.min(historyIndex + 1, history.length - 1);
       setHistoryIndex(newIndex);
       onChange(history[history.length - 1 - newIndex]);
     }
 
-    // Down arrow - Next history
     if (key.downArrow) {
       if (historyIndex > 0) {
         const newIndex = historyIndex - 1;
@@ -56,29 +46,19 @@ export const InputBox: React.FC<InputBoxProps> = ({
     }
   });
 
-  return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={disabled ? 'gray' : 'cyan'}
-      paddingX={1}
-      marginX={2}
-      marginBottom={1}
-    >
-      {/* Input Label */}
-      <Box justifyContent="space-between" marginBottom={0}>
-        <Text color="cyan" bold>
-          {disabled ? '⏸  ' : '▶  '}
-          Message
-        </Text>
-        <Text color="gray" dimColor>
-          {disabled ? 'Please wait...' : 'Enter to send'}
-        </Text>
-      </Box>
+  const pushHistory = (submitted: string) => {
+    setHistory((prev) => [...prev, submitted]);
+    setHistoryIndex(-1);
+  };
 
-      {/* Input Field */}
-      <Box>
-        <Text color="gray">│ </Text>
+  return (
+    <Box flexDirection="column" paddingLeft={2} paddingRight={2} paddingBottom={1}>
+      <Box borderStyle="round" borderColor={disabled ? 'gray' : 'cyan'} paddingX={1}>
+        <Box marginRight={1}>
+          <Text color={disabled ? 'gray' : 'cyan'} bold>
+            {disabled ? '⏳' : '❯'}
+          </Text>
+        </Box>
         {disabled ? (
           <Text color="gray" dimColor>
             {placeholder}
@@ -88,28 +68,12 @@ export const InputBox: React.FC<InputBoxProps> = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            showCursor={!disabled}
+            onSubmit={(v) => {
+              if (v.trim()) pushHistory(v);
+              onSubmit(v);
+            }}
           />
         )}
-      </Box>
-
-      {/* Hints */}
-      <Box marginTop={0} gap={2}>
-        <Text color="gray" dimColor>
-          💡 /help for commands
-        </Text>
-        <Text color="gray" dimColor>
-          │
-        </Text>
-        <Text color="gray" dimColor>
-          ↑↓ for history
-        </Text>
-        <Text color="gray" dimColor>
-          │
-        </Text>
-        <Text color="gray" dimColor>
-          Ctrl+C to exit
-        </Text>
       </Box>
     </Box>
   );

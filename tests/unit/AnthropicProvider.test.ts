@@ -2,26 +2,25 @@
  * Unit tests for Anthropic Provider
  */
 
-import { AnthropicProvider } from '../../src/providers/AnthropicProvider';
-import { ChatRequest } from '../../src/types';
-
-// Mock Anthropic SDK
-jest.mock('@anthropic-ai/sdk', () => {
-  return jest.fn().mockImplementation(() => ({
-    messages: {
-      create: jest.fn(),
-    },
-  }));
-});
+import { jest } from '@jest/globals';
+import Anthropic from '@anthropic-ai/sdk';
+import { AnthropicProvider } from '../../src/providers/AnthropicProvider.js';
+import { ChatRequest } from '../../src/types/index.js';
 
 describe('AnthropicProvider', () => {
   let provider: AnthropicProvider;
   let mockClient: any;
 
   beforeEach(() => {
-    const Anthropic = require('@anthropic-ai/sdk');
-    provider = new AnthropicProvider('test-api-key');
-    mockClient = new Anthropic();
+    mockClient = {
+      messages: {
+        create: jest.fn(),
+      },
+    } as any;
+
+    provider = new AnthropicProvider('test-api-key', {
+      client: mockClient,
+    });
   });
 
   afterEach(() => {
@@ -64,6 +63,25 @@ describe('AnthropicProvider', () => {
       );
     });
 
+    it('should respect custom model from options', async () => {
+      const customClient: any = { messages: { create: jest.fn() } };
+      customClient.messages.create.mockResolvedValue({
+        content: [{ type: 'text', text: 'ok' }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+
+      const custom = new AnthropicProvider('key', {
+        model: 'claude-opus-4-20250514',
+        client: customClient,
+      });
+
+      await custom.chat({ messages: [{ role: 'user', content: 'hi' }] });
+
+      const call = customClient.messages.create.mock.calls[0][0];
+      expect(call.model).toBe('claude-opus-4-20250514');
+    });
+
     it('should handle tool calls in response', async () => {
       const mockResponse = {
         content: [
@@ -97,6 +115,41 @@ describe('AnthropicProvider', () => {
         id: 'tool_1',
         name: 'read_file',
         input: { path: '/test.txt' },
+      });
+    });
+
+    it('should format tool_result content blocks for the API', async () => {
+      const mockResponse = {
+        content: [{ type: 'text', text: 'Got it' }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 5, output_tokens: 5 },
+      };
+
+      mockClient.messages.create.mockResolvedValue(mockResponse);
+
+      const request: ChatRequest = {
+        messages: [
+          { role: 'user', content: 'Read file' },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'tool_1',
+                content: 'file contents here',
+              },
+            ],
+          },
+        ],
+      };
+
+      await provider.chat(request);
+
+      const call = mockClient.messages.create.mock.calls[0][0];
+      expect(call.messages[1].content[0]).toMatchObject({
+        type: 'tool_result',
+        tool_use_id: 'tool_1',
+        content: 'file contents here',
       });
     });
 

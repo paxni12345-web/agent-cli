@@ -15,6 +15,20 @@ export class ConfigLoader {
     debug: false,
   };
 
+  /**
+   * Returns a fresh copy of the default configuration
+   */
+  static getDefaults(): Config {
+    return { ...ConfigLoader.DEFAULT_CONFIG };
+  }
+
+  /**
+   * Instance alias for ConfigLoader.getDefaults()
+   */
+  getDefaults(): Config {
+    return ConfigLoader.getDefaults();
+  }
+
   async load(): Promise<Config> {
     const config = { ...ConfigLoader.DEFAULT_CONFIG };
 

@@ -303,8 +303,8 @@ export class ToolPerformanceMonitor {
     const data = {
       executions: this.executions,
       metrics: Array.from(this.metrics.entries()).map(([key, value]) => ({
-        toolName: key,
         ...value,
+        toolName: key,
         errorTypes: Array.from(value.errorTypes.entries()),
       })),
       timestamp: new Date(),

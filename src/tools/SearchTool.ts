@@ -1,14 +1,25 @@
-// Code Search Tool
-
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 
+const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.cache']);
+
+const BINARY_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.zip', '.tar', '.gz',
+  '.exe', '.dll', '.so', '.dylib', '.woff', '.woff2', '.ttf', '.eot',
+  '.mp3', '.mp4', '.avi', '.mov', '.sqlite', '.db', '.wasm',
+]);
+
+interface SearchResult {
+  file: string;
+  line: number;
+  content: string;
+}
+
 export class SearchCodeTool implements Tool {
   name = 'search_code';
-  description = `Search for text patterns in files within the workspace.
-Use this to find function definitions, variable usage, imports, or any text pattern.
-Supports regex patterns and file filtering.`;
+  description =
+    'Search for text patterns in files within the workspace. Use this to find function definitions, variable usage, imports, or any text pattern. Supports regex patterns, file filtering, and glob-style file patterns.';
 
   inputSchema = {
     type: 'object',
@@ -43,63 +54,96 @@ Supports regex patterns and file filtering.`;
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
     try {
-      const pattern = input.pattern;
+      const pattern = String(input.pattern || '');
+      if (!pattern) {
+        return { success: false, error: 'Search pattern is required' };
+      }
+
       const directory = input.directory || '.';
       const isRegex = input.regex ?? false;
       const caseSensitive = input.caseSensitive ?? true;
-      const maxResults = input.maxResults ?? 100;
+      const maxResults = Math.min(Math.max(Number(input.maxResults) || 100, 1), 1000);
 
       const searchDir = path.resolve(context.workspaceRoot, directory);
-
-      // Validate path
-      if (!searchDir.startsWith(context.workspaceRoot)) {
-        return {
-          success: false,
-          error: 'Search directory is outside workspace',
-        };
+      const normalizedRoot = path.resolve(context.workspaceRoot) + path.sep;
+      if (!searchDir.startsWith(normalizedRoot) && searchDir !== path.resolve(context.workspaceRoot)) {
+        return { success: false, error: 'Search directory is outside workspace' };
       }
 
-      const searchPattern = isRegex
-        ? new RegExp(pattern, caseSensitive ? 'g' : 'gi')
-        : null;
+      let searchPattern: RegExp | null = null;
+      if (isRegex) {
+        try {
+          searchPattern = new RegExp(pattern, caseSensitive ? '' : 'i');
+        } catch (error: any) {
+          return { success: false, error: `Invalid regex: ${error.message}` };
+        }
+      }
+
+      const fileMatcher = this.buildFileMatcher(input.filePattern);
 
       const results: SearchResult[] = [];
-      const excludeDirs = ['node_modules', '.git', 'dist', 'build', 'coverage', '.cache'];
-
       await this.searchDirectory(
         searchDir,
         context.workspaceRoot,
         pattern,
         searchPattern,
         caseSensitive,
-        excludeDirs,
+        fileMatcher,
         results,
         maxResults
       );
 
       if (results.length === 0) {
-        return {
-          success: true,
-          output: 'No matches found.',
-        };
+        return { success: true, output: 'No matches found.' };
       }
-
-      const output = this.formatResults(results);
 
       return {
         success: true,
-        output,
+        output: this.formatResults(results),
         metadata: {
           matchCount: results.length,
           truncated: results.length >= maxResults,
         },
       };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { success: false, error: error.message };
     }
+  }
+
+  private buildFileMatcher(filePattern?: string): ((relativePath: string, fileName: string) => boolean) | null {
+    if (!filePattern) {
+      return null;
+    }
+
+    const normalized = filePattern.replace(/^\.\//, '');
+    const regex = this.globToRegex(normalized);
+
+    return (relativePath: string, fileName: string) => {
+      return regex.test(relativePath) || regex.test(fileName);
+    };
+  }
+
+  private globToRegex(glob: string): RegExp {
+    let source = '';
+    for (let i = 0; i < glob.length; i++) {
+      const char = glob[i];
+      if (char === '*') {
+        if (glob[i + 1] === '*') {
+          i++;
+          if (glob[i + 1] === '/') {
+            i++;
+          }
+          source += '.*';
+        } else {
+          source += '[^/]*';
+        }
+      } else if (char === '?') {
+        source += '[^/]';
+      } else {
+        source += char.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      }
+    }
+    return new RegExp(`^${source}$`);
   }
 
   private async searchDirectory(
@@ -108,7 +152,7 @@ Supports regex patterns and file filtering.`;
     pattern: string,
     searchPattern: RegExp | null,
     caseSensitive: boolean,
-    excludeDirs: string[],
+    fileMatcher: ((relativePath: string, fileName: string) => boolean) | null,
     results: SearchResult[],
     maxResults: number
   ): Promise<void> {
@@ -116,7 +160,12 @@ Supports regex patterns and file filtering.`;
       return;
     }
 
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    let entries;
+    try {
+      entries = await fs.readdir(dirPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
 
     for (const entry of entries) {
       if (results.length >= maxResults) {
@@ -126,27 +175,38 @@ Supports regex patterns and file filtering.`;
       const fullPath = path.join(dirPath, entry.name);
 
       if (entry.isDirectory()) {
-        if (!excludeDirs.includes(entry.name)) {
+        if (!EXCLUDED_DIRS.has(entry.name)) {
           await this.searchDirectory(
             fullPath,
             workspaceRoot,
             pattern,
             searchPattern,
             caseSensitive,
-            excludeDirs,
+            fileMatcher,
             results,
             maxResults
           );
         }
       } else if (entry.isFile()) {
-        // Skip binary and large files
-        const stats = await fs.stat(fullPath);
-        if (stats.size > 1024 * 1024) continue; // Skip files > 1MB
+        const relativePath = path.relative(workspaceRoot, fullPath);
+
+        if (fileMatcher && !fileMatcher(relativePath, entry.name)) {
+          continue;
+        }
+
+        if (BINARY_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+          continue;
+        }
 
         try {
+          const stats = await fs.stat(fullPath);
+          if (stats.size > 1024 * 1024) {
+            continue;
+          }
+
           await this.searchFile(
             fullPath,
-            workspaceRoot,
+            relativePath,
             pattern,
             searchPattern,
             caseSensitive,
@@ -154,7 +214,7 @@ Supports regex patterns and file filtering.`;
             maxResults
           );
         } catch {
-          // Skip files that can't be read
+          // Skip unreadable files
         }
       }
     }
@@ -162,7 +222,7 @@ Supports regex patterns and file filtering.`;
 
   private async searchFile(
     filePath: string,
-    workspaceRoot: string,
+    relativePath: string,
     pattern: string,
     searchPattern: RegExp | null,
     caseSensitive: boolean,
@@ -171,7 +231,6 @@ Supports regex patterns and file filtering.`;
   ): Promise<void> {
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
-    const relativePath = path.relative(workspaceRoot, filePath);
 
     for (let i = 0; i < lines.length; i++) {
       if (results.length >= maxResults) {
@@ -183,6 +242,7 @@ Supports regex patterns and file filtering.`;
 
       if (searchPattern) {
         matches = searchPattern.test(line);
+        searchPattern.lastIndex = 0;
       } else {
         const searchLine = caseSensitive ? line : line.toLowerCase();
         const searchTerm = caseSensitive ? pattern : pattern.toLowerCase();
@@ -223,10 +283,4 @@ Supports regex patterns and file filtering.`;
 
     return output.join('\n');
   }
-}
-
-interface SearchResult {
-  file: string;
-  line: number;
-  content: string;
 }

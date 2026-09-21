@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * CLI Entry Point — Beautiful UI
- * Launches the Ink-based terminal interface wired to the real Agent.
- */
 
 import React from 'react';
 import { render } from 'ink';

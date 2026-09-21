@@ -1,6 +1,5 @@
-// OpenAI Provider Implementation
-
 import OpenAI from 'openai';
+import type { ChatCompletionMessageParam, ChatCompletionTool, ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 import { BaseAIProvider } from './AIProvider.js';
 import {
   ChatRequest,
@@ -22,105 +21,142 @@ export class OpenAIProvider extends BaseAIProvider {
   ) {
     super();
     this.model = options?.model || 'gpt-4-turbo-preview';
-    this.client = options?.client ?? new OpenAI({
-      apiKey,
-      baseURL: options?.baseUrl,
-    });
+    this.client =
+      options?.client ??
+      new OpenAI({
+        apiKey,
+        baseURL: options?.baseUrl,
+      });
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
     try {
-      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-
-      // Add system message if present
-      const systemPrompt = this.buildSystemPrompt(request);
-      if (systemPrompt) {
-        messages.push({
-          role: 'system',
-          content: systemPrompt,
-        });
-      }
-
-      // Add conversation messages
-      for (const msg of request.messages) {
-        if (msg.role !== 'system') {
-          messages.push({
-            role: msg.role,
-            content: this.toOpenAIContent(msg.content),
-          });
-        }
-      }
-
-      // Build API request
-      const apiRequest: any = {
+      const params: ChatCompletionCreateParamsNonStreaming = {
         model: this.model,
-        messages,
+        messages: this.toApiMessages(request),
         temperature: request.temperature || 0.7,
         max_tokens: request.maxTokens || 8192,
+        ...(request.tools && request.tools.length > 0
+          ? {
+              tools: this.mapTools(request.tools),
+              ...(request.toolChoice
+                ? { tool_choice: this.mapToolChoice(request.toolChoice) as 'auto' | 'required' | 'none' | { type: 'function'; function: { name: string } } }
+                : {}),
+            }
+          : {}),
       };
 
-      // Add tools if provided
-      if (request.tools && request.tools.length > 0) {
-        apiRequest.tools = request.tools.map(tool => ({
-          type: 'function',
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.input_schema,
-          },
-        }));
-
-        // Add tool_choice if specified
-        if (request.toolChoice) {
-          apiRequest.tool_choice = this.mapToolChoice(request.toolChoice);
-        }
-      }
-
-      const response = await this.client.chat.completions.create(apiRequest);
+      const response = await this.client.chat.completions.create(params);
 
       const choice = response.choices[0];
-      const content = choice.message.content || '';
+      const content = choice?.message?.content || '';
       const toolCalls: ToolCall[] = [];
 
-      if (choice.message.tool_calls) {
+      if (choice?.message?.tool_calls) {
         for (const tc of choice.message.tool_calls) {
-          toolCalls.push({
-            id: tc.id,
-            name: tc.function.name,
-            input: JSON.parse(tc.function.arguments),
-          });
+          if (tc.type === 'function') {
+            toolCalls.push({
+              id: tc.id,
+              name: tc.function.name,
+              input: this.parseArguments(tc.function.arguments),
+            });
+          }
         }
       }
 
       return {
         content,
         toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-        finishReason: choice.finish_reason === 'stop' ? 'stop' :
-                      choice.finish_reason === 'tool_calls' ? 'tool_use' :
-                      choice.finish_reason === 'length' ? 'max_tokens' : 'stop',
-        usage: response.usage ? {
-          inputTokens: response.usage.prompt_tokens,
-          outputTokens: response.usage.completion_tokens,
-          totalTokens: response.usage.total_tokens,
-        } : undefined,
-        rawResponse: response,
+        finishReason:
+          choice?.finish_reason === 'tool_calls'
+            ? 'tool_use'
+            : choice?.finish_reason === 'length'
+              ? 'max_tokens'
+              : 'stop',
+        usage: response.usage
+          ? {
+              inputTokens: response.usage.prompt_tokens,
+              outputTokens: response.usage.completion_tokens,
+              totalTokens: response.usage.total_tokens,
+            }
+          : undefined,
       };
-    } catch (error: any) {
+    } catch (error) {
       throw new ProviderError(
-        `OpenAI API error: ${error.message}`,
+        `OpenAI API error: ${error instanceof Error ? error.message : String(error)}`,
         { originalError: error }
       );
     }
   }
 
-  /**
-   * Converts internal content (string or ContentBlock[]) into OpenAI-compatible content.
-   * Tool-use/result blocks carry no meaning for OpenAI text content — flatten to text.
-   */
-  private toOpenAIContent(content: string | ContentBlock[]): string {
-    if (typeof content === 'string') {
-      return content;
+  private mapTools(tools: NonNullable<ChatRequest['tools']>): ChatCompletionTool[] {
+    return tools.map(tool => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.input_schema,
+      },
+    }));
+  }
+
+  private toApiMessages(request: ChatRequest): ChatCompletionMessageParam[] {
+    const messages: ChatCompletionMessageParam[] = [];
+
+    const systemPrompt = this.buildSystemPrompt(request);
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
     }
+
+    for (const msg of request.messages) {
+      if (msg.role === 'system') continue;
+
+      if (msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0) {
+        messages.push({
+          role: 'assistant',
+          content: typeof msg.content === 'string' && msg.content ? msg.content : null,
+          tool_calls: msg.toolCalls.map(tc => ({
+            id: tc.id,
+            type: 'function' as const,
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.input ?? {}),
+            },
+          })),
+        });
+        continue;
+      }
+
+      if (msg.role === 'user' && typeof msg.content !== 'string') {
+        const toolResults = msg.content.filter(b => b.type === 'tool_result');
+        const textParts = msg.content
+          .filter(b => b.type === 'text')
+          .map(b => b.text ?? '');
+
+        for (const block of toolResults) {
+          messages.push({
+            role: 'tool',
+            tool_call_id: block.tool_use_id ?? '',
+            content: block.content ?? '',
+          });
+        }
+
+        if (textParts.some(Boolean)) {
+          messages.push({ role: 'user', content: textParts.join('\n') });
+        }
+        continue;
+      }
+
+      messages.push({
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content : this.flattenContent(msg.content),
+      });
+    }
+
+    return messages;
+  }
+
+  private flattenContent(content: ContentBlock[]): string {
     return content
       .map(block => {
         if (block.type === 'text') return block.text ?? '';
@@ -131,10 +167,15 @@ export class OpenAIProvider extends BaseAIProvider {
       .join('\n');
   }
 
-  /**
-   * Map tool choice to OpenAI format
-   */
-  private mapToolChoice(choice: ChatRequest['toolChoice']): any {
+  private parseArguments(args: string): unknown {
+    try {
+      return JSON.parse(args || '{}');
+    } catch {
+      return { _raw: args };
+    }
+  }
+
+  private mapToolChoice(choice: ChatRequest['toolChoice']): unknown {
     if (!choice || choice === 'auto') {
       return 'auto';
     }
@@ -155,28 +196,9 @@ export class OpenAIProvider extends BaseAIProvider {
 
   async *stream(request: ChatRequest): AsyncIterable<ChatChunk> {
     try {
-      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-
-      const systemPrompt = this.buildSystemPrompt(request);
-      if (systemPrompt) {
-        messages.push({
-          role: 'system',
-          content: systemPrompt,
-        });
-      }
-
-      for (const msg of request.messages) {
-        if (msg.role !== 'system') {
-          messages.push({
-            role: msg.role,
-            content: this.toOpenAIContent(msg.content),
-          });
-        }
-      }
-
       const stream = await this.client.chat.completions.create({
         model: this.model,
-        messages,
+        messages: this.toApiMessages(request),
         temperature: request.temperature || 0.7,
         max_tokens: request.maxTokens || 8192,
         stream: true,
@@ -188,9 +210,9 @@ export class OpenAIProvider extends BaseAIProvider {
           yield { delta: delta.content };
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new ProviderError(
-        `OpenAI streaming error: ${error.message}`,
+        `OpenAI streaming error: ${error instanceof Error ? error.message : String(error)}`,
         { originalError: error }
       );
     }

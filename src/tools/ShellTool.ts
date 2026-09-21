@@ -1,16 +1,10 @@
-// Shell Execution Tool
-
-import { exec, spawn } from 'child_process';
-import { promisify } from 'util';
-import { Tool, ToolContext, ToolResult, PermissionError } from '../types/index.js';
-
-const execAsync = promisify(exec);
+import { spawn } from 'child_process';
+import { Tool, ToolContext, ToolResult } from '../types/index.js';
 
 export class ShellTool implements Tool {
   name = 'shell';
-  description = `Execute shell commands in the workspace.
-Use this to run tests, build scripts, git commands, package managers, and other CLI tools.
-Output is captured and returned. Long-running commands will timeout after 2 minutes.`;
+  description =
+    'Execute shell commands in the workspace. Use this to run tests, build scripts, git commands, package managers, and other CLI tools. Output is captured and returned. Long-running commands will timeout after 2 minutes.';
 
   inputSchema = {
     type: 'object',
@@ -29,10 +23,13 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
     try {
-      const command = input.command;
+      const command = String(input.command || '');
       const timeout = input.timeout || 120000;
 
-      // Check permission based on command risk
+      if (!command.trim()) {
+        return { success: false, error: 'Command is required' };
+      }
+
       const risk = this.assessCommandRisk(command);
       const permissionResult = await context.permissions.check({
         type: 'execute_command',
@@ -48,20 +45,14 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
         };
       }
 
-      // Parse command into program and arguments to prevent injection
-      const { program, args } = this.parseCommand(command);
-
-      // Execute command using spawn for better security
-      const result = await this.executeWithSpawn(program, args, {
+      const result = await this.executeCommand(command, {
         cwd: context.workspaceRoot,
         timeout,
       });
 
-      const output = this.formatOutput(result.stdout, result.stderr);
-
       return {
         success: true,
-        output,
+        output: this.formatOutput(result.stdout, result.stderr),
         metadata: {
           command,
           exitCode: result.exitCode,
@@ -80,41 +71,58 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
     }
   }
 
-  /**
-   * Parse command string into program and arguments
-   * This prevents shell injection by avoiding shell interpretation
-   */
   private parseCommand(command: string): { program: string; args: string[] } {
-    const parts = command.trim().split(/\s+/);
-    const program = parts[0];
-    const args = parts.slice(1);
+    const tokens: string[] = [];
+    let current = '';
+    let quote: '"' | "'" | null = null;
 
-    // Validate program name (no path traversal or special chars)
-    if (program.includes('..') || program.includes('/') && !program.startsWith('/usr/')) {
-      throw new Error('Invalid program name');
+    for (const char of command.trim()) {
+      if (quote) {
+        if (char === quote) {
+          quote = null;
+        } else {
+          current += char;
+        }
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (/\s/.test(char)) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+      } else {
+        current += char;
+      }
     }
 
-    return { program, args };
+    if (current) {
+      tokens.push(current);
+    }
+
+    if (tokens.length === 0) {
+      throw new Error('Empty command');
+    }
+
+    return { program: tokens[0], args: tokens.slice(1) };
   }
 
-  /**
-   * Execute command using spawn instead of exec for security
-   */
-  private executeWithSpawn(
-    program: string,
-    args: string[],
+  private executeCommand(
+    command: string,
     options: { cwd: string; timeout: number }
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    const { program, args } = this.parseCommand(command);
+
     return new Promise((resolve, reject) => {
       const child = spawn(program, args, {
         cwd: options.cwd,
-        shell: false, // IMPORTANT: Don't use shell to prevent injection
+        shell: false,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
       let stdout = '';
       let stderr = '';
       let timedOut = false;
+      let settled = false;
 
       const timeoutId = setTimeout(() => {
         timedOut = true;
@@ -122,47 +130,36 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
         setTimeout(() => child.kill('SIGKILL'), 5000);
       }, options.timeout);
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
-      child.on('error', (error) => {
+      const fail = (message: string, exitCode: number) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timeoutId);
-        reject({
-          message: error.message,
-          stdout,
-          stderr,
-          exitCode: 1,
-        });
+        reject({ message, stdout, stderr, exitCode });
+      };
+
+      child.on('error', error => {
+        fail(error.message, 1);
       });
 
-      child.on('close', (code) => {
+      child.on('close', code => {
+        if (settled) return;
         clearTimeout(timeoutId);
 
         if (timedOut) {
-          reject({
-            message: 'Command timed out',
-            stdout,
-            stderr,
-            exitCode: 124,
-          });
+          fail('Command timed out', 124);
         } else if (code !== 0) {
-          reject({
-            message: `Command failed with exit code ${code}`,
-            stdout,
-            stderr,
-            exitCode: code || 1,
-          });
+          fail(`Command failed with exit code ${code}`, code || 1);
         } else {
-          resolve({
-            stdout,
-            stderr,
-            exitCode: code || 0,
-          });
+          settled = true;
+          resolve({ stdout, stderr, exitCode: code || 0 });
         }
       });
     });
@@ -171,13 +168,11 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
   private assessCommandRisk(command: string): 'safe' | 'low' | 'medium' | 'high' | 'critical' {
     const cmd = command.trim().toLowerCase();
 
-    // Critical risk commands
     const criticalPatterns = [
-      /rm\s+-rf\s+[\/~]/,
+      /rm\s+-rf\s+[/~]/,
       /sudo/,
       /dd\s+if=/,
       /mkfs/,
-      /format/,
       /curl.*\|\s*sh/,
       /wget.*\|\s*sh/,
     ];
@@ -188,7 +183,6 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
       }
     }
 
-    // High risk commands
     const highRiskPatterns = [
       /^rm\s+-rf/,
       /^rm\s+-r/,
@@ -208,10 +202,9 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
       }
     }
 
-    // Medium risk commands
     const mediumRiskCommands = [
       'rm', 'mv', 'cp', 'chmod', 'npm install', 'yarn install',
-      'git commit', 'git push', 'git rebase'
+      'git commit', 'git push', 'git rebase',
     ];
 
     for (const riskCmd of mediumRiskCommands) {
@@ -220,11 +213,10 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
       }
     }
 
-    // Safe commands
     const safeCommands = [
       'ls', 'pwd', 'cat', 'echo', 'git status', 'git diff',
       'git log', 'npm test', 'npm run', 'yarn test',
-      'node', 'python', 'grep', 'find', 'which'
+      'node', 'python', 'grep', 'find', 'which',
     ];
 
     for (const safeCmd of safeCommands) {
@@ -255,8 +247,10 @@ Output is captured and returned. Long-running commands will timeout after 2 minu
     const lines = output.split('\n');
 
     if (lines.length > maxLines) {
-      return lines.slice(0, maxLines).join('\n') +
-             `\n\n[... truncated ${lines.length - maxLines} lines ...]`;
+      return (
+        lines.slice(0, maxLines).join('\n') +
+        `\n\n[... truncated ${lines.length - maxLines} lines ...]`
+      );
     }
 
     return output;

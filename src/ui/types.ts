@@ -1,6 +1,4 @@
-/**
- * Type Definitions for UI Components
- */
+export const CONTEXT_WINDOW = 200000;
 
 export interface ToolEvent {
   id: string;

@@ -1,15 +1,15 @@
-// Git Tools
-
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+const MAX_BUFFER = 10 * 1024 * 1024;
 
 export class GitStatusTool implements Tool {
   name = 'git_status';
-  description = `Get the current git status of the workspace.
-Shows modified, added, deleted, and untracked files.`;
+  description =
+    'Get the current git status of the workspace. Shows modified, added, deleted, and untracked files.';
 
   inputSchema = {
     type: 'object',
@@ -18,22 +18,17 @@ Shows modified, added, deleted, and untracked files.`;
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
     try {
-      const { stdout } = await execAsync('git status --porcelain', {
+      const { stdout } = await execFileAsync('git', ['status', '--porcelain'], {
         cwd: context.workspaceRoot,
+        maxBuffer: MAX_BUFFER,
       });
 
       if (!stdout.trim()) {
-        return {
-          success: true,
-          output: 'Working tree is clean.',
-        };
+        return { success: true, output: 'Working tree is clean.' };
       }
 
-      return {
-        success: true,
-        output: stdout,
-      };
-    } catch (error: any) {
+      return { success: true, output: stdout };
+    } catch {
       return {
         success: false,
         error: 'Not a git repository or git is not installed.',
@@ -44,8 +39,8 @@ Shows modified, added, deleted, and untracked files.`;
 
 export class GitDiffTool implements Tool {
   name = 'git_diff';
-  description = `Show git diff of changes in the workspace.
-Use this to see what has been modified before committing.`;
+  description =
+    'Show git diff of changes in the workspace. Use this to see what has been modified before committing.';
 
   inputSchema = {
     type: 'object',
@@ -63,49 +58,34 @@ Use this to see what has been modified before committing.`;
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
     try {
-      const staged = input.staged ?? false;
-      const file = input.file || '';
+      const args = ['diff'];
+      if (input.staged) {
+        args.push('--staged');
+      }
+      if (input.file) {
+        args.push('--', String(input.file));
+      }
 
-      const command = staged
-        ? `git diff --staged ${file}`
-        : `git diff ${file}`;
-
-      const { stdout } = await execAsync(command, {
+      const { stdout } = await execFileAsync('git', args, {
         cwd: context.workspaceRoot,
-        maxBuffer: 10 * 1024 * 1024,
+        maxBuffer: MAX_BUFFER,
       });
 
       if (!stdout.trim()) {
-        return {
-          success: true,
-          output: 'No changes.',
-        };
+        return { success: true, output: 'No changes.' };
       }
 
-      // Truncate if too large
-      const maxLines = 1000;
-      const lines = stdout.split('\n');
-      const output = lines.length > maxLines
-        ? lines.slice(0, maxLines).join('\n') + `\n\n[... truncated ${lines.length - maxLines} lines ...]`
-        : stdout;
-
-      return {
-        success: true,
-        output,
-      };
+      return { success: true, output: truncateLines(stdout, 1000) };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { success: false, error: error.message };
     }
   }
 }
 
 export class GitLogTool implements Tool {
   name = 'git_log';
-  description = `Show recent git commit history.
-Useful for understanding recent changes and project history.`;
+  description =
+    'Show recent git commit history. Useful for understanding recent changes and project history.';
 
   inputSchema = {
     type: 'object',
@@ -123,31 +103,36 @@ Useful for understanding recent changes and project history.`;
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
     try {
-      const limit = input.limit ?? 10;
-      const file = input.file || '';
+      const limit = Math.min(Math.max(Number(input.limit) || 10, 1), 100);
+      const args = ['log', '--oneline', '-n', String(limit)];
 
-      const command = `git log --oneline -n ${limit} ${file}`;
+      if (input.file) {
+        args.push('--', String(input.file));
+      }
 
-      const { stdout } = await execAsync(command, {
+      const { stdout } = await execFileAsync('git', args, {
         cwd: context.workspaceRoot,
+        maxBuffer: MAX_BUFFER,
       });
 
       if (!stdout.trim()) {
-        return {
-          success: true,
-          output: 'No commits found.',
-        };
+        return { success: true, output: 'No commits found.' };
       }
 
-      return {
-        success: true,
-        output: stdout,
-      };
+      return { success: true, output: stdout };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { success: false, error: error.message };
     }
   }
+}
+
+function truncateLines(text: string, maxLines: number): string {
+  const lines = text.split('\n');
+  if (lines.length <= maxLines) {
+    return text;
+  }
+  return (
+    lines.slice(0, maxLines).join('\n') +
+    `\n\n[... truncated ${lines.length - maxLines} lines ...]`
+  );
 }

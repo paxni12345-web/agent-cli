@@ -1,14 +1,3 @@
-/**
- * Agent CLI — Public API
- *
- * Exports the core building blocks of the agent:
- * - Agent: the autonomous agentic loop
- * - Providers: Anthropic (Claude) & OpenAI
- * - Tools: file, shell, search, git
- * - Config: loader with env override
- * - Permissions: mode-based permission manager
- */
-
 export { Agent } from './agent/Agent.js';
 export { ToolCallValidator } from './agent/ToolCallValidator.js';
 export { CircuitBreaker } from './agent/CircuitBreaker.js';
@@ -21,6 +10,7 @@ export { AnthropicProvider } from './providers/AnthropicProvider.js';
 export { OpenAIProvider } from './providers/OpenAIProvider.js';
 
 export { ToolRegistry } from './tools/ToolRegistry.js';
+export { createDefaultToolRegistry } from './tools/index.js';
 export { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './tools/FileTools.js';
 export { ShellTool } from './tools/ShellTool.js';
 export { SearchCodeTool } from './tools/SearchTool.js';

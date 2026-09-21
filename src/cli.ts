@@ -6,11 +6,7 @@ import chalk from 'chalk';
 import { Agent } from './agent/Agent.js';
 import { AnthropicProvider } from './providers/AnthropicProvider.js';
 import { OpenAIProvider } from './providers/OpenAIProvider.js';
-import { ToolRegistry } from './tools/ToolRegistry.js';
-import { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './tools/FileTools.js';
-import { ShellTool } from './tools/ShellTool.js';
-import { SearchCodeTool } from './tools/SearchTool.js';
-import { GitStatusTool, GitDiffTool, GitLogTool } from './tools/GitTools.js';
+import { createDefaultToolRegistry } from './tools/index.js';
 import { DefaultPermissionManager } from './security/PermissionManager.js';
 import { ConfigLoader } from './config/ConfigLoader.js';
 import { Config, PermissionMode } from './types/index.js';
@@ -68,6 +64,20 @@ function createSpinner(initialText: string): Spinner {
 
 let rl: readline.Interface | null = null;
 let currentAgent: Agent | null = null;
+let activeTimeouts: NodeJS.Timeout[] = [];
+
+function trackTimeout(timeout: NodeJS.Timeout): NodeJS.Timeout {
+  activeTimeouts = activeTimeouts.filter(t => t !== timeout);
+  activeTimeouts.push(timeout);
+  return timeout;
+}
+
+function clearTrackedTimeouts(): void {
+  for (const t of activeTimeouts) {
+    clearTimeout(t);
+  }
+  activeTimeouts = [];
+}
 
 program
   .name('agent')
@@ -164,7 +174,7 @@ function printBanner(config: Config) {
       chalk.gray(config.workspaceRoot)
   );
   console.log(
-    '  ' + chalk.gray("type your message · ") + chalk.white('/help') + chalk.gray(' for commands')
+    '  ' + chalk.gray('type your message · ') + chalk.white('/help') + chalk.gray(' for commands')
   );
   console.log(line);
   console.log();
@@ -176,8 +186,7 @@ async function startChat(options: any) {
 
   try {
     config = await configLoader.load();
-  } catch (error) {
-    console.log(chalk.yellow('⚠ No configuration found, using defaults'));
+  } catch {
     config = ConfigLoader.getDefaults();
   }
 
@@ -199,55 +208,16 @@ async function startChat(options: any) {
     process.exit(1);
   }
 
-  let provider;
-  try {
-    provider = createProvider(config, apiKey);
-  } catch (error) {
-    console.error(chalk.red('✗ Failed to initialize AI provider:'));
-    console.error(error instanceof Error ? error.message : 'Unknown error');
-    process.exit(1);
-  }
-
-  const toolRegistry = new ToolRegistry();
-  try {
-    toolRegistry.register(new ListFilesTool());
-    toolRegistry.register(new ReadFileTool());
-    toolRegistry.register(new WriteFileTool());
-    toolRegistry.register(new EditFileTool());
-    toolRegistry.register(new ShellTool());
-    toolRegistry.register(new SearchCodeTool());
-    toolRegistry.register(new GitStatusTool());
-    toolRegistry.register(new GitDiffTool());
-    toolRegistry.register(new GitLogTool());
-  } catch (error) {
-    console.error(chalk.red('✗ Failed to register tools:'));
-    console.error(error instanceof Error ? error.message : 'Unknown error');
-    process.exit(1);
-  }
-
-  const permissions = new DefaultPermissionManager(config.permissionMode);
-
-  try {
-    currentAgent = new Agent(provider, toolRegistry, permissions, config);
-  } catch (error) {
-    console.error(chalk.red('✗ Failed to initialize agent:'));
-    console.error(error instanceof Error ? error.message : 'Unknown error');
-    process.exit(1);
-  }
+  const agent = createAgent(config, apiKey);
+  currentAgent = agent;
 
   printBanner(config);
 
-  try {
-    rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: chalk.cyan('❯ '),
-    });
-  } catch (error) {
-    console.error(chalk.red('✗ Failed to create readline interface:'));
-    console.error(error instanceof Error ? error.message : 'Unknown error');
-    process.exit(1);
-  }
+  rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: chalk.cyan('❯ '),
+  });
 
   rl.prompt();
 
@@ -261,7 +231,7 @@ async function startChat(options: any) {
 
     if (input.startsWith('/')) {
       try {
-        await handleCommand(input, currentAgent!, config);
+        await handleCommand(input, agent, config);
       } catch (error) {
         console.error(chalk.red('✗ Command error:'));
         console.error(error instanceof Error ? error.message : 'Unknown error');
@@ -273,16 +243,10 @@ async function startChat(options: any) {
     const spinner = createSpinner('Thinking...').start();
 
     try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout after 5 minutes')), 300000);
-      });
-
-      const responsePromise = currentAgent!.run(input);
-
-      const response = await Promise.race([responsePromise, timeoutPromise]);
+      const response = await runWithGlobalTimeout(agent.run(input), 300000);
 
       spinner.stop();
-      console.log(chalk.magentaBright('\n◆ Agent'), chalk.gray('·'));
+      console.log(chalk.magentaBright('\n◆ Agent'));
       console.log(response);
       console.log();
     } catch (error) {
@@ -346,30 +310,11 @@ async function runTask(task: string, options: any) {
   const spinner = createSpinner('Initializing...').start();
 
   try {
-    const provider = createProvider(config, apiKey);
-    const toolRegistry = new ToolRegistry();
-
-    toolRegistry.register(new ListFilesTool());
-    toolRegistry.register(new ReadFileTool());
-    toolRegistry.register(new WriteFileTool());
-    toolRegistry.register(new EditFileTool());
-    toolRegistry.register(new ShellTool());
-    toolRegistry.register(new SearchCodeTool());
-    toolRegistry.register(new GitStatusTool());
-    toolRegistry.register(new GitDiffTool());
-    toolRegistry.register(new GitLogTool());
-
-    const permissions = new DefaultPermissionManager(config.permissionMode);
-    const agent = new Agent(provider, toolRegistry, permissions, config);
+    const agent = createAgent(config, apiKey);
 
     spinner.text = 'Processing task...';
 
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Task timeout after 10 minutes')), 600000);
-    });
-
-    const responsePromise = agent.run(task);
-    const response = await Promise.race([responsePromise, timeoutPromise]);
+    const response = await runWithGlobalTimeout(agent.run(task), 600000);
 
     spinner.stop();
     console.log(chalk.green('\n✓ Task completed'));
@@ -389,6 +334,34 @@ async function runTask(task: string, options: any) {
     console.error(error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
+}
+
+function createAgent(config: Config, apiKey: string): Agent {
+  const provider = createProvider(config, apiKey);
+  const toolRegistry = createDefaultToolRegistry();
+  const permissions = new DefaultPermissionManager(config.permissionMode);
+  return new Agent(provider, toolRegistry, permissions, config);
+}
+
+function createProvider(config: Config, apiKey: string) {
+  if (config.provider === 'anthropic') {
+    return new AnthropicProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
+  }
+  if (config.provider === 'openai') {
+    return new OpenAIProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
+  }
+  throw new Error(`Unsupported provider: ${config.provider}`);
+}
+
+function runWithGlobalTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = trackTimeout(
+      setTimeout(() => reject(new Error(`Request timeout after ${ms / 1000}s`)), ms)
+    );
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer!));
 }
 
 async function handleCommand(command: string, agent: Agent, config: Config) {
@@ -423,14 +396,12 @@ ${chalk.cyanBright('Commands')}
 
     case 'status': {
       const state = agent.getState();
-      const stats = agent.getToolStats();
       console.log(`
 ${chalk.cyanBright('Agent Status')}
   ${chalk.gray('status:')}      ${state.status}
   ${chalk.gray('iterations:')}  ${state.iterationCount}/${config.maxIterations}
   ${chalk.gray('tool calls:')}  ${state.history.length}
   ${chalk.gray('messages:')}    ${state.conversationMessages.length}
-  ${chalk.gray('tracked:')}     ${stats.size} tools
 `);
       break;
     }
@@ -454,7 +425,7 @@ ${chalk.cyanBright('Tool Performance')}`);
             console.log(`    ${chalk.white(t.tool)}  ${chalk.gray(Math.round(t.avgDuration) + 'ms')}`);
           }
         }
-        if (report.recommendations?.length > 0) {
+        if (report.recommendations.length > 0) {
           console.log(`\n  ${chalk.gray('recommendations:')}`);
           for (const rec of report.recommendations.slice(0, 3)) {
             console.log(`    · ${rec}`);
@@ -511,6 +482,7 @@ ${chalk.cyanBright('Tool Executions (latest 10)')}`);
         console.log(chalk.gray('Usage: /model <name>  (current: ' + config.model + ')'));
       } else {
         config.model = sub;
+        agent.updateConfig({ model: sub });
         console.log(chalk.green(`✓ Model set to ${sub} (takes effect on the next provider request)`));
       }
       break;
@@ -520,27 +492,11 @@ ${chalk.cyanBright('Tool Executions (latest 10)')}`);
       console.log(chalk.gray('Goodbye!'));
       cleanup();
       process.exit(0);
+      break;
 
     default:
       console.log(chalk.red(`Unknown command: ${command}`));
       console.log('Type /help for available commands');
-  }
-}
-
-function createProvider(config: Config, apiKey: string) {
-  try {
-    if (config.provider === 'anthropic') {
-      return new AnthropicProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
-    } else if (config.provider === 'openai') {
-      return new OpenAIProvider(apiKey, {
-        baseUrl: config.baseUrl,
-        model: config.model,
-      });
-    } else {
-      throw new Error(`Unsupported provider: ${config.provider}`);
-    }
-  } catch (error) {
-    throw new Error(`Failed to create provider: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -559,10 +515,14 @@ async function initProject() {
   try {
     await configLoader.save(config, false);
     console.log(chalk.green('✓ Created .agent/config.json'));
-    console.log(chalk.gray('\nYou can now customize the configuration or add project-specific instructions.'));
+    console.log(
+      chalk.gray('\nYou can now customize the configuration or add project-specific instructions.')
+    );
     console.log();
   } catch (error) {
-    throw new Error(`Failed to save configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to save configuration: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -571,13 +531,22 @@ async function runDoctor() {
 
   const checks = [
     { name: 'Node.js', check: async () => process.version },
-    { name: 'Git', check: async () => {
-      const { execSync } = await import('child_process');
-      return execSync('git --version', { encoding: 'utf-8' }).trim();
-    }},
+    {
+      name: 'Git',
+      check: async () => {
+        const { execSync } = await import('child_process');
+        return execSync('git --version', { encoding: 'utf-8' }).trim();
+      },
+    },
     { name: 'Workspace', check: async () => process.cwd() },
-    { name: 'API Key (Anthropic)', check: async () => process.env.ANTHROPIC_API_KEY ? '✓ Set' : '✗ Not set' },
-    { name: 'API Key (OpenAI)', check: async () => process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Not set' },
+    {
+      name: 'API Key (Anthropic)',
+      check: async () => (process.env.ANTHROPIC_API_KEY ? '✓ Set' : '✗ Not set'),
+    },
+    {
+      name: 'API Key (OpenAI)',
+      check: async () => (process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Not set'),
+    },
   ];
 
   for (const { name, check } of checks) {
@@ -596,6 +565,8 @@ async function runDoctor() {
 }
 
 function cleanup() {
+  clearTrackedTimeouts();
+
   if (rl) {
     try {
       rl.close();

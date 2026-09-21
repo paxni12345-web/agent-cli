@@ -1,7 +1,3 @@
-/**
- * Header Component — compact branded banner
- */
-
 import React from 'react';
 import { Box, Text } from 'ink';
 
@@ -28,8 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ model, mode, workingDir, status 
     }
   })();
 
-  const shortDir =
-    workingDir.length > 32 ? '…' + workingDir.slice(-31) : workingDir;
+  const shortDir = workingDir.length > 32 ? '…' + workingDir.slice(-31) : workingDir;
 
   return (
     <Box flexDirection="column" paddingLeft={2} paddingTop={1} paddingBottom={1}>

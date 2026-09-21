@@ -1,7 +1,3 @@
-/**
- * InputBox — input field with history navigation (↑/↓)
- */
-
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
@@ -27,7 +23,6 @@ export const InputBox: React.FC<InputBoxProps> = ({
   useInput((_input, key) => {
     if (disabled) return;
 
-    // Enter submits via TextInput; handle history navigation here
     if (key.upArrow && history.length > 0) {
       const newIndex = Math.min(historyIndex + 1, history.length - 1);
       setHistoryIndex(newIndex);
@@ -47,7 +42,7 @@ export const InputBox: React.FC<InputBoxProps> = ({
   });
 
   const pushHistory = (submitted: string) => {
-    setHistory((prev) => [...prev, submitted]);
+    setHistory(prev => [...prev, submitted]);
     setHistoryIndex(-1);
   };
 
@@ -68,7 +63,7 @@ export const InputBox: React.FC<InputBoxProps> = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            onSubmit={(v) => {
+            onSubmit={v => {
               if (v.trim()) pushHistory(v);
               onSubmit(v);
             }}

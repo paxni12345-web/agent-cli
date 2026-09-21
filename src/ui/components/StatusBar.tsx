@@ -1,10 +1,6 @@
-/**
- * StatusBar — bottom bar with live token usage, tasks, and mode
- */
-
 import React from 'react';
 import { Box, Text } from 'ink';
-import { AgentStatus } from '../types.js';
+import { AgentStatus, CONTEXT_WINDOW } from '../types.js';
 
 interface StatusBarProps {
   status: AgentStatus;
@@ -17,13 +13,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
     return num.toString();
   };
 
-  // 200K context window assumption
-  const tokenPercentage = Math.min((status.tokensUsed / 200000) * 100, 100);
+  const tokenPercentage = Math.min((status.tokensUsed / CONTEXT_WINDOW) * 100, 100);
   const barWidth = 18;
   const filled = Math.round((tokenPercentage / 100) * barWidth);
   const empty = barWidth - filled;
 
   const barColor = tokenPercentage > 80 ? 'red' : tokenPercentage > 50 ? 'yellow' : 'green';
+
+  const contextLabel = `${Math.round(CONTEXT_WINDOW / 1000)}K`;
 
   return (
     <Box paddingLeft={2} paddingRight={2} paddingTop={0} paddingBottom={1}>
@@ -41,7 +38,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
             {'█'.repeat(filled)}
             {'░'.repeat(empty)}
           </Text>
-          <Text color={barColor}> {formatNumber(status.tokensUsed)}/200K</Text>
+          <Text color={barColor}>
+            {' '}
+            {formatNumber(status.tokensUsed)}/{contextLabel}
+          </Text>
         </Text>
         <Text color="gray">ctrl+c exit</Text>
       </Box>

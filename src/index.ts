@@ -3,20 +3,18 @@ export { ToolCallValidator } from './agent/ToolCallValidator.js';
 export { CircuitBreaker } from './agent/CircuitBreaker.js';
 export { ErrorRecoverySystem } from './agent/ErrorRecoverySystem.js';
 export { ToolPerformanceMonitor } from './agent/ToolPerformanceMonitor.js';
-
+export { ToolRouter } from './agent/ToolRouter.js';
+export { ToolQueue } from './agent/ToolQueue.js';
 export { BaseAIProvider } from './providers/AIProvider.js';
 export type { AIProvider } from './providers/AIProvider.js';
 export { AnthropicProvider } from './providers/AnthropicProvider.js';
 export { OpenAIProvider } from './providers/OpenAIProvider.js';
-
 export { ToolRegistry } from './tools/ToolRegistry.js';
 export { createDefaultToolRegistry } from './tools/index.js';
 export { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './tools/FileTools.js';
 export { ShellTool } from './tools/ShellTool.js';
 export { SearchCodeTool } from './tools/SearchTool.js';
 export { GitStatusTool, GitDiffTool, GitLogTool } from './tools/GitTools.js';
-
 export { ConfigLoader } from './config/ConfigLoader.js';
 export { DefaultPermissionManager } from './security/PermissionManager.js';
-
 export * from './types/index.js';

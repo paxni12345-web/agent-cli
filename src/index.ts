@@ -5,6 +5,8 @@ export { ErrorRecoverySystem } from './agent/ErrorRecoverySystem.js';
 export { ToolPerformanceMonitor } from './agent/ToolPerformanceMonitor.js';
 export { ToolRouter } from './agent/ToolRouter.js';
 export { ToolQueue } from './agent/ToolQueue.js';
+export { EphemeralSubagentManager } from './agent/EphemeralSubagentManager.js';
+export { SubagentTool } from './tools/SubagentTool.js';
 export { BaseAIProvider } from './providers/AIProvider.js';
 export type { AIProvider } from './providers/AIProvider.js';
 export { AnthropicProvider } from './providers/AnthropicProvider.js';

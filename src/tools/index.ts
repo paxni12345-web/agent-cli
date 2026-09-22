@@ -3,6 +3,8 @@ import { ListFilesTool, ReadFileTool, WriteFileTool, EditFileTool } from './File
 import { ShellTool } from './ShellTool.js';
 import { SearchCodeTool } from './SearchTool.js';
 import { GitStatusTool, GitDiffTool, GitLogTool } from './GitTools.js';
+import { ProjectMapTool } from './ProjectMapTool.js';
+import { ProjectMemoryTool } from './ProjectMemoryTool.js';
 
 export function createDefaultToolRegistry(): ToolRegistry {
   const registry = new ToolRegistry();
@@ -16,6 +18,8 @@ export function createDefaultToolRegistry(): ToolRegistry {
     new GitStatusTool(),
     new GitDiffTool(),
     new GitLogTool(),
+    new ProjectMapTool(),
+    new ProjectMemoryTool(),
   ]) {
     registry.register(tool);
   }

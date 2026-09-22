@@ -7,6 +7,9 @@ Autonomous AI coding agent for your terminal — clean core, real tool calling, 
 - **Agentic loop** — plans, calls tools, verifies, and iterates until the task is done
 - **Native tool calling** — Anthropic (Claude) & OpenAI with automatic format translation
 - **Resilience built-in** — input validation, safety checks, retry with exponential backoff, error recovery strategies, and a circuit breaker for failing tools
+- **Workflow-aware automation** — maps frontend, backend, data, tests, and deployment before making cross-layer changes
+- **Dependency/API support** — can install required libraries through the project package manager and integrate APIs through environment-based credentials
+- **Project memory** — keeps architecture decisions, workflow notes, pitfalls, and verification commands in `.agent/memory.md` without storing secrets
 - **Beautiful TUI** — live streaming output, tool activity feed, token usage bar, command history
 - **Two interfaces** — classic readline REPL (`agent chat`) or Ink UI (`agent-ui`)
 
@@ -46,7 +49,25 @@ agent-ui -m gpt-4o --mode fast
 
 ```bash
 agent run "add error handling to src/index.ts"
+agent run --permission-mode safe --max-iterations 20 "review the auth flow"
 ```
+
+`agent run` supports the same permission and iteration controls as `agent chat`.
+Use `safe` when you want the agent to inspect without changing files.
+
+### Full-stack automation
+
+Use `automate` when one prompt should drive the complete workflow: map the project,
+plan the affected layers, edit frontend/backend/data/config files, then run tests and
+build checks.
+
+```bash
+agent automate --workspace . \
+  "เพิ่มระบบสมัครสมาชิกให้ครบทั้งหน้าเว็บ API validation database migration และ tests"
+```
+
+The automation mode uses up to 80 iterations by default. Use `--permission-mode normal`
+for approval before changes, or `--permission-mode auto` only in a trusted workspace.
 
 ### Utilities
 
@@ -80,6 +101,8 @@ agent doctor   # check node, git, workspace, API keys
 | `edit_file` | Exact-match text replacement |
 | `shell` | Run shell commands |
 | `search_code` | Regex search across the project |
+| `project_map` | Architecture/workflow map across frontend, backend, data, tests, and deployment |
+| `project_memory` | Read/update non-secret project decisions and workflow memory |
 | `git_status` / `git_diff` / `git_log` | Git inspection |
 
 All file tools enforce workspace boundaries (symlink-safe path canonicalization) and every tool call passes schema validation + safety checks before execution.
@@ -99,6 +122,23 @@ Global: `~/.agent/config.json` · Project: `.agent/config.json`
 ```
 
 Environment overrides: `AGENT_MODEL`, `AGENT_PROVIDER`, `AGENT_PERMISSION_MODE`, `AGENT_MAX_ITERATIONS`, `AGENT_DEBUG`.
+
+### Server safety
+
+The HTTP server binds to `127.0.0.1` and disables cross-origin requests by default.
+It also runs in read-only permission mode unless mutations are explicitly enabled:
+
+```bash
+export ANTHROPIC_API_KEY=your-key-here
+export AGENT_SERVER_ALLOW_MUTATIONS=true   # optional; enables write/command tools
+export AGENT_SERVER_HOST=127.0.0.1         # optional
+export AGENT_SERVER_ORIGIN=http://localhost:3000
+npm run server
+```
+
+Do not expose the server directly to the public internet. Put authentication and TLS in
+front of it before using a non-local bind address. The server requires a real
+`ANTHROPIC_API_KEY`; it never falls back to a demo key.
 
 ## Development
 

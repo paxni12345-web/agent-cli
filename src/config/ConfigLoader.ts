@@ -42,8 +42,28 @@ export class ConfigLoader {
 
     // Override with environment variables
     this.applyEnvironmentVariables(config);
+    this.validate(config);
 
     return config;
+  }
+
+  validate(config: Config): void {
+    if (config.provider !== 'anthropic' && config.provider !== 'openai') {
+      throw new Error(`Unsupported provider: ${config.provider}`);
+    }
+
+    const permissionModes: PermissionMode[] = ['safe', 'normal', 'auto', 'dangerous'];
+    if (!permissionModes.includes(config.permissionMode)) {
+      throw new Error(`Invalid permission mode: ${config.permissionMode}`);
+    }
+
+    if (!Number.isInteger(config.maxIterations) || config.maxIterations < 1 || config.maxIterations > 1000) {
+      throw new Error('maxIterations must be an integer between 1 and 1000');
+    }
+
+    if (!Number.isFinite(config.temperature) || config.temperature < 0 || config.temperature > 2) {
+      throw new Error('temperature must be a number between 0 and 2');
+    }
   }
 
   private async loadGlobalConfig(): Promise<Partial<Config>> {

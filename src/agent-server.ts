@@ -11,33 +11,56 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number.parseInt(process.env.PORT || '3000', 10);
+const HOST = process.env.AGENT_SERVER_HOST || '127.0.0.1';
+const ALLOWED_ORIGINS = process.env.AGENT_SERVER_ORIGIN
+  ?.split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(cors(ALLOWED_ORIGINS ? { origin: ALLOWED_ORIGINS } : { origin: false }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '../../public')));
 
-class SimplePermissionManager implements PermissionManager {
-  check(_action: Action): PermissionResult {
+class ServerPermissionManager implements PermissionManager {
+  constructor(private readonly allowMutations: boolean) {}
+
+  check(action: Action): PermissionResult {
+    if (!this.allowMutations) {
+      if (action.risk === 'safe' || (action.type === 'read_file' && action.risk === 'medium')) {
+        return { allowed: true };
+      }
+      return { allowed: false, reason: 'Server is read-only; set AGENT_SERVER_ALLOW_MUTATIONS=true to enable writes' };
+    }
+
+    if (action.risk === 'critical') {
+      return { allowed: false, reason: 'Critical risk actions are never allowed by the server' };
+    }
     return { allowed: true };
   }
 
   async requestApproval(_action: Action): Promise<boolean> {
-    return true;
+    return false;
   }
 }
 
 let agent: Agent | null = null;
 let config: Config;
+let requestInProgress = false;
 
 function initializeAgent(): Agent {
-  const apiKey = process.env.ANTHROPIC_API_KEY || 'demo-key';
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY is required to start the agent server');
+  }
+
+  const allowMutations = process.env.AGENT_SERVER_ALLOW_MUTATIONS === 'true';
 
   config = {
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
     apiKey,
-    permissionMode: 'auto',
+    permissionMode: allowMutations ? 'auto' : 'safe',
     maxIterations: 20,
     temperature: 0.7,
     workspaceRoot: process.cwd(),
@@ -52,7 +75,7 @@ function initializeAgent(): Agent {
   };
 
   const provider = new AnthropicProvider(apiKey, { model: config.model });
-  const permissions = new SimplePermissionManager();
+  const permissions = new ServerPermissionManager(allowMutations);
   const toolRegistry = createDefaultToolRegistry();
 
   agent = new Agent(provider, toolRegistry, permissions, config);
@@ -70,11 +93,24 @@ app.post('/api/agent/run', async (req, res) => {
   try {
     const { message, config: clientConfig } = req.body;
 
-    if (!message) {
-      res.status(400).json({ error: 'Message is required' });
+    if (typeof message !== 'string' || message.trim().length === 0) {
+      res.status(400).json({ error: 'Message must be a non-empty string' });
+      return;
+    }
+    if (message.length > 100_000) {
+      res.status(413).json({ error: 'Message is too large (maximum 100000 characters)' });
+      return;
+    }
+    if (clientConfig !== undefined && (typeof clientConfig !== 'object' || clientConfig === null)) {
+      res.status(400).json({ error: 'config must be an object' });
+      return;
+    }
+    if (requestInProgress) {
+      res.status(409).json({ error: 'Another agent request is already in progress' });
       return;
     }
 
+    requestInProgress = true;
     const currentAgent = getAgent();
 
     if (clientConfig) {
@@ -117,6 +153,8 @@ app.post('/api/agent/run', async (req, res) => {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
+  } finally {
+    requestInProgress = false;
   }
 });
 
@@ -216,7 +254,7 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  app.listen(PORT, HOST, () => {
     console.log(`
 ================================================================================
 

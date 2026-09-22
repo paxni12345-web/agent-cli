@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import * as readline from 'readline';
+import path from 'path';
 import chalk from 'chalk';
 import { Agent } from './agent/Agent.js';
 import { AnthropicProvider } from './providers/AnthropicProvider.js';
@@ -133,11 +134,32 @@ program
   .description('Run a single task')
   .option('-p, --provider <provider>', 'AI provider')
   .option('-m, --model <model>', 'Model to use')
+  .option('--workspace <path>', 'Project workspace (default: current directory)')
+  .option('--permission-mode <mode>', 'Permission mode (safe, normal, auto, dangerous)')
+  .option('--max-iterations <number>', 'Maximum iterations', parseInt)
   .action(async (task, options) => {
     try {
       await runTask(task, options);
     } catch (error) {
       console.error(chalk.red('✗ Task execution failed:'));
+      console.error(error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('automate <task>')
+  .description('Plan, implement, and verify a full-stack task from one prompt')
+  .option('-p, --provider <provider>', 'AI provider')
+  .option('-m, --model <model>', 'Model to use')
+  .option('--workspace <path>', 'Project workspace (default: current directory)')
+  .option('--permission-mode <mode>', 'Permission mode (default: normal)')
+  .option('--max-iterations <number>', 'Maximum agent iterations (default: 80)', parseInt)
+  .action(async (task, options) => {
+    try {
+      await runTask(task, { ...options, automation: true });
+    } catch (error) {
+      console.error(chalk.red('✗ Automation failed:'));
       console.error(error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);
     }
@@ -194,10 +216,9 @@ async function startChat(options: any) {
   if (options.model) config.model = options.model;
   if (options.permissionMode) config.permissionMode = options.permissionMode as PermissionMode;
   if (options.maxIterations) config.maxIterations = options.maxIterations;
+  configLoader.validate(config);
 
-  const apiKey = config.provider === 'anthropic'
-    ? process.env.ANTHROPIC_API_KEY
-    : process.env.OPENAI_API_KEY;
+  const apiKey = configLoader.getApiKey(config);
 
   if (!apiKey) {
     console.error(chalk.red('\n✗ API key not found'));
@@ -297,10 +318,16 @@ async function runTask(task: string, options: any) {
 
   if (options.provider) config.provider = options.provider;
   if (options.model) config.model = options.model;
+  if (options.workspace) config.workspaceRoot = path.resolve(options.workspace);
+  if (options.permissionMode) config.permissionMode = options.permissionMode as PermissionMode;
+  if (options.maxIterations) {
+    config.maxIterations = options.maxIterations;
+  } else if (options.automation) {
+    config.maxIterations = 80;
+  }
+  configLoader.validate(config);
 
-  const apiKey = config.provider === 'anthropic'
-    ? process.env.ANTHROPIC_API_KEY
-    : process.env.OPENAI_API_KEY;
+  const apiKey = configLoader.getApiKey(config);
 
   if (!apiKey) {
     console.error(chalk.red('✗ API key not found'));

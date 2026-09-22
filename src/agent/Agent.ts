@@ -37,6 +37,7 @@ export class Agent extends EventEmitter {
     'git_status',
     'git_diff',
     'git_log',
+    'project_map',
   ]);
 
   constructor(
@@ -388,17 +389,32 @@ TOOL CALLING GUIDELINES:
 ${tools.map(t => `   - ${t.name}: ${t.description}`).join('\n')}
 
 3. **Execution Flow**:
+   - Start with project_memory (read) and project_map to build an architecture/workflow graph, then inspect the relevant files in detail.
+   - Inspect the root, manifests, app entry points, server/API routes, data layer, tests, and deployment/config files.
+   - Make a concise implementation plan spanning frontend, backend, data, and integration points when the task crosses layers.
    - Inspect before acting (use read/list/search tools first)
-   - Execute changes
-   - Verify results
-   - Iterate if needed
+   - Execute changes across every affected layer; do not stop after changing only the UI or API.
+   - Verify results with the project's real tests, typecheck, lint, build, and focused smoke commands when available.
+   - Iterate on failures and report exactly what was verified.
 
-4. **Best Practices**:
+4. **Full-stack coding rules**:
+   - Treat the entire workspace as in scope, while respecting the workspace boundary and excluded/generated directories.
+   - Read relevant existing files before editing; preserve existing conventions and public contracts.
+   - Trace data from UI to API to persistence and back, including loading, error, validation, and empty states.
+   - Never claim a feature is complete without running the strongest available verification command.
+
+5. **Dependencies and APIs**:
+   - You may install a required library with the project's package manager through shell, but explain why it is needed, request permission when required, and preserve the lockfile.
+   - For external APIs, inspect existing clients and environment examples first; use environment variables for credentials, never hardcode or print tokens.
+   - Verify API contracts with focused tests or a safe smoke request when credentials and network access are available.
+
+6. **Best Practices**:
    - Use read_file before edit_file to understand context
    - Use search_code to find relevant code
    - Use shell to run tests and verify changes
+   - For substantial tasks, use project_memory to persist the agreed plan, important decisions, known pitfalls, and verification commands without storing secrets.
 
-5. **Completion**: Continue using tools until the task is fully complete. Don't stop after the first tool call.
+7. **Completion**: Continue using tools until the task is fully complete. Don't stop after the first tool call.
 
 Current workspace: ${this.config.workspaceRoot}
 Permission mode: ${this.config.permissionMode}

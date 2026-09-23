@@ -1,7 +1,3 @@
-// Configuration Management
-
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { Config, PermissionMode } from '../types/index.js';
 
 export class ConfigLoader {
@@ -15,40 +11,26 @@ export class ConfigLoader {
     debug: false,
   };
 
-  /**
-   * Returns a fresh copy of the default configuration
-   */
   static getDefaults(): Config {
     return { ...ConfigLoader.DEFAULT_CONFIG };
   }
 
-  /**
-   * Instance alias for ConfigLoader.getDefaults()
-   */
   getDefaults(): Config {
     return ConfigLoader.getDefaults();
   }
 
   async load(): Promise<Config> {
     const config = { ...ConfigLoader.DEFAULT_CONFIG };
-
-    // Load from global config
     const globalConfig = await this.loadGlobalConfig();
-    Object.assign(config, globalConfig);
-
-    // Load from project config
     const projectConfig = await this.loadProjectConfig(config.workspaceRoot);
-    Object.assign(config, projectConfig);
-
-    // Override with environment variables
+    Object.assign(config, globalConfig, projectConfig);
     this.applyEnvironmentVariables(config);
     this.validate(config);
-
     return config;
   }
 
   validate(config: Config): void {
-    if (config.provider !== 'anthropic' && config.provider !== 'openai') {
+    if (!['anthropic', 'openai', 'openai-compatible'].includes(config.provider)) {
       throw new Error(`Unsupported provider: ${config.provider}`);
     }
 
@@ -68,6 +50,8 @@ export class ConfigLoader {
 
   private async loadGlobalConfig(): Promise<Partial<Config>> {
     try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
       const homeDir = process.env.HOME || process.env.USERPROFILE || '/root';
       const configPath = path.join(homeDir, '.agent', 'config.json');
       const content = await fs.readFile(configPath, 'utf-8');
@@ -79,6 +63,8 @@ export class ConfigLoader {
 
   private async loadProjectConfig(workspaceRoot: string): Promise<Partial<Config>> {
     try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
       const configPath = path.join(workspaceRoot, '.agent', 'config.json');
       const content = await fs.readFile(configPath, 'utf-8');
       return JSON.parse(content);
@@ -88,61 +74,30 @@ export class ConfigLoader {
   }
 
   private applyEnvironmentVariables(config: Config): void {
-    if (process.env.AGENT_MODEL) {
-      config.model = process.env.AGENT_MODEL;
-    }
-
-    if (process.env.AGENT_PROVIDER) {
-      config.provider = process.env.AGENT_PROVIDER;
-    }
-
-    if (process.env.AGENT_API_KEY) {
-      config.apiKey = process.env.AGENT_API_KEY;
-    }
-
-    if (process.env.AGENT_BASE_URL) {
-      config.baseUrl = process.env.AGENT_BASE_URL;
-    }
-
-    if (process.env.AGENT_PERMISSION_MODE) {
-      config.permissionMode = process.env.AGENT_PERMISSION_MODE as PermissionMode;
-    }
-
-    if (process.env.AGENT_MAX_ITERATIONS) {
-      config.maxIterations = parseInt(process.env.AGENT_MAX_ITERATIONS, 10);
-    }
-
-    if (process.env.AGENT_DEBUG) {
-      config.debug = process.env.AGENT_DEBUG === 'true';
-    }
+    if (process.env.AGENT_MODEL) config.model = process.env.AGENT_MODEL;
+    if (process.env.AGENT_PROVIDER) config.provider = process.env.AGENT_PROVIDER;
+    if (process.env.AGENT_API_KEY) config.apiKey = process.env.AGENT_API_KEY;
+    if (process.env.AGENT_BASE_URL) config.baseUrl = process.env.AGENT_BASE_URL;
+    if (process.env.AGENT_PERMISSION_MODE) config.permissionMode = process.env.AGENT_PERMISSION_MODE as PermissionMode;
+    if (process.env.AGENT_MAX_ITERATIONS) config.maxIterations = parseInt(process.env.AGENT_MAX_ITERATIONS, 10);
+    if (process.env.AGENT_DEBUG) config.debug = process.env.AGENT_DEBUG === 'true';
   }
 
-  async save(config: Partial<Config>, global: boolean = true): Promise<void> {
+  async save(config: Partial<Config>, global = true): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
     const homeDir = process.env.HOME || process.env.USERPROFILE || '/root';
-    const configDir = global
-      ? path.join(homeDir, '.agent')
-      : path.join(config.workspaceRoot || process.cwd(), '.agent');
-
+    const configDir = global ? path.join(homeDir, '.agent') : path.join(config.workspaceRoot || process.cwd(), '.agent');
     await fs.mkdir(configDir, { recursive: true });
-
-    const configPath = path.join(configDir, 'config.json');
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    await fs.writeFile(path.join(configDir, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
   }
 
   getApiKey(config: Config): string | undefined {
-    // Priority: config.apiKey > environment variable > undefined
-    if (config.apiKey) {
-      return config.apiKey;
-    }
-
-    if (config.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
-      return process.env.ANTHROPIC_API_KEY;
-    }
-
-    if (config.provider === 'openai' && process.env.OPENAI_API_KEY) {
+    if (config.apiKey) return config.apiKey;
+    if (config.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
+    if ((config.provider === 'openai' || config.provider === 'openai-compatible') && process.env.OPENAI_API_KEY) {
       return process.env.OPENAI_API_KEY;
     }
-
     return undefined;
   }
 }

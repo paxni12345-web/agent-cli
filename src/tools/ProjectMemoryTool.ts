@@ -2,31 +2,42 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 
-const MEMORY_FILE = '.agent/memory.md';
+const MEMORY_FILES = {
+  session: '.agent/memory/session.md',
+  project: '.agent/memory/project.md',
+  global: '.agent/memory/global.md',
+} as const;
+type MemoryLayer = keyof typeof MEMORY_FILES;
 const SECRET_PATTERN = /(api[_-]?key|access[_-]?token|secret|password|private[_-]?key)\s*[:=]/i;
 
 export class ProjectMemoryTool implements Tool {
   name = 'project_memory';
   description =
-    'Read or update non-secret project memory in .agent/memory.md. Store architecture decisions, workflow conventions, known pitfalls, and verification commands; never store credentials or tokens.';
+    'Read or update non-secret memory in three layers: session (temporary task context), project (workspace architecture and conventions), and global (user-wide preferences). Defaults to project. Never store credentials or tokens.';
 
   inputSchema = {
     type: 'object',
     properties: {
       action: { type: 'string', enum: ['read', 'append', 'replace'] },
+      layer: { type: 'string', enum: ['session', 'project', 'global'], description: 'Memory scope (default: project)' },
       content: { type: 'string', description: 'Memory content for append or replace' },
     },
     required: ['action'],
   };
 
   async execute(input: unknown, context: ToolContext): Promise<ToolResult> {
-    const value = input as { action?: string; content?: string };
-    const memoryPath = path.join(context.workspaceRoot, MEMORY_FILE);
+    const value = input as { action?: string; content?: string; layer?: MemoryLayer };
+    const layer: MemoryLayer = value.layer || 'project';
+    if (!(layer in MEMORY_FILES)) return { success: false, error: 'layer must be session, project, or global' };
+    const memoryPath = layer === 'global'
+      ? path.join(process.env.HOME || process.env.USERPROFILE || '/root', '.agent', 'memory', 'global.md')
+      : path.join(context.workspaceRoot, MEMORY_FILES[layer]);
+    const memoryLabel = layer === 'global' ? '~/.agent/memory/global.md' : MEMORY_FILES[layer];
 
     try {
       if (value.action === 'read') {
         const content = await fs.readFile(memoryPath, 'utf-8');
-        return { success: true, output: content || '(project memory is empty)' };
+        return { success: true, output: content || `(${layer} memory is empty)` };
       }
 
       if (value.action !== 'append' && value.action !== 'replace') {
@@ -36,13 +47,13 @@ export class ProjectMemoryTool implements Tool {
         return { success: false, error: 'content is required for append or replace' };
       }
       if (SECRET_PATTERN.test(value.content)) {
-        return { success: false, error: 'Project memory cannot contain credentials or secret-like values' };
+      return { success: false, error: 'Memory cannot contain credentials or secret-like values' };
       }
 
-      const permission = context.permissions.check({
+    const permission = context.permissions.check({
         type: 'write_file',
-        description: `${value.action} project memory`,
-        target: MEMORY_FILE,
+        description: `${value.action} ${layer} memory`,
+        target: memoryPath,
         risk: 'low',
       });
       if (!permission.allowed) {
@@ -56,10 +67,10 @@ export class ProjectMemoryTool implements Tool {
       } else {
         await fs.appendFile(memoryPath, `\n${value.content.trim()}\n`, 'utf-8');
       }
-      return { success: true, output: `Project memory updated: ${MEMORY_FILE}` };
+      return { success: true, output: `${layer} memory updated: ${memoryLabel}` };
     } catch (error: any) {
       if (value.action === 'read' && error.code === 'ENOENT') {
-        return { success: true, output: '(no project memory yet)' };
+        return { success: true, output: `(no ${layer} memory yet)` };
       }
       return { success: false, error: error.message };
     }

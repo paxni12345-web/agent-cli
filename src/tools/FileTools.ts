@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as nodeFs from 'fs';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult, ToolError, WorkspaceError } from '../types/index.js';
 
@@ -272,17 +273,41 @@ export class ReadFileTool implements Tool {
         };
       }
 
-      let content = await fs.readFile(validatedPath, 'utf-8');
-      const totalLines = content.split('\n').length;
-
+      const maxSize = 100000;
+      let content: string;
+      let totalLines: number;
       if (input.startLine !== undefined || input.endLine !== undefined) {
-        const lines = content.split('\n');
         const start = Math.max((Number(input.startLine) || 1) - 1, 0);
-        const end = Math.min(Number(input.endLine) || lines.length, lines.length);
-        content = lines.slice(start, end).join('\n');
+        const end = Math.max(Number(input.endLine) || start + 500, start + 1);
+        if (end - start > 5000) throw new ToolError('Line range cannot exceed 5000 lines');
+        const stream = nodeFs.createReadStream(validatedPath, { encoding: 'utf-8' });
+        let lineNumber = 0;
+        let selected: string[] = [];
+        let selectedSize = 0;
+        let pending = '';
+        for await (const chunk of stream) {
+          pending += chunk;
+          const lines = pending.split('\n');
+          pending = lines.pop() || '';
+          for (const line of lines) {
+            if (lineNumber >= start && lineNumber < end && selectedSize < maxSize) {
+              selected.push(line);
+              selectedSize += line.length + 1;
+            }
+            lineNumber++;
+          }
+        }
+        if (pending) {
+          if (lineNumber >= start && lineNumber < end && selectedSize < maxSize) selected.push(pending);
+          lineNumber++;
+        }
+        content = selected.join('\n');
+        totalLines = lineNumber;
+      } else {
+        content = await fs.readFile(validatedPath, 'utf-8');
+        totalLines = content.split('\n').length;
       }
 
-      const maxSize = 100000;
       if (content.length > maxSize) {
         content = content.substring(0, maxSize) + '\n\n[... truncated ...]';
       }

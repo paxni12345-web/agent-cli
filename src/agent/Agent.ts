@@ -66,12 +66,15 @@ export class Agent extends EventEmitter {
           this.setStatus('executing');
           this.addMessage({ role: 'assistant', content: response.content || '', toolCalls: response.toolCalls, timestamp: new Date() });
           const toolResults: ContentBlock[] = [];
-          for (const toolCall of response.toolCalls) {
+          const results = await Promise.all(response.toolCalls.map(async (toolCall) => {
             this.emit('toolStart', { id: toolCall.id, name: toolCall.name, input: toolCall.input });
             const result = await this.toolQueue.enqueue({
               priority: Agent.READ_ONLY_TOOLS.has(toolCall.name) ? 10 : 0,
               run: () => this.executeToolWithRetry(toolCall),
             });
+            return { toolCall, result };
+          }));
+          for (const { toolCall, result } of results) {
             const execution: ToolExecution = { tool: toolCall.name, input: toolCall.input, result, timestamp: new Date() };
             this.state.history.push(execution); this.performanceMonitor.record(execution); this.emit('toolEnd', execution);
             toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: result.success ? result.output || 'Success' : `Error: ${result.error}`, is_error: !result.success });

@@ -9,7 +9,7 @@ Autonomous AI coding agent for your terminal — clean core, real tool calling, 
 - **Resilience built-in** — input validation, safety checks, retry with exponential backoff, error recovery strategies, and a circuit breaker for failing tools
 - **Workflow-aware automation** — maps frontend, backend, data, tests, and deployment before making cross-layer changes
 - **Dependency/API support** — can install required libraries through the project package manager and integrate APIs through environment-based credentials
-- **Project memory** — keeps architecture decisions, workflow notes, pitfalls, and verification commands in `.agent/memory.md` without storing secrets
+- **Three-layer memory** — separates temporary session notes, workspace project knowledge, and user-wide preferences; never stores secrets
 - **Beautiful TUI** — live streaming output, tool activity feed, token usage bar, command history
 - **Two interfaces** — classic readline REPL (`agent chat`) or Ink UI (`agent-ui`)
 
@@ -102,7 +102,7 @@ agent doctor   # check node, git, workspace, API keys
 | `shell` | Run shell commands |
 | `search_code` | Regex search across the project |
 | `project_map` | Architecture/workflow map across frontend, backend, data, tests, and deployment |
-| `project_memory` | Read/update non-secret project decisions and workflow memory |
+| `project_memory` | Read/update non-secret `session`, `project`, or `global` memory |
 | `git_status` / `git_diff` / `git_log` | Git inspection |
 
 All file tools enforce workspace boundaries (symlink-safe path canonicalization) and every tool call passes schema validation + safety checks before execution.

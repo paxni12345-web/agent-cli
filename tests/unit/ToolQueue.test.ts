@@ -17,4 +17,17 @@ describe('ToolQueue', () => {
     await Promise.all([task(), task(), task(), task()]);
     expect(maximum).toBe(2);
   });
+
+  it('cancels tasks that are still waiting in the queue', async () => {
+    const queue = new ToolQueue(1);
+    let release!: () => void;
+    const blocker = queue.enqueue({ run: () => new Promise<void>(resolve => { release = resolve; }) });
+    const controller = new AbortController();
+    const cancelled = queue.enqueue({ signal: controller.signal, run: async () => 'should not run' });
+    controller.abort(new Error('cancelled'));
+    await expect(cancelled).rejects.toThrow('cancelled');
+    release();
+    await blocker;
+    expect(queue.size).toBe(0);
+  });
 });

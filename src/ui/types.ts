@@ -7,6 +7,7 @@ export interface ToolEvent {
   startedAt: number;
   durationMs?: number;
   summary?: string;
+  details?: string;
 }
 
 export interface AgentStatus {

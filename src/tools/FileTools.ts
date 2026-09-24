@@ -386,7 +386,15 @@ export class WriteFileTool implements Tool {
       }
 
       await fs.mkdir(path.dirname(validatedPath), { recursive: true });
+      let previousContent = '';
+      try {
+        previousContent = await fs.readFile(validatedPath, 'utf-8');
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') throw error;
+      }
       await fs.writeFile(validatedPath, input.content, 'utf-8');
+      const oldLines = previousContent ? previousContent.split('\n').length : 0;
+      const newLines = String(input.content).split('\n').length;
 
       return {
         success: true,
@@ -394,6 +402,9 @@ export class WriteFileTool implements Tool {
         metadata: {
           path: input.path,
           size: input.content.length,
+          addedLines: Math.max(0, newLines - oldLines),
+          removedLines: Math.max(0, oldLines - newLines),
+          startLine: 1,
         },
       };
     } catch (error: any) {
@@ -481,6 +492,13 @@ export class EditFileTool implements Tool {
         : content.replace(input.oldText, input.newText);
 
       await fs.writeFile(validatedPath, newContent, 'utf-8');
+      const beforeLines = content.split('\n');
+      const afterLines = newContent.split('\n');
+      let firstChangedLine = 0;
+      while (firstChangedLine < beforeLines.length && firstChangedLine < afterLines.length && beforeLines[firstChangedLine] === afterLines[firstChangedLine]) {
+        firstChangedLine++;
+      }
+      const lineDelta = afterLines.length - beforeLines.length;
 
       return {
         success: true,
@@ -488,6 +506,9 @@ export class EditFileTool implements Tool {
         metadata: {
           path: input.path,
           replacements: occurrences,
+          startLine: firstChangedLine + 1,
+          addedLines: Math.max(0, lineDelta),
+          removedLines: Math.max(0, -lineDelta),
         },
       };
     } catch (error: any) {

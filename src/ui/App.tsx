@@ -104,15 +104,16 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
           setToolEvents(prev => [...prev, ev]);
         });
 
-        agent.on('toolEnd', (execution: { tool: string; result: { success: boolean }; }) => {
+        agent.on('toolEnd', (execution: { tool: string; input: unknown; result: { success: boolean; metadata?: Record<string, unknown>; error?: string }; }) => {
           setToolEvents(prev =>
             prev.map(ev => {
-              if (ev.name === execution.tool && ev.status === 'running') {
+              if (ev.name === execution.tool && ev.status === 'running' && summarizeInput(execution.input) === ev.summary) {
                 runningToolsRef.current.delete(ev.id);
                 return {
                   ...ev,
                   status: execution.result.success ? ('done' as const) : ('failed' as const),
                   durationMs: Date.now() - ev.startedAt,
+                  details: formatToolDetails(execution.tool, execution.input, execution.result),
                 };
               }
               return ev;
@@ -160,11 +161,11 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       runningToolsRef.current.set(ev.id, ev);
       setToolEvents(prev => [...prev, ev]);
     });
-    agent.on('toolEnd', (execution: { tool: string; result: { success: boolean } }) => {
+    agent.on('toolEnd', (execution: { tool: string; input: unknown; result: { success: boolean; metadata?: Record<string, unknown>; error?: string } }) => {
       setToolEvents(prev => prev.map(ev => {
-        if (ev.name !== execution.tool || ev.status !== 'running') return ev;
+        if (ev.name !== execution.tool || ev.status !== 'running' || summarizeInput(execution.input) !== ev.summary) return ev;
         runningToolsRef.current.delete(ev.id);
-        return { ...ev, status: execution.result.success ? 'done' : 'failed', durationMs: Date.now() - ev.startedAt };
+        return { ...ev, status: execution.result.success ? 'done' : 'failed', durationMs: Date.now() - ev.startedAt, details: formatToolDetails(execution.tool, execution.input, execution.result) };
       }));
     });
     agent.on('tokenUsage', (usage: { totalTokens: number }) => {
@@ -492,6 +493,34 @@ function summarizeInput(input: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function formatToolDetails(
+  tool: string,
+  input: unknown,
+  result: { success: boolean; metadata?: Record<string, unknown>; error?: string }
+): string | undefined {
+  if (!result.success) return result.error ? `failed: ${result.error}` : undefined;
+  const args = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const metadata = result.metadata || {};
+  const filePath = String(metadata.path ?? args.path ?? '');
+  const lineStart = Number(metadata.startLine);
+  const lineEnd = Number(metadata.endLine);
+  const lineRange = Number.isFinite(lineStart)
+    ? `L${lineStart}${Number.isFinite(lineEnd) ? `–${lineEnd}` : ''}`
+    : undefined;
+
+  if (tool === 'edit_file' || tool === 'write_file') {
+    const changes = [
+      Number(metadata.addedLines) > 0 ? `+${metadata.addedLines}` : undefined,
+      Number(metadata.removedLines) > 0 ? `-${metadata.removedLines}` : undefined,
+    ].filter(Boolean).join(' ');
+    return [filePath, lineRange, changes || (tool === 'edit_file' ? `${metadata.replacements ?? 1} replacement(s)` : 'written')]
+      .filter(Boolean).join(' · ');
+  }
+  if (tool === 'read_file') return [filePath, lineRange || 'read file'].filter(Boolean).join(' · ');
+  if (filePath) return filePath;
+  return undefined;
 }
 
 export const startCLI = (options: AppProps) => {

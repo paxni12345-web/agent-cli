@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 
-interface InputBoxProps { value: string; onChange: (value: string) => void; onSubmit: (value: string) => void; placeholder?: string; disabled?: boolean; welcome?: boolean; }
+interface InputBoxProps { value: string; onChange: (value: string) => void; onSubmit: (value: string) => void; placeholder?: string; disabled?: boolean; welcome?: boolean; secure?: boolean; }
 const PURPLE = '#c084fc';
 const SLASH_COMMANDS = [
   { name: '/help', description: 'แสดงรายการคำสั่งทั้งหมด' },
@@ -15,7 +15,7 @@ const SLASH_COMMANDS = [
   { name: '/exit', description: 'ออกจากโปรแกรม' },
 ];
 
-export const InputBox: React.FC<InputBoxProps> = ({ value, onChange, onSubmit, placeholder = 'Type a message…', disabled = false, welcome = false }) => {
+export const InputBox: React.FC<InputBoxProps> = ({ value, onChange, onSubmit, placeholder = 'Type a message…', disabled = false, welcome = false, secure = false }) => {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const commandQuery = value.startsWith('/') ? value.split(/\s/, 1)[0].toLowerCase() : '';
@@ -24,6 +24,18 @@ export const InputBox: React.FC<InputBoxProps> = ({ value, onChange, onSubmit, p
     : [];
   useInput((_input, key) => {
     if (disabled) return;
+    if (secure) {
+      if (key.return) {
+        if (value.trim()) onSubmit(value);
+        return;
+      }
+      if (key.backspace || key.delete) {
+        onChange(value.slice(0, -1));
+        return;
+      }
+      if (_input && !key.ctrl && !key.meta && _input.length === 1) onChange(value + _input);
+      return;
+    }
     if (key.upArrow && history.length > 0) {
       const newIndex = Math.min(historyIndex + 1, history.length - 1);
       setHistoryIndex(newIndex); onChange(history[history.length - 1 - newIndex]);
@@ -46,9 +58,9 @@ export const InputBox: React.FC<InputBoxProps> = ({ value, onChange, onSubmit, p
           ))}
         </Box>
       )}
-      <Box borderStyle={welcome ? 'single' : 'round'} borderColor={disabled ? 'gray' : PURPLE} backgroundColor={welcome ? '#17131d' : undefined} paddingX={welcome ? 2 : 1} paddingY={welcome ? 1 : 0}>
+      <Box borderStyle={welcome ? 'single' : 'round'} borderColor={disabled ? 'gray' : PURPLE} paddingX={welcome ? 2 : 1} paddingY={welcome ? 1 : 0}>
         <Box marginRight={1}><Text color={disabled ? 'gray' : PURPLE} bold>{disabled ? '⏳' : '❯'}</Text></Box>
-        {disabled ? <Text color="gray" dimColor>{placeholder}</Text> : <TextInput value={value} onChange={onChange} placeholder={placeholder} onSubmit={v => { if (v.trim()) { setHistory(prev => [...prev, v]); setHistoryIndex(-1); } onSubmit(v); }} />}
+        {disabled ? <Text color="gray" dimColor>{placeholder}</Text> : secure ? <Text color={value ? '#e9d5ff' : '#756783'}>{value ? '•'.repeat(value.length) : placeholder}<Text color={PURPLE}>▍</Text></Text> : <TextInput value={value} onChange={onChange} placeholder={placeholder} onSubmit={v => { if (v.trim()) { setHistory(prev => [...prev, v]); setHistoryIndex(-1); } onSubmit(v); }} />}
       </Box>
     </Box>
   );

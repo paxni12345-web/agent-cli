@@ -7,7 +7,8 @@
   "bin": {
     "agent": "./dist/cli.js",
     "agent-ui": "./dist/cli-ui.js",
-    "agent-server": "./dist/agent-server.js"
+    "agent-server": "./dist/agent-server.js",
+    "irissetting": "./dist/cli-settings.js"
   },
   "scripts": {
     "build": "tsc",

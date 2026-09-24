@@ -45,6 +45,14 @@ agent-ui
 agent-ui -m gpt-4o --mode fast
 ```
 
+On first launch, `agent-ui` opens the IRIS quick setup if no API key is configured. To change provider, API key, model, or base URL later, run:
+
+```bash
+irissetting
+```
+
+The wizard saves credentials locally in `~/.agent/config.json` with owner-only file permissions. Alternatively, configure through environment variables such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
+
 ### One-shot task
 
 ```bash

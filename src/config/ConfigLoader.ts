@@ -89,7 +89,9 @@ export class ConfigLoader {
     const homeDir = process.env.HOME || process.env.USERPROFILE || '/root';
     const configDir = global ? path.join(homeDir, '.agent') : path.join(config.workspaceRoot || process.cwd(), '.agent');
     await fs.mkdir(configDir, { recursive: true });
-    await fs.writeFile(path.join(configDir, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    const configPath = path.join(configDir, 'config.json');
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    await fs.chmod(configPath, 0o600);
   }
 
   getApiKey(config: Config): string | undefined {

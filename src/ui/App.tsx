@@ -13,20 +13,23 @@ import { createDefaultToolRegistry } from '../tools/index.js';
 import { DefaultPermissionManager } from '../security/PermissionManager.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { Config } from '../types/index.js';
+import { SettingsWizard } from './components/SettingsWizard.js';
 
 interface AppProps {
   workingDirectory: string;
   model?: string;
   mode?: 'normal' | 'fast' | 'ultra';
+  settingsOnly?: boolean;
 }
 
 let idCounter = 0;
 const nextId = () => `${Date.now()}-${++idCounter}`;
 
-export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'normal' }) => {
+export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'normal', settingsOnly = false }) => {
   const { exit } = useApp();
 
   const [config, setConfig] = useState<Config | null>(null);
+  const [setupRequired, setSetupRequired] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [input, setInput] = useState('');
@@ -67,13 +70,11 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       }
       if (model) cfg.model = model;
 
-      const apiKey =
-        cfg.provider === 'anthropic'
-          ? process.env.ANTHROPIC_API_KEY
-          : process.env.OPENAI_API_KEY;
-
-      if (!apiKey) {
-        setError('API key not found. Set ANTHROPIC_API_KEY or OPENAI_API_KEY and restart.');
+      const apiKey = loader.getApiKey(cfg);
+      if (settingsOnly || !apiKey) {
+        setConfig(cfg);
+        setStatus(prev => ({ ...prev, model: cfg.model }));
+        setSetupRequired(true);
         return;
       }
 
@@ -141,6 +142,43 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
     })();
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   }, []);
+
+  const initializeConfiguredAgent = useCallback((updatedConfig: Config) => {
+    const loader = new ConfigLoader();
+    const apiKey = loader.getApiKey(updatedConfig);
+    if (!apiKey) {
+      setError('ไม่พบ API key ที่ตั้งค่าไว้');
+      setSetupRequired(true);
+      return;
+    }
+    const provider = updatedConfig.provider === 'anthropic'
+      ? new AnthropicProvider(apiKey, { baseUrl: updatedConfig.baseUrl, model: updatedConfig.model })
+      : new OpenAIProvider(apiKey, { baseUrl: updatedConfig.baseUrl, model: updatedConfig.model });
+    const agent = new Agent(provider, createDefaultToolRegistry(), new DefaultPermissionManager(updatedConfig.permissionMode), updatedConfig);
+    agent.on('toolStart', (call: { id: string; name: string; input: unknown }) => {
+      const ev: ToolEvent = { id: call.id || nextId(), name: call.name, status: 'running', startedAt: Date.now(), summary: summarizeInput(call.input) };
+      runningToolsRef.current.set(ev.id, ev);
+      setToolEvents(prev => [...prev, ev]);
+    });
+    agent.on('toolEnd', (execution: { tool: string; result: { success: boolean } }) => {
+      setToolEvents(prev => prev.map(ev => {
+        if (ev.name !== execution.tool || ev.status !== 'running') return ev;
+        runningToolsRef.current.delete(ev.id);
+        return { ...ev, status: execution.result.success ? 'done' : 'failed', durationMs: Date.now() - ev.startedAt };
+      }));
+    });
+    agent.on('tokenUsage', (usage: { totalTokens: number }) => {
+      setStatus(prev => ({ ...prev, tokensUsed: prev.tokensUsed + usage.totalTokens }));
+    });
+    agent.on('status', (nextStatus: string) => {
+      if (nextStatus === 'thinking' || nextStatus === 'executing') setLiveStatus(nextStatus);
+    });
+    agentRef.current = agent;
+    setConfig(updatedConfig);
+    setStatus(prev => ({ ...prev, model: updatedConfig.model }));
+    setSetupRequired(false);
+    setError(null);
+  }, [setLiveStatus]);
 
   const handleCommand = useCallback(
     async (message: string) => {
@@ -357,12 +395,16 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
     );
   }
 
+  if (setupRequired && config) {
+    return <SettingsWizard initialConfig={config} onComplete={settingsOnly ? undefined : initializeConfiguredAgent} />;
+  }
+
   if (!hasStartedChat) {
     return (
-      <Box flexDirection="column" height="100%" backgroundColor="#080808">
-        <Box height={3} backgroundColor="#171717" paddingX={1} alignItems="center">
-          <Box backgroundColor="#252525" paddingX={2} height={2}>
-            <Text color="#e9d5ff" bold>▣  IRIS</Text>
+      <Box flexDirection="column" height="100%">
+        <Box height={3} paddingX={1} alignItems="center">
+          <Box paddingX={2} height={2}>
+            <Text backgroundColor="#252525" color="#e9d5ff" bold>▣  IRIS</Text>
             <Text color="#a78bfa">  ×</Text>
           </Box>
           <Text color="#d8b4fe">  +</Text>

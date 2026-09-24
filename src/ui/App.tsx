@@ -28,6 +28,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
 
   const [config, setConfig] = useState<Config | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
   const [input, setInput] = useState('');
   const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [busy, setBusy] = useState(false);
@@ -134,16 +135,6 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
         setConfig(cfg);
         setStatus(prev => ({ ...prev, model: cfg.model }));
 
-        setMessages([
-          {
-            id: nextId(),
-            role: 'system',
-            content:
-              `Welcome to Agent CLI — connected to ${cfg.provider} (${cfg.model}).\n` +
-              `Type a task, or /help for commands.`,
-            timestamp: new Date(),
-          },
-        ]);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to initialize agent');
       }
@@ -295,6 +286,8 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
         return;
       }
 
+      setHasStartedChat(true);
+
       const agent = agentRef.current;
       if (!agent || !config) {
         addMessage({
@@ -360,6 +353,52 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
     return (
       <Box flexDirection="column" padding={1}>
         <Text color="red">✗ {error}</Text>
+      </Box>
+    );
+  }
+
+  if (!hasStartedChat) {
+    return (
+      <Box flexDirection="column" height="100%" backgroundColor="#080808">
+        <Box height={3} backgroundColor="#171717" paddingX={1} alignItems="center">
+          <Box backgroundColor="#252525" paddingX={2} height={2}>
+            <Text color="#e9d5ff" bold>▣  IRIS</Text>
+            <Text color="#a78bfa">  ×</Text>
+          </Box>
+          <Text color="#d8b4fe">  +</Text>
+          <Box flexGrow={1} />
+          <Text color="#c4b5fd">─   □   ×</Text>
+        </Box>
+        <Box flexGrow={1} flexDirection="column" justifyContent="center" alignItems="center">
+          <Box flexDirection="column" alignItems="center" marginBottom={2}>
+            <Text color="#a78bfa" bold>{`██╗██████╗ ██╗███████╗`}</Text>
+            <Text color="#a78bfa" bold>{`██║██╔══██╗██║██╔════╝`}</Text>
+            <Text color="#c084fc" bold>{`██║██████╔╝██║███████╗`}</Text>
+            <Text color="#c084fc" bold>{`██║██╔══██╗██║╚════██║`}</Text>
+            <Text color="#e9d5ff" bold>{`██║██║  ██║██║███████║`}</Text>
+            <Text color="#e9d5ff" bold>{`╚═╝╚═╝  ╚═╝╚═╝╚══════╝`}</Text>
+            <Box marginTop={1}>
+              <Text color="#c084fc" bold>IRIS</Text>
+              <Text color="#8b7a9e">  ·  terminal AI workspace</Text>
+            </Box>
+          </Box>
+          <Box width={Math.min(92, Math.max(40, (process.stdout.columns || 96) - 4))}>
+            <InputBox
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              disabled={busy}
+              placeholder="Ask IRIS anything about your code…"
+              welcome
+            />
+          </Box>
+          <Box marginTop={1} gap={1}>
+            <Text color="#c084fc">{config?.provider || 'connecting'}</Text>
+            <Text color="#f5d0fe" bold>{status.model || 'loading model…'}</Text>
+            <Text color="#a78bfa">· {status.mode} mode</Text>
+          </Box>
+          <Text color="#756783" dimColor>Type a task and press Enter · /help for commands</Text>
+        </Box>
       </Box>
     );
   }

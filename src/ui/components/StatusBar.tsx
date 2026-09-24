@@ -18,7 +18,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
   const filled = Math.round((tokenPercentage / 100) * barWidth);
   const empty = barWidth - filled;
 
-  const barColor = tokenPercentage > 80 ? 'red' : tokenPercentage > 50 ? 'yellow' : 'green';
+  const barColor = tokenPercentage > 80 ? '#fda4af' : tokenPercentage > 50 ? '#f0abfc' : '#c084fc';
 
   const contextLabel = `${Math.round(CONTEXT_WINDOW / 1000)}K`;
 
@@ -26,12 +26,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
     <Box paddingLeft={2} paddingRight={2} paddingTop={0} paddingBottom={1}>
       <Box
         borderStyle="round"
-        borderColor="gray"
+        borderColor="#a78bfa"
         paddingX={1}
         justifyContent="space-between"
         width="100%"
       >
-        <Text color="green">✓ {status.tasksCompleted} tasks</Text>
+        <Text color="#d8b4fe">✓ {status.tasksCompleted} tasks</Text>
         <Text>
           <Text color="gray">tok </Text>
           <Text color={barColor}>

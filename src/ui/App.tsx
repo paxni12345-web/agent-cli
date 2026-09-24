@@ -367,7 +367,9 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
   return (
     <Box flexDirection="column" height="100%">
       <Header
+        provider={config?.provider || '…'}
         model={status.model || '…'}
+        baseUrl={config?.baseUrl}
         mode={status.mode}
         workingDir={status.workingDir}
         status={{ status: busy ? agentStateRef.current : 'idle' }}
@@ -377,7 +379,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
 
       {busy && (
         <Box paddingLeft={2}>
-          <Text color="cyan">
+          <Text color="#c084fc">
             {agentStateRef.current === 'executing' ? '⚙ working with tools…' : '◉ thinking…'}
           </Text>
         </Box>

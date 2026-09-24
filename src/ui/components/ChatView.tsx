@@ -8,9 +8,9 @@ interface ChatViewProps {
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ messages, toolEvents }) => {
-  const roleMeta: Record<string, { icon: string; color: 'cyan' | 'magenta' | 'gray'; label: string }> = {
-    user: { icon: '❯', color: 'cyan', label: 'You' },
-    assistant: { icon: '◆', color: 'magenta', label: 'Agent' },
+  const roleMeta: Record<string, { icon: string; color: string; label: string }> = {
+    user: { icon: '❯', color: '#d8b4fe', label: 'You' },
+    assistant: { icon: '◆', color: '#c084fc', label: 'IRIS' },
     system: { icon: '●', color: 'gray', label: 'System' },
   };
 

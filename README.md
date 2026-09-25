@@ -115,6 +115,35 @@ agent doctor   # check node, git, workspace, API keys
 
 All file tools enforce workspace boundaries (symlink-safe path canonicalization) and every tool call passes schema validation + safety checks before execution.
 
+### Sandbox & execution isolation
+
+Shell commands never run bare. Two isolation tiers, selected automatically:
+
+1. **Docker tier (default)** — every `shell` command runs inside a container with:
+   - `--network none` (no inbound/outbound network)
+   - memory / CPU / pids caps (`--memory`, `--cpus`, `--pids-limit`)
+   - disk quota via `--ulimit fsize` and a read-only rootfs with a size-capped `noexec` tmpfs at `/tmp`
+   - non-root user (`--user nobody` by default), `--cap-drop ALL`, `no-new-privileges`
+   - the workspace as the only host bind-mount
+2. **Local tier (no Docker)** — commands are wrapped with OS guards:
+   - `ulimit` caps: CPU seconds, address space, file size, process count, core dumps off
+   - `unshare -n` network-namespace isolation when available
+   - `setpriv` demotion from root with all capabilities dropped (when running as root)
+   - pre-flight rejection of commands referencing paths outside the workspace
+     (absolute system paths, `~`, `$HOME`)
+
+Set `AGENT_SANDBOX_REQUIRE_ISOLATION=true` to **fail closed**: shell commands are refused when Docker is unavailable instead of falling back to the guarded local tier.
+
+```bash
+export AGENT_SANDBOX_DOCKER_USER=1000:1000   # container user (default nobody)
+export AGENT_SANDBOX_TMPFS_MB=256            # /tmp tmpfs + fsize quota (MB)
+export AGENT_SANDBOX_REQUIRE_ISOLATION=true  # no local fallback
+export AGENT_SANDBOX_LOCAL_CPU=30            # local ulimit -t (seconds)
+export AGENT_SANDBOX_LOCAL_MEMORY_KB=1048576 # local ulimit -v
+export AGENT_SANDBOX_LOCAL_PROCS=128         # local ulimit -u
+export AGENT_SANDBOX_LOCAL_ALLOW_OUTSIDE=false # strict workspace paths
+```
+
 ## Configuration
 
 Global: `~/.agent/config.json` · Project: `.agent/config.json`

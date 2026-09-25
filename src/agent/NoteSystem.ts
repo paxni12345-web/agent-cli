@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ToolExecution } from '../types/index.js';
+import { SecretScanner } from './SecretScanner.js';
 
 /**
  * NoteSystem — structured notebook with four note kinds.
@@ -110,14 +111,16 @@ export class NoteSystem {
   /** Record a change entry (called by the Agent after edits). */
   observeChange(tool: string, filePath: string, detail: string): void {
     const file = String(filePath ?? '').replace(/\\/g, '/');
-    this.pending.push({ kind: 'change', content: `${tool}: ${file} — ${detail}`.slice(0, 300) });
+    const clean = new SecretScanner().redact(`${tool}: ${file} — ${detail}`).text;
+    this.pending.push({ kind: 'change', content: clean.slice(0, 300) });
   }
 
   /** Record a bug entry (called by the Agent when tools fail).
-   *  Capped per run and deduped per run so error loops can't flood it. */
+   *  Capped per run and deduped per run so error loops can't flood it.
+   *  Item 40: error text is secret-masked before storage. */
   observeBug(source: string, error: string, resolution?: string): void {
     if (this.runBugCount >= NoteSystem.MAX_BUGS_PER_RUN) return;
-    const err = error.replace(/\s+/g, ' ').trim().slice(0, 160);
+    const err = new SecretScanner().maskError(error.replace(/\s+/g, ' ').trim().slice(0, 160));
     const key = `${source}|${err}`;
     if (this.runBugSeen.has(key)) return;
     this.runBugSeen.add(key);

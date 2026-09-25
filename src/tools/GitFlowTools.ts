@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 import { runCaptured, truncateOutput } from './ShellTool.js';
+import { SecretScanner } from '../agent/SecretScanner.js';
 
 /**
  * Git & Version Control tools (group 4). Every mutation runs through the
@@ -82,6 +83,24 @@ export class GitCommitTool implements Tool {
       const message = str(input, 'message') || draftCommitMessage(status.stdout, diff.stdout);
       if (input.dryRun === true) {
         return { success: true, output: `DRY RUN — would commit:\n\n${message}\n\nStaged files:\n${truncateOutput(status.stdout, 20)}`, metadata: { dryRun: true, message } };
+      }
+      // ---- Item 31: secret scanning before every real commit.
+      const scanner = new SecretScanner();
+      const staged = await runCaptured('git diff --cached --name-only', { cwd: ws, timeout: 15000 });
+      const stagedFiles = staged.stdout.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 100);
+      const contents: Array<{ path: string; content: string }> = [];
+      for (const rel of stagedFiles) {
+        try {
+          const abs = path.resolve(ws, rel);
+          if (!abs.startsWith(path.resolve(ws))) continue; // workspace-only
+          const stat = await fs.stat(abs);
+          if (stat.size > 400_000) continue; // skip huge files
+          contents.push({ path: rel, content: await fs.readFile(abs, 'utf-8') });
+        } catch { /* unreadable — skip */ }
+      }
+      const blockers = await scanner.scanFilesForCommit(contents);
+      if (blockers.length) {
+        return { success: false, error: `COMMIT BLOCKED — suspected secrets in staged changes:\n${blockers.slice(0, 10).join('\n')}\nRemove the secrets (or add legitimate values via environment variables) and try again.`, metadata: { blocked: 'secret-scan', count: blockers.length } };
       }
       const r = await runCaptured(`git commit -m ${JSON.stringify(message)}`, { cwd: ws, timeout: 30000 });
       return { success: r.ok, output: r.ok ? `Committed ✓\n\n${message}` : truncateOutput(r.stderr, 20), metadata: { exitCode: r.exitCode, message } };

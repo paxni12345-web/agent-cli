@@ -2,6 +2,28 @@ import * as fs from 'fs/promises';
 import * as nodeFs from 'fs';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult, ToolError, WorkspaceError } from '../types/index.js';
+import { BackupManager, ProtectedPaths } from '../agent/BackupManager.js';
+
+/** Session-wide backup store used by write_file/edit_file (undo support).
+ *  One instance per process is safe: paths are absolute keys. */
+export const sessionBackups = new BackupManager();
+
+/** Item 23 — max distinct files one task may touch. Session-scoped. */
+export const taskEditGuard = {
+  maxFilesPerTask: 25,
+  currentTask: '',
+  /** Throws-free check: returns an error string when the cap is exceeded. */
+  registerAndCheck(workspaceRoot: string, absolutePath: string): string | null {
+    if (!this.currentTask) return null;
+    const files = sessionBackups.filesChangedInTask(this.currentTask);
+    const alreadyTouched = sessionBackups.trackedPaths.includes(absolutePath);
+    if (!alreadyTouched && files >= this.maxFilesPerTask) {
+      return `Task '${this.currentTask}' has already modified ${files} files (max ${this.maxFilesPerTask}). Split the work into smaller tasks.`;
+    }
+    sessionBackups.beforeWrite(workspaceRoot, absolutePath, this.currentTask).catch(() => undefined);
+    return null;
+  },
+};
 
 /** Shared workspace-path sanitizer for all file tools.
  *  Exported so sibling tool modules reuse the same rules. */
@@ -115,6 +137,19 @@ export class PathValidator {
     const sanitized = PathValidator.sanitizePath(userPath);
     return PathValidator.validateWorkspaceBoundary(sanitized, workspaceRoot);
   }
+}
+
+/** Compact before/after summary used as the write_file diff preview (item 70). */
+export function buildDiffSummary(before: string, after: string): string {
+  if (before === after) return '';
+  const beforeLines = before.split('\n');
+  const afterLines = after.split('\n');
+  const added = afterLines.filter(l => !beforeLines.includes(l)).length;
+  const removed = beforeLines.filter(l => !afterLines.includes(l)).length;
+  const firstChange = afterLines.findIndex((l, i) => beforeLines[i] !== l);
+  const parts = [`diff: +${added} -${removed} lines`];
+  if (firstChange >= 0) parts.push(`first change at L${firstChange + 1}`);
+  return parts.join(', ');
 }
 
 async function assertInsideWorkspace(validatedPath: string, workspaceRoot: string): Promise<void> {
@@ -369,15 +404,17 @@ export class WriteFileTool implements Tool {
   };
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
-    try {
-      const validatedPath = await PathValidator.validatePath(input.path, context.workspaceRoot);
+    try {      const validatedPath = await PathValidator.validatePath(input.path, context.workspaceRoot);
       await assertInsideWorkspace(validatedPath, context.workspaceRoot);
+
+      // ---- Item 71: system/config paths require special (critical) approval.
+      const protectedReason = ProtectedPaths.check(input.path);
 
       const permissionResult = await context.permissions.check({
         type: 'write_file',
-        description: `Write file: ${input.path}`,
+        description: `Write file: ${input.path}${protectedReason ? ` [PROTECTED: ${protectedReason}]` : ''}`,
         target: input.path,
-        risk: 'medium',
+        risk: ProtectedPaths.riskFor(input.path),
       });
 
       if (permissionResult.allowed === false) {
@@ -387,6 +424,10 @@ export class WriteFileTool implements Tool {
         };
       }
 
+      // ---- Item 23: per-task file-count cap (mass destructive edit guard).
+      const capError = taskEditGuard.registerAndCheck(context.workspaceRoot, validatedPath);
+      if (capError) return { success: false, error: capError };
+
       await fs.mkdir(path.dirname(validatedPath), { recursive: true });
       let previousContent = '';
       try {
@@ -394,19 +435,24 @@ export class WriteFileTool implements Tool {
       } catch (error: any) {
         if (error.code !== 'ENOENT') throw error;
       }
+      // ---- Item 70: diff preview of the overwrite in metadata.
+      const unifiedDiff = buildDiffSummary(previousContent, String(input.content));
       await fs.writeFile(validatedPath, input.content, 'utf-8');
       const oldLines = previousContent ? previousContent.split('\n').length : 0;
       const newLines = String(input.content).split('\n').length;
 
       return {
         success: true,
-        output: `File written successfully: ${input.path}`,
+        output: `File written successfully: ${input.path}` + (unifiedDiff ? `\n${unifiedDiff}` : ''),
         metadata: {
           path: input.path,
           size: input.content.length,
           addedLines: Math.max(0, newLines - oldLines),
           removedLines: Math.max(0, oldLines - newLines),
           startLine: 1,
+          protected: protectedReason ?? undefined,
+          diff: unifiedDiff || undefined,
+          undoable: true,
         },
       };
     } catch (error: any) {
@@ -447,11 +493,14 @@ export class EditFileTool implements Tool {
     try {
       const validatedPath = await PathValidator.validatePath(input.path, context.workspaceRoot);
 
+      // ---- Item 71: system/config paths require special (critical) approval.
+      const protectedReason = ProtectedPaths.check(input.path);
+
       const permissionResult = await context.permissions.check({
         type: 'write_file',
-        description: `Edit file: ${input.path}`,
+        description: `Edit file: ${input.path}${protectedReason ? ` [PROTECTED: ${protectedReason}]` : ''}`,
         target: input.path,
-        risk: 'medium',
+        risk: ProtectedPaths.riskFor(input.path),
       });
 
       if (permissionResult.allowed === false) {
@@ -471,6 +520,10 @@ export class EditFileTool implements Tool {
       if (!stat.isFile()) {
         throw new ToolError('Path is not a file');
       }
+
+      // ---- Item 23: per-task file-count cap.
+      const capError = taskEditGuard.registerAndCheck(context.workspaceRoot, validatedPath);
+      if (capError) return { success: false, error: capError };
 
       const content = await fs.readFile(validatedPath, 'utf-8');
       const occurrences = content.split(input.oldText).length - 1;

@@ -44,6 +44,26 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   sandboxMemoryMb?: number;
   /** Docker sandbox OS/toolchain profile (default node = Node 20 on Alpine). */
   sandboxDockerProfile?: 'alpine' | 'node' | 'python' | 'ubuntu';
+  /** Non-root user inside the Docker sandbox (default "nobody"). Empty string disables. */
+  sandboxDockerUser?: string;
+  /** Disk quota (MB) for the sandbox /tmp tmpfs + fsize ulimit (default 256). */
+  sandboxTmpfsMb?: number;
+  /** Fail closed when Docker is unavailable instead of falling back to local execution (default false). */
+  sandboxRequireIsolation?: boolean;
+  /** Local-sandbox CPU seconds per command via ulimit -t (default 30). */
+  sandboxLocalCpuSeconds?: number;
+  /** Local-sandbox address-space cap in KB via ulimit -v (default 1 GB). */
+  sandboxLocalMemoryKb?: number;
+  /** Local-sandbox per-file size cap in KB via ulimit -f (default 256 MB). */
+  sandboxLocalFileKb?: number;
+  /** Local-sandbox process cap via ulimit -u (default 128). */
+  sandboxLocalMaxProcesses?: number;
+  /** Local sandbox: demote root via setpriv when possible (default true). */
+  sandboxLocalDemoteUser?: boolean;
+  /** Local sandbox: isolate network namespace via unshare -n (default auto = on when available). */
+  sandboxLocalIsolateNetwork?: boolean | 'auto';
+  /** Local sandbox: allow commands referencing paths outside the workspace (default false). */
+  sandboxLocalAllowOutsideWorkspace?: boolean;
   /** Max background-tier tasks processed per run (default 3). */
   maxBackgroundTasksPerRun?: number;
   /** Fast-model callback for tiny completion chores (optional). */

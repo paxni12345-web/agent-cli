@@ -81,6 +81,17 @@ export class ConfigLoader {
     if (process.env.AGENT_PERMISSION_MODE) config.permissionMode = process.env.AGENT_PERMISSION_MODE as PermissionMode;
     if (process.env.AGENT_MAX_ITERATIONS) config.maxIterations = parseInt(process.env.AGENT_MAX_ITERATIONS, 10);
     if (process.env.AGENT_DEBUG) config.debug = process.env.AGENT_DEBUG === 'true';
+    // Sandbox & execution isolation (security items 1–8)
+    if (process.env.AGENT_SANDBOX_DOCKER_USER !== undefined) config.sandboxDockerUser = process.env.AGENT_SANDBOX_DOCKER_USER;
+    if (process.env.AGENT_SANDBOX_TMPFS_MB) config.sandboxTmpfsMb = parseInt(process.env.AGENT_SANDBOX_TMPFS_MB, 10);
+    if (process.env.AGENT_SANDBOX_REQUIRE_ISOLATION) config.sandboxRequireIsolation = process.env.AGENT_SANDBOX_REQUIRE_ISOLATION === 'true';
+    if (process.env.AGENT_SANDBOX_LOCAL_CPU) config.sandboxLocalCpuSeconds = parseInt(process.env.AGENT_SANDBOX_LOCAL_CPU, 10);
+    if (process.env.AGENT_SANDBOX_LOCAL_MEMORY_KB) config.sandboxLocalMemoryKb = parseInt(process.env.AGENT_SANDBOX_LOCAL_MEMORY_KB, 10);
+    if (process.env.AGENT_SANDBOX_LOCAL_FILE_KB) config.sandboxLocalFileKb = parseInt(process.env.AGENT_SANDBOX_LOCAL_FILE_KB, 10);
+    if (process.env.AGENT_SANDBOX_LOCAL_PROCS) config.sandboxLocalMaxProcesses = parseInt(process.env.AGENT_SANDBOX_LOCAL_PROCS, 10);
+    if (process.env.AGENT_SANDBOX_LOCAL_DEMOTE_USER) config.sandboxLocalDemoteUser = process.env.AGENT_SANDBOX_LOCAL_DEMOTE_USER === 'true';
+    if (process.env.AGENT_SANDBOX_LOCAL_ISOLATE_NETWORK) config.sandboxLocalIsolateNetwork = process.env.AGENT_SANDBOX_LOCAL_ISOLATE_NETWORK === 'false' ? false : process.env.AGENT_SANDBOX_LOCAL_ISOLATE_NETWORK === 'true' ? true : 'auto';
+    if (process.env.AGENT_SANDBOX_LOCAL_ALLOW_OUTSIDE) config.sandboxLocalAllowOutsideWorkspace = process.env.AGENT_SANDBOX_LOCAL_ALLOW_OUTSIDE === 'true';
   }
 
   async save(config: Partial<Config>, global = true): Promise<void> {

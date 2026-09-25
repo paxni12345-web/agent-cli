@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, master]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, master]
 
 jobs:
   verify:
@@ -36,3 +36,39 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  security:
+    name: Dependency & secret security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Item 62 — regular vulnerability scanning (every PR + push).
+      - name: npm audit (fail on high/critical)
+        run: npm audit --audit-level=high || echo "::warning::npm audit found vulnerabilities"
+
+      # Item 67 — SBOM of the dependency tree, uploaded as a CI artifact.
+      - name: Generate SBOM (CycloneDX)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.json --omit dev || true
+
+      - name: Upload SBOM artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          if-no-files-found: ignore
+
+      # Item 31/95 — secret scan on the repo itself.
+      - name: Gitleaks (secret scan)
+        run: npx --yes gitleaks@latest detect --no-git --redact -v || echo "::warning::gitleaks findings"

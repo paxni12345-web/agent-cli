@@ -16,6 +16,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { SecretScanner } from '../agent/SecretScanner.js';
 
 export type RuleKind = 'guardrail' | 'preference' | 'agreement' | 'history';
 
@@ -81,10 +82,12 @@ export class RulesStore {
     options: { tags?: string[]; meta?: Record<string, unknown> } = {}
   ): Promise<RuleRecord> {
     await this.load(workspaceRoot);
+    // Items 29 + 85: memory is non-secret by contract — redact before persist.
+    const scanner = new SecretScanner();
     const record: RuleRecord = {
       id: this.newId(kind),
       kind,
-      text: text.trim().slice(0, 2000),
+      text: scanner.redact(text.trim()).text.slice(0, 2000),
       tags: options.tags ?? [],
       meta: options.meta ?? {},
       createdAt: new Date().toISOString(),

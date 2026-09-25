@@ -93,6 +93,18 @@ export class Agent extends EventEmitter {
         image: this.config.sandboxDockerImage,
         memoryMb: this.config.sandboxMemoryMb,
         profile: this.config.sandboxDockerProfile,
+        user: this.config.sandboxDockerUser,
+        tmpfsMb: this.config.sandboxTmpfsMb,
+        requireIsolation: this.config.sandboxRequireIsolation,
+      },
+      local: {
+        cpuSeconds: this.config.sandboxLocalCpuSeconds,
+        maxMemoryKb: this.config.sandboxLocalMemoryKb,
+        maxFileKb: this.config.sandboxLocalFileKb,
+        maxProcesses: this.config.sandboxLocalMaxProcesses,
+        demoteUser: this.config.sandboxLocalDemoteUser,
+        isolateNetwork: this.config.sandboxLocalIsolateNetwork,
+        allowOutsideWorkspace: this.config.sandboxLocalAllowOutsideWorkspace,
       },
     });
     this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
@@ -141,7 +153,33 @@ export class Agent extends EventEmitter {
     return PlanningSystem.render(plan);
   }
 
+  // ---- Item 91: kill-switch — aborts the current run at the next loop
+  // boundary and rejects all further tool executions.
+  private killSwitch = false;
+  private abortController: AbortController | null = null;
+
+  /** Item 91 — immediately stop the agent (idempotent). */
+  kill(reason = 'kill switch engaged'): void {
+    this.killSwitch = true;
+    this.abortController?.abort(reason);
+    this.setStatus('cancelled');
+    this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: 'agent', decision: 'KILL', detail: reason });
+    this.emit('killed', { reason });
+  }
+
+  get killed(): boolean {
+    return this.killSwitch;
+  }
+
+  /** Clear the kill switch (new session / explicit user action). */
+  revive(): void {
+    this.killSwitch = false;
+  }
+
   async run(userMessage: string): Promise<string> {
+    if (this.killSwitch) throw new AgentError('Agent is killed — call revive() to start a new session', 'AGENT_KILLED');
+    this.killSwitch = false;
+    this.abortController = new AbortController();
     this.setStatus('thinking'); this.state.currentTask = userMessage; this.state.iterationCount = 0;
     this.cleanupOldCache(); this.trimConversationHistory();
     this.taskQueue.startRun(false);
@@ -160,10 +198,14 @@ export class Agent extends EventEmitter {
     let finalResponse = '';
     const providerRetries = Math.max(0, this.config.providerRetries ?? 3);
     let completed = false;
-    try {
-      while (this.state.iterationCount < this.config.maxIterations) {
+    try {        while (this.state.iterationCount < this.config.maxIterations) {
         this.state.iterationCount++;
         this.emit('iteration', this.state.iterationCount, this.config.maxIterations);
+
+        // Item 91: kill-switch check at every loop boundary.
+        if (this.killSwitch || this.abortController?.signal.aborted) {
+          throw new AgentError('Run aborted by kill switch', 'AGENT_KILLED');
+        }
 
         // Compression pipe: fold old turns into a rolling digest before the
         // context window fills, so long runs never degrade.
@@ -337,10 +379,17 @@ export class Agent extends EventEmitter {
     if (this.config.strictToolCalling) { const safety = ToolCallValidator.checkSafety(toolCall); if (!safety.safe) return { success: false, error: `Safety check failed: ${safety.issues.join(', ')}`, isError: true, retryable: false }; }
 
     // ---- Security Pipeline (L1 → L2 → L3) -------------------------------
+    // Item 91: a killed agent executes nothing.
+    if (this.killSwitch) {
+      return { success: false, error: 'Agent killed — tool execution refused', isError: true, retryable: false };
+    }
+
     const guard = this.security.guard.guard(toolCall);
     if (guard.action === 'reject') {
       // Bounce back to the AI: the reason instructs it to rethink.
       this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: toolCall.name, decision: 'REJECT', detail: guard.matched.join('; ') });
+      // Item 88: out-of-bounds attempts surface as an alert event.
+      this.emit('securityAlert', { kind: 'guard-reject', tool: toolCall.name, matched: guard.matched });
       return { success: false, error: guard.reason, isError: true, retryable: false };
     }
     this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: toolCall.name, decision: 'allow', detail: `risk=${guard.risk}` });
@@ -352,29 +401,41 @@ export class Agent extends EventEmitter {
     }
 
     // L3: shell commands run inside an isolated container when Docker is
-    // available; otherwise the tool runs locally (workspace + permission
-    // checks still apply).
+    // available. When it is not, sandboxRequireIsolation=true fails the call
+    // closed (no silent local fallback); otherwise the command still runs
+    // locally but wrapped by the LocalSandbox (ulimit caps, optional network
+    // namespace, optional root demotion) + the path-escape check.
     let sandboxed = false;
     if (toolCall.name === 'shell' && this.config.sandboxDockerEnabled) {
+      let dockerUsable = false;
       try {
-        if (await this.security.sandbox.isDockerAvailable()) {
+        dockerUsable = await this.security.sandbox.isDockerAvailable();
+      } catch {
+        dockerUsable = false;
+      }
+      if (dockerUsable) {
+        try {
           const command = String((toolCall.input as Record<string, unknown>)?.command ?? '');
-          const timeoutMs = Number((toolCall.input as Record<string, unknown>)?.timeout) || this.config.toolTimeout || 120000;
           const r = await this.security.sandbox.runIsolated(command, this.config.workspaceRoot);
           sandboxed = true;
           this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: `docker exit=${r.exitCode}`, detail: command.slice(0, 120) });
           const checked = this.security.outputChecker.check([r.stdout, r.stderr].filter(Boolean).join('\n'), 'shell');
           if (checked.redactions.length) this.security.audit.log({ time: new Date().toISOString(), layer: 'L4-output', tool: 'shell', decision: 'redacted', detail: checked.redactions.join(',') });
           return { success: r.exitCode === 0, output: checked.output || undefined, error: r.exitCode === 0 ? undefined : `Command failed with exit code ${r.exitCode}`, metadata: { command, exitCode: r.exitCode, sandboxed: 'docker' } };
+        } catch (error) {
+          // Sandbox failure must not silently bypass: report and stop.
+          this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'ERROR', detail: error instanceof Error ? error.message : String(error) });
+          return { success: false, error: `Sandboxed execution failed: ${error instanceof Error ? error.message : String(error)}`, isError: true, retryable: false };
         }
-      } catch (error) {
-        // Sandbox failure must not silently bypass: report and stop.
-        this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'ERROR', detail: error instanceof Error ? error.message : String(error) });
-        return { success: false, error: `Sandboxed execution failed: ${error instanceof Error ? error.message : String(error)}`, isError: true, retryable: false };
+      }
+      // Docker unavailable: item 1 fail-closed policy.
+      if (this.config.sandboxRequireIsolation) {
+        this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'DENY', detail: 'docker unavailable and sandboxRequireIsolation=true (fail closed)' });
+        return { success: false, error: 'Shell execution requires an isolated sandbox (Docker) but none is available on this machine. Enable Docker or set sandboxRequireIsolation=false to allow guarded local execution.', isError: true, retryable: false };
       }
     }
     if (toolCall.name === 'shell') {
-      this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'local', detail: sandboxed ? '' : 'docker unavailable → local execution' });
+      this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: sandboxed ? 'docker' : 'local-guarded', detail: sandboxed ? '' : 'docker unavailable → local execution with LocalSandbox guards' });
     }
 
     try {

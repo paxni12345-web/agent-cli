@@ -17,6 +17,7 @@ import { ProjectMemoryTool } from '../tools/ProjectMemoryTool.js';
 import { createSecurityPipeline, SecurityPipeline } from './SecurityPipeline.js';
 import { TaskPriorityEngine, TaskTier } from './TaskPriorityEngine.js';
 import { CompletionRouter, BrainstormEngine, PlanningSystem, FullPlan, CompletionRequest } from './WorkOrchestrator.js';
+import { SpecialtyRouter, renderActiveSpecialties, SpecialtyContext } from './SpecialtyPrompts.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
 import { NoteSystem } from './NoteSystem.js';
@@ -51,6 +52,9 @@ export class Agent extends EventEmitter {
   readonly completionRouter: CompletionRouter;
   /** Multi-perspective ideation engine. */
   readonly brainstorm: BrainstormEngine;
+  /** Real-time specialty prompt router (burst modules in/out per iteration). */
+  private readonly specialtyRouter = new SpecialtyRouter();
+  private lastUserText = '';
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -126,6 +130,8 @@ export class Agent extends EventEmitter {
     this.taskQueue.startRun(false);
     await this.loadMemoryContext();
     this.awaitingBoot = true;
+    this.lastUserText = userMessage;
+    this.specialtyRouter.reset();
     this.addMessage({ role: 'user', content: buildBootInstructions(userMessage), timestamp: new Date() });
     let finalResponse = '';
     let completed = false;
@@ -143,9 +149,26 @@ export class Agent extends EventEmitter {
           this.emit('contextCompressed', stats);
         }
 
+        // Real-time specialty prompts: match situational cards against the
+        // user text + recent tool activity, inject the active set into the
+        // system prompt, and emit entries/exits for the UI.
+        const recentActivity = this.state.history.slice(-6)
+          .map(e => `${e.tool} ${e.result?.error ?? e.result?.output ?? ''}`.slice(0, 160))
+          .join('\n');
+        const specialtyCtx: SpecialtyContext = { userText: this.lastUserText, recentActivity };
+        const specialtyDiff = this.specialtyRouter.route(specialtyCtx);
+        if (specialtyDiff.entered.length || specialtyDiff.exited.length) {
+          this.emit('specialtyRouted', {
+            entered: specialtyDiff.entered,
+            exited: specialtyDiff.exited,
+            active: specialtyDiff.active.map(m => ({ id: m.card.id, title: m.card.title, category: m.card.category })),
+          });
+        }
+        const specialtySection = renderActiveSpecialties(specialtyDiff);
+
         const response = await this.provider.chat({
           messages: this.state.conversationMessages, temperature: this.config.temperature, maxTokens: 8192,
-          systemPrompt: this.buildSystemPrompt(),
+          systemPrompt: this.buildSystemPrompt() + specialtySection,
           tools: this.toolRouter.select(userMessage, this.toolRegistry.getSchemas()), toolChoice: 'auto',
         });
         if (response.usage) this.emit('tokenUsage', response.usage);
@@ -345,5 +368,5 @@ export class Agent extends EventEmitter {
   getPerformanceMonitor(): ToolPerformanceMonitor { return this.performanceMonitor; }
   getErrorRecovery(): ErrorRecoverySystem { return this.errorRecovery; }
   exportPerformanceData(): string { return this.performanceMonitor.export(); }
-  reset(): void { for (const timer of this.activeTimers) clearTimeout(timer); this.activeTimers.clear(); this.toolCache.clear(); this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} }; this.memoryContext = ''; this.awaitingBoot = false; this.emit('status', 'idle'); }
+  reset(): void { for (const timer of this.activeTimers) clearTimeout(timer); this.activeTimers.clear(); this.toolCache.clear(); this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} }; this.memoryContext = ''; this.awaitingBoot = false; this.specialtyRouter.reset(); this.emit('status', 'idle'); }
 }

@@ -13,9 +13,11 @@ import { ToolPerformanceMonitor } from './ToolPerformanceMonitor.js';
 import { CircuitBreaker } from './CircuitBreaker.js';
 import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
+import { ProjectMemoryTool } from '../tools/ProjectMemoryTool.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
-import { MemoryNoteTaker } from './MemoryNoteTaker.js';
+import { NoteSystem } from './NoteSystem.js';
+import { SandboxManager, Rehearsal } from './SandboxManager.js';
 
 export class Agent extends EventEmitter {
   private state: AgentState;
@@ -36,7 +38,8 @@ export class Agent extends EventEmitter {
   /** True for the first model call of a run, which carries boot instructions. */
   private awaitingBoot = false;
   private readonly compressor: ContextCompressor;
-  private readonly noteTaker = new MemoryNoteTaker();
+  private readonly notes = new NoteSystem();
+  readonly sandbox = new SandboxManager();
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -54,13 +57,17 @@ export class Agent extends EventEmitter {
     this.toolRouter = new ToolRouter(this.config.toolRouterMaxTools ?? 12);
     this.toolQueue = new ToolQueue(this.config.toolQueueConcurrency ?? 1);
     this.compressor = new ContextCompressor({ keepRecent: this.config.compressorKeepRecent });
+    this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
+    for (const tool of toolRegistry.list()) {
+      if (tool instanceof ProjectMemoryTool) tool.noteSink = this.notes;
+    }
     this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} };
   }
 
   async run(userMessage: string): Promise<string> {
     this.setStatus('thinking'); this.state.currentTask = userMessage; this.state.iterationCount = 0;
     this.cleanupOldCache(); this.trimConversationHistory();
-    this.loadMemoryContext();
+    await this.loadMemoryContext();
     this.awaitingBoot = true;
     this.addMessage({ role: 'user', content: buildBootInstructions(userMessage), timestamp: new Date() });
     let finalResponse = '';
@@ -102,7 +109,15 @@ export class Agent extends EventEmitter {
           for (const { toolCall, result } of results) {
             const execution: ToolExecution = { tool: toolCall.name, input: toolCall.input, result, timestamp: new Date() };
             this.state.history.push(execution); this.performanceMonitor.record(execution); this.emit('toolEnd', execution);
-            this.noteTaker.observe(execution);
+            this.notes.observe(execution);
+            if (!result.success) {
+              this.notes.observeBug(toolCall.name, result.error ?? 'unknown error');
+            } else if (toolCall.name === 'edit_file' || toolCall.name === 'write_file') {
+              const target = String((toolCall.input as Record<string, unknown>)?.path ?? '?');
+              const meta = (result.metadata ?? {}) as Record<string, unknown>;
+              const detail = meta.addedLines !== undefined ? `+${meta.addedLines}/-${meta.removedLines} lines` : 'written';
+              this.notes.observeChange(toolCall.name, target, detail);
+            }
             toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: result.success ? result.output || 'Success' : `Error: ${result.error}`, is_error: !result.success });
           }
           this.addMessage({ role: 'user', content: toolResults, timestamp: new Date() });
@@ -113,7 +128,7 @@ export class Agent extends EventEmitter {
         this.setStatus('completed'); completed = true; break;
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
-      await this.noteTaker.flush(this.config.workspaceRoot);
+      await this.flushNotes();
       return finalResponse;
     } catch (error) { this.setStatus('error_recovery'); throw error; }
   }
@@ -187,22 +202,17 @@ export class Agent extends EventEmitter {
     });
   }
 
-  /** Reads the non-secret memory layers from disk so the prompt carries them. */
-  private loadMemoryContext(): void {
-    try {
-      const chunks: string[] = [];
-      const add = (label: string, filePath: string) => {
-        try {
-          const content = fs.readFileSync(filePath, 'utf-8').trim();
-          if (content) chunks.push(`[${label}]\n${content}`);
-        } catch { /* layer absent — fine */ }
-      };
-      const home = process.env.HOME || process.env.USERPROFILE || '/root';
-      add('memory: project', path.join(this.config.workspaceRoot, '.agent', 'memory', 'project.md'));
-      add('memory: session', path.join(this.config.workspaceRoot, '.agent', 'memory', 'session.md'));
-      add('memory: global', path.join(home, '.agent', 'memory', 'global.md'));
-      this.memoryContext = chunks.join('\n\n').slice(0, 4000);
-    } catch { this.memoryContext = ''; }
+  /** Reads every memory layer (4 note kinds + global) for the boot snapshot. */
+  private async loadMemoryContext(): Promise<void> {
+    try { this.memoryContext = await this.notes.readForBoot(this.config.workspaceRoot); }
+    catch { this.memoryContext = ''; }
+  }
+
+  /** Writes pending notes and auto-facts, then cleans the sandbox. */
+  private async flushNotes(): Promise<void> {
+    try { const written = await this.notes.flush(this.config.workspaceRoot); if (written.length) this.emit('notesWritten', written); }
+    catch { /* best-effort */ }
+    try { await this.sandbox.cleanup(this.config.workspaceRoot); } catch { /* best-effort */ }
   }
   private addMessage(message: ChatMessage): void { this.state.conversationMessages.push(message); this.emit('message', message); }
   private setStatus(status: AgentState['status']): void { this.state.status = status; this.emit('status', status); }

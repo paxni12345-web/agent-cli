@@ -25,7 +25,9 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   /** Approximate model context window (tokens) used to trigger conversation compression (default 100000). */
   contextWindowTokens?: number;
   /** Recent messages kept verbatim by the context compressor (default 12). */
-  compressorKeepRecent?: number; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
+  compressorKeepRecent?: number;
+  /** Require human approval before applying sandboxed writes to the real workspace (default true). */
+  sandboxHumanLoop?: boolean; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
 export interface Session { id: string; timestamp: Date; workspace: string; messages: ChatMessage[]; toolCalls: ToolExecution[]; plan?: Plan; state: Record<string, unknown>; }
 export class AgentError extends Error { constructor(message: string, public code: string, public details?: unknown) { super(message); this.name = 'AgentError'; } }
 export class ToolError extends AgentError { constructor(message: string, details?: unknown) { super(message, 'TOOL_ERROR', details); this.name = 'ToolError'; } }

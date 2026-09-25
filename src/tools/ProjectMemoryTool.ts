@@ -18,15 +18,29 @@ export class ProjectMemoryTool implements Tool {
   inputSchema = {
     type: 'object',
     properties: {
-      action: { type: 'string', enum: ['read', 'append', 'replace'] },
+      action: { type: 'string', enum: ['read', 'append', 'replace', 'note'], description: "read/append/replace a layer, or 'note' to record a structured note" },
       layer: { type: 'string', enum: ['session', 'project', 'global'], description: 'Memory scope (default: project)' },
-      content: { type: 'string', description: 'Memory content for append or replace' },
+      noteKind: { type: 'string', enum: ['project', 'user'], description: "For action='note': project understanding or user preference" },
+      content: { type: 'string', description: 'Memory content for append/replace/note' },
     },
     required: ['action'],
   };
 
+  /** Optional structured-note sink wired by the Agent (NoteSystem). */
+  noteSink?: { note(kind: 'project' | 'user', content: string): boolean };
+
   async execute(input: unknown, context: ToolContext): Promise<ToolResult> {
-    const value = input as { action?: string; content?: string; layer?: MemoryLayer };
+    const value = input as { action?: string; content?: string; layer?: MemoryLayer; noteKind?: 'project' | 'user' };
+
+    if (value.action === 'note') {
+      if (!this.noteSink) return { success: false, error: 'note action unavailable in this context' };
+      if (!value.content?.trim()) return { success: false, error: 'content is required for note' };
+      const kind = value.noteKind === 'user' ? 'user' : 'project';
+      const ok = this.noteSink.note(kind, value.content);
+      if (!ok) return { success: false, error: 'note rejected: empty, too long, or secret-like content' };
+      return { success: true, output: `${kind} note recorded (written at end of run)` };
+    }
+
     const layer: MemoryLayer = value.layer || 'project';
     if (!(layer in MEMORY_FILES)) return { success: false, error: 'layer must be session, project, or global' };
     const memoryPath = layer === 'global'

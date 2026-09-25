@@ -149,7 +149,8 @@ describe('LearningEngine (4 learning modes)', () => {
     const ws = await tmpWorkspace();
     const engine = new LearningEngine();
     for (let i = 0; i < 5; i++) {
-      await engine.unsupervised.recordSequence(ws, ['search_code', 'read_file', 'edit_file', 'shell'], true);
+      // vary the sequence so the consecutive-duplicate guard doesn't collapse it
+      await engine.unsupervised.recordSequence(ws, ['search_code', 'read_file', 'edit_file', 'shell', `extra_${i}`], true);
     }
     const patterns = await engine.unsupervised.discoverPatterns(ws, 3);
     expect(patterns.length).toBeGreaterThan(0);

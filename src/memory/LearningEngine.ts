@@ -126,7 +126,13 @@ export class UnsupervisedMiner {
 
   async recordSequence(workspaceRoot: string, tools: string[], success: boolean): Promise<void> {
     await this.load(workspaceRoot);
-    this.sequences.push({ tools: tools.slice(0, 20), success });
+    const sequence = tools.slice(0, 20);
+    // Dedup: identical tool sequence + outcome just refreshes the last entry
+    // (repeated runs of the same workflow shouldn't inflate pattern counts).
+    const key = sequence.join(',') + '|' + (success ? 1 : 0);
+    const last = this.sequences[this.sequences.length - 1];
+    if (last && last.tools.join(',') + '|' + (last.success ? 1 : 0) === key) return;
+    this.sequences.push({ tools: sequence, success });
     await this.persist(workspaceRoot);
   }
 

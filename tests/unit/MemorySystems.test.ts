@@ -42,6 +42,15 @@ describe('RulesStore (ChromaDB-style rules brain)', () => {
     expect(deployRules).toHaveLength(1);
     expect(deployRules[0].text).toBe('rule A');
   });
+
+  it('dedups identical rules instead of duplicating them', async () => {
+    const ws = await tmpWorkspace();
+    const store = new RulesStore();
+    await store.add(ws, 'preference', 'answer in Thai');
+    await store.add(ws, 'preference', 'answer  in   Thai'); // whitespace-normalized duplicate
+    const prefs = await store.query(ws, { kind: 'preference' });
+    expect(prefs).toHaveLength(1);
+  });
 });
 
 describe('CodeVectorStore (LanceDB-style code scanner)', () => {
@@ -146,6 +155,15 @@ describe('LearningEngine (4 learning modes)', () => {
     expect(patterns.length).toBeGreaterThan(0);
     expect(patterns[0].pattern).toContain('+');
     expect(patterns[0].confidence).toBe(100);
+  });
+
+  it('unsupervised: consecutive duplicate sequences do not inflate counts', async () => {
+    const ws = await tmpWorkspace();
+    const engine = new LearningEngine();
+    await engine.unsupervised.recordSequence(ws, ['read_file', 'edit_file'], true);
+    await engine.unsupervised.recordSequence(ws, ['read_file', 'edit_file'], true); // same run repeated
+    const patterns = await engine.unsupervised.discoverPatterns(ws, 2);
+    expect(patterns.find(p => p.pattern === 'edit_file+read_file')?.occurrences ?? 0).toBeLessThan(2);
   });
 
   it('reinforcement: rewards push strategy weights up', async () => {

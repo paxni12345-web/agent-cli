@@ -92,6 +92,18 @@ export class RulesStore {
     if (kind === 'history') {
       record.expiresAt = new Date(Date.now() + TTL_HISTORY_MS).toISOString();
     }
+    // Dedup: same kind + identical normalized text updates the existing
+    // record (refresh timestamp) instead of piling up duplicates.
+    const normalized = record.text.toLowerCase().replace(/\s+/g, ' ').trim();
+    const existing = this.records.find(
+      r => r.kind === kind && r.text.toLowerCase().replace(/\s+/g, ' ').trim() === normalized
+    );
+    if (existing) {
+      existing.createdAt = record.createdAt;
+      existing.tags = [...new Set([...existing.tags, ...record.tags])];
+      await this.save(workspaceRoot);
+      return existing;
+    }
     this.records.push(record);
     await this.save(workspaceRoot);
     return record;

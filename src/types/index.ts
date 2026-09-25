@@ -21,7 +21,11 @@ export type ActionType = 'read_file' | 'write_file' | 'delete_file' | 'execute_c
 export type RiskLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical';
 export type PermissionResult = { allowed: true } | { allowed: false; reason: string };
 export type PermissionMode = 'safe' | 'normal' | 'auto' | 'dangerous';
-export interface Config { provider: string; model: string; apiKey?: string; baseUrl?: string; permissionMode: PermissionMode; maxIterations: number; temperature: number; workspaceRoot: string; sessionDir?: string; debug: boolean; enableToolRetry?: boolean; maxToolRetries?: number; enableToolCache?: boolean; toolTimeout?: number; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
+export interface Config { provider: string; model: string; apiKey?: string; baseUrl?: string; permissionMode: PermissionMode; maxIterations: number; temperature: number; workspaceRoot: string; sessionDir?: string; debug: boolean; enableToolRetry?: boolean; maxToolRetries?: number; enableToolCache?: boolean;  toolTimeout?: number;
+  /** Approximate model context window (tokens) used to trigger conversation compression (default 100000). */
+  contextWindowTokens?: number;
+  /** Recent messages kept verbatim by the context compressor (default 12). */
+  compressorKeepRecent?: number; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
 export interface Session { id: string; timestamp: Date; workspace: string; messages: ChatMessage[]; toolCalls: ToolExecution[]; plan?: Plan; state: Record<string, unknown>; }
 export class AgentError extends Error { constructor(message: string, public code: string, public details?: unknown) { super(message); this.name = 'AgentError'; } }
 export class ToolError extends AgentError { constructor(message: string, details?: unknown) { super(message, 'TOOL_ERROR', details); this.name = 'ToolError'; } }

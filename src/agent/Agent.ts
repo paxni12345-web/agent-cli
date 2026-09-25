@@ -14,6 +14,8 @@ import { CircuitBreaker } from './CircuitBreaker.js';
 import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
+import { ContextCompressor } from './ContextCompressor.js';
+import { MemoryNoteTaker } from './MemoryNoteTaker.js';
 
 export class Agent extends EventEmitter {
   private state: AgentState;
@@ -33,6 +35,8 @@ export class Agent extends EventEmitter {
   private memoryContext = '';
   /** True for the first model call of a run, which carries boot instructions. */
   private awaitingBoot = false;
+  private readonly compressor: ContextCompressor;
+  private readonly noteTaker = new MemoryNoteTaker();
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -49,6 +53,7 @@ export class Agent extends EventEmitter {
     };
     this.toolRouter = new ToolRouter(this.config.toolRouterMaxTools ?? 12);
     this.toolQueue = new ToolQueue(this.config.toolQueueConcurrency ?? 1);
+    this.compressor = new ContextCompressor({ keepRecent: this.config.compressorKeepRecent });
     this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} };
   }
 
@@ -64,6 +69,16 @@ export class Agent extends EventEmitter {
       while (this.state.iterationCount < this.config.maxIterations) {
         this.state.iterationCount++;
         this.emit('iteration', this.state.iterationCount, this.config.maxIterations);
+
+        // Compression pipe: fold old turns into a rolling digest before the
+        // context window fills, so long runs never degrade.
+        const budget = Math.max(1000, (this.config.contextWindowTokens ?? 100000) * 0.6);
+        if (this.compressor.shouldCompress(this.state.conversationMessages, budget)) {
+          const { messages, stats } = this.compressor.compress(this.state.conversationMessages);
+          this.state.conversationMessages = messages;
+          this.emit('contextCompressed', stats);
+        }
+
         const response = await this.provider.chat({
           messages: this.state.conversationMessages, temperature: this.config.temperature, maxTokens: 8192,
           systemPrompt: this.buildSystemPrompt(),
@@ -87,6 +102,7 @@ export class Agent extends EventEmitter {
           for (const { toolCall, result } of results) {
             const execution: ToolExecution = { tool: toolCall.name, input: toolCall.input, result, timestamp: new Date() };
             this.state.history.push(execution); this.performanceMonitor.record(execution); this.emit('toolEnd', execution);
+            this.noteTaker.observe(execution);
             toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: result.success ? result.output || 'Success' : `Error: ${result.error}`, is_error: !result.success });
           }
           this.addMessage({ role: 'user', content: toolResults, timestamp: new Date() });
@@ -97,6 +113,7 @@ export class Agent extends EventEmitter {
         this.setStatus('completed'); completed = true; break;
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
+      await this.noteTaker.flush(this.config.workspaceRoot);
       return finalResponse;
     } catch (error) { this.setStatus('error_recovery'); throw error; }
   }
@@ -195,5 +212,5 @@ export class Agent extends EventEmitter {
   getPerformanceMonitor(): ToolPerformanceMonitor { return this.performanceMonitor; }
   getErrorRecovery(): ErrorRecoverySystem { return this.errorRecovery; }
   exportPerformanceData(): string { return this.performanceMonitor.export(); }
-  reset(): void { for (const timer of this.activeTimers) clearTimeout(timer); this.activeTimers.clear(); this.toolCache.clear(); this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} }; this.emit('status', 'idle'); }
+  reset(): void { for (const timer of this.activeTimers) clearTimeout(timer); this.activeTimers.clear(); this.toolCache.clear(); this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} }; this.memoryContext = ''; this.awaitingBoot = false; this.emit('status', 'idle'); }
 }

@@ -147,11 +147,18 @@ export class Agent extends EventEmitter {
     this.taskQueue.startRun(false);
     this.runStartedAt = Date.now();
     await this.loadMemoryContext();
-    this.awaitingBoot = true;
+    this.notes.startRun();
     this.lastUserText = userMessage;
     this.specialtyRouter.reset();
+    // Stability: clear stale boot state from any aborted run.
+    this.awaitingBoot = true;
+    // Every run starts from a clean conversation — durable facts live in
+    // state.history (audit), notes, and the rolling digest, never in a
+    // leftover conversation array inherited from a previous failed run.
+    this.state.conversationMessages = [];
     this.addMessage({ role: 'user', content: buildBootInstructions(userMessage), timestamp: new Date() });
     let finalResponse = '';
+    const providerRetries = Math.max(0, this.config.providerRetries ?? 3);
     let completed = false;
     try {
       while (this.state.iterationCount < this.config.maxIterations) {
@@ -184,11 +191,11 @@ export class Agent extends EventEmitter {
         }
         const specialtySection = renderActiveSpecialties(specialtyDiff);
 
-        const response = await this.provider.chat({
+        const response = await this.chatWithRetry({
           messages: this.state.conversationMessages, temperature: this.config.temperature, maxTokens: 8192,
           systemPrompt: this.buildSystemPrompt() + specialtySection,
           tools: this.toolRouter.select(userMessage, this.toolRegistry.getSchemas()), toolChoice: 'auto',
-        });
+        }, providerRetries);
         if (response.usage) this.emit('tokenUsage', response.usage);
         if (response.content) finalResponse = response.content;
         if (response.toolCalls?.length) {
@@ -252,7 +259,33 @@ export class Agent extends EventEmitter {
       await this.flushNotes();
       await this.security.audit.flush(this.config.workspaceRoot);
       return finalResponse;
-    } catch (error) { this.setStatus('error_recovery'); throw error; }
+    } catch (error) {
+      this.setStatus('error_recovery');
+      // Stability: persist observations even when the run dies — the bug log
+      // and pending notes feed the next boot's memory snapshot.
+      const message = error instanceof Error ? error.message : String(error);
+      try { this.notes.observeBug('agent.run', message, 'unresolved'); } catch { /* best-effort */ }
+      await this.flushNotes().catch(() => undefined);
+      await this.security.audit.flush(this.config.workspaceRoot).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * One provider call with bounded exponential-backoff retries. A single
+   * failed call (rate limit, network blip, 5xx) must not kill the run.
+   */
+  private async chatWithRetry(params: Parameters<AIProvider['chat']>[0], maxRetries: number): Promise<ReturnType<AIProvider['chat']>> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.provider.chat(params);
+      } catch (error) {
+        if (attempt >= maxRetries) throw error;
+        const waitMs = Math.min(1000 * 2 ** attempt, 8000);
+        this.emit('providerRetry', { attempt: attempt + 1, maxRetries, waitMs, error: error instanceof Error ? error.message : String(error) });
+        await new Promise(resolve => { const t = setTimeout(resolve, waitMs); t.unref(); });
+      }
+    }
   }
 
   private async executeToolWithRetry(toolCall: ToolCall): Promise<ToolResult> {
@@ -395,8 +428,11 @@ export class Agent extends EventEmitter {
 
   /** Writes pending notes and auto-facts, then cleans the sandbox. */
   private async flushNotes(): Promise<void> {
-    try { const written = await this.notes.flush(this.config.workspaceRoot); if (written.length) this.emit('notesWritten', written); }
-    catch { /* best-effort */ }
+    try {
+      this.notes.endRun();
+      const written = await this.notes.flush(this.config.workspaceRoot);
+      if (written.length) this.emit('notesWritten', written);
+    } catch { /* best-effort */ }
     try { await this.sandbox.cleanup(this.config.workspaceRoot); } catch { /* best-effort */ }
   }
   private addMessage(message: ChatMessage): void { this.state.conversationMessages.push(message); this.emit('message', message); }

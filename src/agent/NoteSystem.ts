@@ -51,9 +51,28 @@ export class NoteSystem {
   private pending: Note[] = [];
   /** Auto-observed convention facts (deduped, written to project layer). */
   private autoFacts = new Set<string>();
+  /** Run-scoped bug caps: a crashed loop must not flood the bug log. */
+  private runBugCount = 0;
+  private readonly runBugSeen = new Set<string>();
+  private static readonly MAX_BUGS_PER_RUN = 10;
+  private static readonly MAX_AUTO_FACTS = 8;
 
   constructor(options: NoteTakerOptions = {}) {
     this.maxPerKind = Math.max(1, options.maxPerKind ?? 5);
+  }
+
+  /** Call at the start of every run: drops stale pending notes from an
+   *  aborted run so the next boot reads a coherent notebook. */
+  startRun(): void {
+    this.pending = [];
+    this.runBugCount = 0;
+    this.runBugSeen.clear();
+  }
+
+  /** Call just before flush: releases per-run caps (flush still pending). */
+  endRun(): void {
+    this.runBugCount = 0;
+    this.runBugSeen.clear();
   }
 
   // -------------------------------------------------------------------------
@@ -84,7 +103,7 @@ export class NoteSystem {
     } else if (tool === 'read_file' || tool === 'edit_file' || tool === 'write_file') {
       this.observeFile(String(input.path ?? ''));
     } else if (tool === 'search_code' && input.filePattern) {
-      this.autoFacts.add(`Primary code language: files matched via ${String(input.filePattern)}`);
+      this.addFact(`Primary code language: files matched via ${String(input.filePattern)}`);
     }
   }
 
@@ -94,39 +113,52 @@ export class NoteSystem {
     this.pending.push({ kind: 'change', content: `${tool}: ${file} — ${detail}`.slice(0, 300) });
   }
 
-  /** Record a bug entry (called by the Agent when tools fail). */
+  /** Record a bug entry (called by the Agent when tools fail).
+   *  Capped per run and deduped per run so error loops can't flood it. */
   observeBug(source: string, error: string, resolution?: string): void {
+    if (this.runBugCount >= NoteSystem.MAX_BUGS_PER_RUN) return;
     const err = error.replace(/\s+/g, ' ').trim().slice(0, 160);
+    const key = `${source}|${err}`;
+    if (this.runBugSeen.has(key)) return;
+    this.runBugSeen.add(key);
+    this.runBugCount++;
     this.pending.push({
       kind: 'bug',
       content: `[${source}] ${err}${resolution ? ` → fix: ${resolution}` : ' → unresolved'}`,
     });
   }
 
+  /** Bounded fact sink: caps total auto-facts per run regardless of how many
+   *  distinct files/commands the run touches. */
+  private addFact(fact: string): void {
+    if (this.autoFacts.size >= NoteSystem.MAX_AUTO_FACTS) return;
+    this.autoFacts.add(fact);
+  }
+
   private observeShell(command: string): void {
     const cmd = command.trim();
     if (!cmd) return;
     if (/\b(npm|pnpm|yarn|bun)\s+(run\s+)?test/.test(cmd) || /\bpytest\b/.test(cmd)) {
-      this.autoFacts.add('Test command in use: `' + cmd.slice(0, 60) + '`');
+      this.addFact('Test command in use: `' + cmd.slice(0, 60) + '`');
     } else if (/\btsc\b/.test(cmd)) {
-      this.autoFacts.add('Typecheck command in use: `' + cmd.slice(0, 60) + '`');
+      this.addFact('Typecheck command in use: `' + cmd.slice(0, 60) + '`');
     } else if (/\b(eslint|ruff|pylint)\b/.test(cmd)) {
-      this.autoFacts.add('Lint command in use: `' + cmd.slice(0, 60) + '`');
+      this.addFact('Lint command in use: `' + cmd.slice(0, 60) + '`');
     }
-    if (/\bpnpm\b/.test(cmd)) this.autoFacts.add('Package manager: pnpm');
-    else if (/\byarn\b/.test(cmd)) this.autoFacts.add('Package manager: yarn');
-    else if (/\bbun\b/.test(cmd)) this.autoFacts.add('Package manager: bun');
-    else if (/\bnpm (install|i|ci)\b/.test(cmd)) this.autoFacts.add('Package manager: npm');
+    if (/\bpnpm\b/.test(cmd)) this.addFact('Package manager: pnpm');
+    else if (/\byarn\b/.test(cmd)) this.addFact('Package manager: yarn');
+    else if (/\bbun\b/.test(cmd)) this.addFact('Package manager: bun');
+    else if (/\bnpm (install|i|ci)\b/.test(cmd)) this.addFact('Package manager: npm');
   }
 
   private observeFile(filePath: string): void {
     if (!filePath) return;
     const normalized = filePath.replace(/\\/g, '/');
     if (/(__tests__|\.test\.|\.spec\.)/.test(normalized)) {
-      this.autoFacts.add('Tests live next to or under tests/ using *.test.*/*_test.* naming');
+      this.addFact('Tests live next to or under tests/ using *.test.*/*_test.* naming');
     }
     if (/(^|\/)tsconfig\.(json|.*\.json)$/.test(normalized)) {
-      this.autoFacts.add('TypeScript project (tsconfig present)');
+      this.addFact('TypeScript project (tsconfig present)');
     }
   }
 

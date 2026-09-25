@@ -26,6 +26,8 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   contextWindowTokens?: number;
   /** Recent messages kept verbatim by the context compressor (default 12). */
   compressorKeepRecent?: number;
+  /** Bounded retries for a failed model call (rate limit / network blip / 5xx). Default 3. */
+  providerRetries?: number;
   /** Require human approval before applying sandboxed writes to the real workspace (default true). */
   sandboxHumanLoop?: boolean;
   /** Async approval callback for the security pipeline's human gate (high-risk actions). */

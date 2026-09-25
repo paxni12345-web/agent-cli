@@ -236,6 +236,22 @@ export function ttyApprover(
 // L3 — Secure Sandbox (Docker, with local-sandbox fallback)
 // ---------------------------------------------------------------------------
 
+export type SandboxProfile = 'alpine' | 'node' | 'python' | 'ubuntu';
+
+/** Preconfigured isolated profiles. Alpine = smallest, fastest cold start. */
+export const SANDBOX_PROFILES: Record<SandboxProfile, Partial<DockerOptions> & { description: string }> = {
+  alpine: {
+    image: 'alpine:3.20',
+    memoryMb: 256,
+    cpus: 1,
+    pidsLimit: 64,
+    description: 'Alpine Linux 3.20 — minimal toolchain (sh, busybox), 256MB, fastest cold start',
+  },
+  node: { image: 'node:20-alpine', memoryMb: 512, cpus: 1, pidsLimit: 128, description: 'Node.js 20 on Alpine — npm/npx available' },
+  python: { image: 'python:3.12-alpine', memoryMb: 512, cpus: 1, pidsLimit: 128, description: 'Python 3.12 on Alpine — pip available' },
+  ubuntu: { image: 'ubuntu:24.04', memoryMb: 1024, cpus: 2, pidsLimit: 256, description: 'Ubuntu 24.04 — full apt toolchain' },
+};
+
 export interface DockerOptions {
   image: string;
   /** Workspace mounted at /workspace (default read-write; set readOnlyWorkdir for stricter runs). */
@@ -258,9 +274,17 @@ export const DEFAULT_DOCKER: DockerOptions = {
 export class SecureSandbox {
   private readonly dockerAvailable: boolean | null = null;
   private readonly options: DockerOptions;
+  private readonly profile: SandboxProfile;
 
-  constructor(options: Partial<DockerOptions> = {}) {
-    this.options = { ...DEFAULT_DOCKER, ...options };
+  constructor(options: Partial<DockerOptions> & { profile?: SandboxProfile } = {}) {
+    this.profile = options.profile ?? 'node';
+    const profileDefaults = SANDBOX_PROFILES[this.profile];
+    this.options = { ...DEFAULT_DOCKER, ...profileDefaults, ...options } as DockerOptions;
+  }
+
+  /** The active profile name + its description. */
+  get profileInfo(): { profile: SandboxProfile; description: string } {
+    return { profile: this.profile, description: SANDBOX_PROFILES[this.profile].description };
   }
 
   /** True when the docker CLI responds (cached). */
@@ -413,14 +437,17 @@ export interface SecurityPipeline {
   sandbox: SecureSandbox;
   outputChecker: OutputChecker;
   audit: AuditLogger;
+  /** Swap the sandbox profile at runtime (e.g. from config). */
+  setSandboxProfile?: (profile: SandboxProfile) => void;
 }
 
 export function createSecurityPipeline(options: {
   approver?: HumanApprover | null;
   autoApproveBelow?: 'safe' | 'low' | 'medium' | 'high' | 'critical';
   approvalTimeoutMs?: number;
-  docker?: Partial<DockerOptions>;
+  docker?: Partial<DockerOptions> & { profile?: SandboxProfile };
 } = {}): SecurityPipeline {
+  const sandbox = new SecureSandbox(options.docker);
   return {
     guard: new PreExecutionGuard(),
     humanGate: new HumanGate({
@@ -428,8 +455,12 @@ export function createSecurityPipeline(options: {
       timeoutMs: options.approvalTimeoutMs,
       autoApproveBelow: options.autoApproveBelow,
     }),
-    sandbox: new SecureSandbox(options.docker),
+    sandbox,
     outputChecker: new OutputChecker(),
     audit: new AuditLogger(),
+    setSandboxProfile(profile: SandboxProfile) {
+      const swapped = new SecureSandbox({ ...options.docker, profile });
+      Object.assign(sandbox, swapped);
+    },
   };
 }

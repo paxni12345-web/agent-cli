@@ -40,6 +40,8 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   sandboxDockerImage?: string;
   /** Docker sandbox memory limit in MB (default 512). */
   sandboxMemoryMb?: number;
+  /** Docker sandbox OS/toolchain profile (default node = Node 20 on Alpine). */
+  sandboxDockerProfile?: 'alpine' | 'node' | 'python' | 'ubuntu';
   /** Max background-tier tasks processed per run (default 3). */
   maxBackgroundTasksPerRun?: number;
   /** Fast-model callback for tiny completion chores (optional). */

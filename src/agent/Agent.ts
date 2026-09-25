@@ -18,6 +18,9 @@ import { createSecurityPipeline, SecurityPipeline } from './SecurityPipeline.js'
 import { TaskPriorityEngine, TaskTier } from './TaskPriorityEngine.js';
 import { CompletionRouter, BrainstormEngine, PlanningSystem, FullPlan, CompletionRequest } from './WorkOrchestrator.js';
 import { SpecialtyRouter, renderActiveSpecialties, SpecialtyContext } from './SpecialtyPrompts.js';
+import { MemoryHub } from '../memory/MemoryHub.js';
+import { LearningEngine, ReinforcementLearner } from '../memory/LearningEngine.js';
+import { SearchCodeMemoryTool, ImpactOfTool } from '../tools/MemoryHubTools.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
 import { NoteSystem } from './NoteSystem.js';
@@ -55,11 +58,21 @@ export class Agent extends EventEmitter {
   /** Real-time specialty prompt router (burst modules in/out per iteration). */
   private readonly specialtyRouter = new SpecialtyRouter();
   private lastUserText = '';
+  /** Three-store memory: rules + code vectors + knowledge graph. */
+  readonly memory = new MemoryHub();
+  /** Self-learning: supervised + unsupervised + reinforcement + in-context. */
+  readonly learning = new LearningEngine();
+  private runStartedAt = 0;
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
   constructor(provider: AIProvider, toolRegistry: ToolRegistry, permissions: PermissionManager, config: Config) {
     super();
+    // Register memory-hub tools so the agent can query its own memory.
+    if (!toolRegistry.has('search_code_memory')) {
+      toolRegistry.register(new SearchCodeMemoryTool(this.memory));
+      toolRegistry.register(new ImpactOfTool(this.memory));
+    }
     this.provider = provider;
     this.toolRegistry = toolRegistry;
     this.permissions = permissions;
@@ -72,13 +85,17 @@ export class Agent extends EventEmitter {
     this.toolRouter = new ToolRouter(this.config.toolRouterMaxTools ?? 12);
     this.toolQueue = new ToolQueue(this.config.toolQueueConcurrency ?? 1);
     this.compressor = new ContextCompressor({ keepRecent: this.config.compressorKeepRecent });
-    this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
     this.security = createSecurityPipeline({
       approver: this.config.securityApprover ?? null,
       approvalTimeoutMs: this.config.approvalTimeoutMs,
       autoApproveBelow: this.config.securityAutoApproveBelow,
-      docker: { image: this.config.sandboxDockerImage, memoryMb: this.config.sandboxMemoryMb },
+      docker: {
+        image: this.config.sandboxDockerImage,
+        memoryMb: this.config.sandboxMemoryMb,
+        profile: this.config.sandboxDockerProfile,
+      },
     });
+    this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
     this.taskQueue = new TaskPriorityEngine({ maxBackgroundPerRun: this.config.maxBackgroundTasksPerRun });
     this.completionRouter = new CompletionRouter({ completer: this.config.miniCompleter ?? null });
     this.brainstorm = new BrainstormEngine({ advisor: this.config.brainstormAdvisor ?? null });
@@ -128,6 +145,7 @@ export class Agent extends EventEmitter {
     this.setStatus('thinking'); this.state.currentTask = userMessage; this.state.iterationCount = 0;
     this.cleanupOldCache(); this.trimConversationHistory();
     this.taskQueue.startRun(false);
+    this.runStartedAt = Date.now();
     await this.loadMemoryContext();
     this.awaitingBoot = true;
     this.lastUserText = userMessage;
@@ -208,6 +226,20 @@ export class Agent extends EventEmitter {
         this.setStatus('completed'); completed = true; break;
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
+
+      // Self-learning pass: mine patterns + reward strategies from this run.
+      try {
+        const retries = this.state.history.filter(h => h.result && h.result.success === false).length;
+        const result = await this.learning.learnFromRun(this.config.workspaceRoot, {
+          toolSequence: this.state.history.map(h => h.tool),
+          success: true,
+          durationMs: Date.now() - this.runStartedAt,
+          retryCount: retries,
+          usedStrategies: ReinforcementLearner.detectStrategies(this.state.history),
+        });
+        this.emit('learnedFromRun', { patterns: result.patterns.length, strategies: result.rewarded });
+        await this.memory.rememberTurn(this.config.workspaceRoot, 'assistant', `completed: ${this.state.currentTask ?? ''}`.slice(0, 200));
+      } catch { /* learning is best-effort */ }
 
       // Drain queued follow-on work (critical → normal → background).
       if (this.taskQueue.hasWork()) {
@@ -350,8 +382,15 @@ export class Agent extends EventEmitter {
 
   /** Reads every memory layer (4 note kinds + global) for the boot snapshot. */
   private async loadMemoryContext(): Promise<void> {
-    try { this.memoryContext = await this.notes.readForBoot(this.config.workspaceRoot); }
-    catch { this.memoryContext = ''; }
+    try {
+      // Three-store memory hub: rules/guardrails + code vectors + graph.
+      await this.memory.boot(this.config.workspaceRoot);
+      await this.memory.indexWorkspace(this.config.workspaceRoot).catch(() => undefined);
+      const hubContext = await this.memory.contextForPrompt(this.config.workspaceRoot);
+      const learned = await this.learning.renderForPrompt(this.config.workspaceRoot, this.state.currentTask ?? '');
+      const noteContext = await this.notes.readForBoot(this.config.workspaceRoot);
+      this.memoryContext = [noteContext, hubContext, learned].filter(Boolean).join('\n\n').slice(0, 7000);
+    } catch { this.memoryContext = ''; }
   }
 
   /** Writes pending notes and auto-facts, then cleans the sandbox. */

@@ -6,9 +6,20 @@ import { GitStatusTool, GitDiffTool, GitLogTool } from './GitTools.js';
 import { ProjectMapTool } from './ProjectMapTool.js';
 import { ProjectMemoryTool } from './ProjectMemoryTool.js';
 import { SubagentTool } from './SubagentTool.js';
+import { SearchCodeMemoryTool, ImpactOfTool } from './MemoryHubTools.js';
+import type { MemoryHub } from '../memory/MemoryHub.js';
 
-export function createDefaultToolRegistry(): ToolRegistry {
+export function createDefaultToolRegistry(hub?: MemoryHub): ToolRegistry {
   const registry = new ToolRegistry();
-  for (const tool of [new ListFilesTool(), new ReadFileTool(), new WriteFileTool(), new EditFileTool(), new ShellTool(), new SearchCodeTool(), new GitStatusTool(), new GitDiffTool(), new GitLogTool(), new ProjectMapTool(), new ProjectMemoryTool(), new SubagentTool()]) registry.register(tool);
+  const tools = [
+    new ListFilesTool(), new ReadFileTool(), new WriteFileTool(), new EditFileTool(),
+    new ShellTool(), new SearchCodeTool(),
+    new GitStatusTool(), new GitDiffTool(), new GitLogTool(),
+    new ProjectMapTool(), new ProjectMemoryTool(), new SubagentTool(),
+  ];
+  if (hub) {
+    tools.push(new SearchCodeMemoryTool(hub), new ImpactOfTool(hub));
+  }
+  for (const tool of tools) registry.register(tool);
   return registry;
 }

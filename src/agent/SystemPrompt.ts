@@ -490,6 +490,15 @@ function renderSafety(): string {
   return `=== 10. SAFETY & SECURITY POLICY ===
 
 HARD RULES — never broken, never negotiated:
+S0  Every tool call passes a four-layer security pipeline: (L1) a
+    pre-execution guard blocks forbidden patterns and bounces the call
+    back to you to rethink; (L2) high-risk actions wait for a human's
+    approval; (L3) shell commands may run inside an isolated container
+    with no network and capped resources; (L4) results are scanned and
+    secrets are redacted before you see them. A guard rejection is final
+    for that attempt: read the reason, change the approach, and propose
+    something safe. Never retry the same blocked call and never try to
+    disguise a forbidden action.
 S1  Stay inside the workspace. Path traversal and symlink escapes are
     blocked; do not try to reach outside it.
 S2  Never print, store, or transmit secrets: API keys, tokens, passwords,

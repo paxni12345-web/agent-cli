@@ -14,6 +14,7 @@ import { CircuitBreaker } from './CircuitBreaker.js';
 import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
 import { ProjectMemoryTool } from '../tools/ProjectMemoryTool.js';
+import { createSecurityPipeline, SecurityPipeline } from './SecurityPipeline.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
 import { NoteSystem } from './NoteSystem.js';
@@ -40,6 +41,8 @@ export class Agent extends EventEmitter {
   private readonly compressor: ContextCompressor;
   private readonly notes = new NoteSystem();
   readonly sandbox = new SandboxManager();
+  /** Four-layer defense: L1 guard → L2 human → L3 sandbox → L4 output check. */
+  readonly security: SecurityPipeline;
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -58,6 +61,12 @@ export class Agent extends EventEmitter {
     this.toolQueue = new ToolQueue(this.config.toolQueueConcurrency ?? 1);
     this.compressor = new ContextCompressor({ keepRecent: this.config.compressorKeepRecent });
     this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
+    this.security = createSecurityPipeline({
+      approver: this.config.securityApprover ?? null,
+      approvalTimeoutMs: this.config.approvalTimeoutMs,
+      autoApproveBelow: this.config.securityAutoApproveBelow,
+      docker: { image: this.config.sandboxDockerImage, memoryMb: this.config.sandboxMemoryMb },
+    });
     for (const tool of toolRegistry.list()) {
       if (tool instanceof ProjectMemoryTool) tool.noteSink = this.notes;
     }
@@ -129,6 +138,7 @@ export class Agent extends EventEmitter {
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
       await this.flushNotes();
+      await this.security.audit.flush(this.config.workspaceRoot);
       return finalResponse;
     } catch (error) { this.setStatus('error_recovery'); throw error; }
   }
@@ -180,7 +190,63 @@ export class Agent extends EventEmitter {
       if (validation.sanitizedInput !== undefined) toolCall = { ...toolCall, input: validation.sanitizedInput };
     }
     if (this.config.strictToolCalling) { const safety = ToolCallValidator.checkSafety(toolCall); if (!safety.safe) return { success: false, error: `Safety check failed: ${safety.issues.join(', ')}`, isError: true, retryable: false }; }
-    try { const context: ToolContext = { workspaceRoot: this.config.workspaceRoot, permissions: this.permissions, currentState: this.state, signal }; return await tool.execute(toolCall.input, context); }
+
+    // ---- Security Pipeline (L1 → L2 → L3) -------------------------------
+    const guard = this.security.guard.guard(toolCall);
+    if (guard.action === 'reject') {
+      // Bounce back to the AI: the reason instructs it to rethink.
+      this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: toolCall.name, decision: 'REJECT', detail: guard.matched.join('; ') });
+      return { success: false, error: guard.reason, isError: true, retryable: false };
+    }
+    this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: toolCall.name, decision: 'allow', detail: `risk=${guard.risk}` });
+
+    const human = await this.security.humanGate.check(toolCall, guard.risk);
+    this.security.audit.log({ time: new Date().toISOString(), layer: 'L2-human', tool: toolCall.name, decision: human.action === 'allow' ? 'allow' : 'DENY', detail: human.reason });
+    if (human.action === 'deny') {
+      return { success: false, error: human.reason, isError: true, retryable: false };
+    }
+
+    // L3: shell commands run inside an isolated container when Docker is
+    // available; otherwise the tool runs locally (workspace + permission
+    // checks still apply).
+    let sandboxed = false;
+    if (toolCall.name === 'shell' && this.config.sandboxDockerEnabled) {
+      try {
+        if (await this.security.sandbox.isDockerAvailable()) {
+          const command = String((toolCall.input as Record<string, unknown>)?.command ?? '');
+          const timeoutMs = Number((toolCall.input as Record<string, unknown>)?.timeout) || this.config.toolTimeout || 120000;
+          const r = await this.security.sandbox.runIsolated(command, this.config.workspaceRoot);
+          sandboxed = true;
+          this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: `docker exit=${r.exitCode}`, detail: command.slice(0, 120) });
+          const checked = this.security.outputChecker.check([r.stdout, r.stderr].filter(Boolean).join('\n'), 'shell');
+          if (checked.redactions.length) this.security.audit.log({ time: new Date().toISOString(), layer: 'L4-output', tool: 'shell', decision: 'redacted', detail: checked.redactions.join(',') });
+          return { success: r.exitCode === 0, output: checked.output || undefined, error: r.exitCode === 0 ? undefined : `Command failed with exit code ${r.exitCode}`, metadata: { command, exitCode: r.exitCode, sandboxed: 'docker' } };
+        }
+      } catch (error) {
+        // Sandbox failure must not silently bypass: report and stop.
+        this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'ERROR', detail: error instanceof Error ? error.message : String(error) });
+        return { success: false, error: `Sandboxed execution failed: ${error instanceof Error ? error.message : String(error)}`, isError: true, retryable: false };
+      }
+    }
+    if (toolCall.name === 'shell') {
+      this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'local', detail: sandboxed ? '' : 'docker unavailable → local execution' });
+    }
+
+    try {
+      const context: ToolContext = { workspaceRoot: this.config.workspaceRoot, permissions: this.permissions, currentState: this.state, signal };
+      const result = await tool.execute(toolCall.input, context);
+      // ---- L4: output check before the result reaches the model --------
+      const rawOutput = result.output ?? result.error ?? '';
+      if (rawOutput) {
+        const checked = this.security.outputChecker.check(rawOutput, toolCall.name);
+        if (checked.redactions.length) {
+          this.security.audit.log({ time: new Date().toISOString(), layer: 'L4-output', tool: toolCall.name, decision: 'redacted', detail: checked.redactions.join(',') });
+        }
+        if (result.output !== undefined) result.output = checked.output;
+        if (result.error !== undefined && result.success === false) result.error = checked.output;
+      }
+      return result;
+    }
     catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error), isError: true, retryable: true }; }
   }
 

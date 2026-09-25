@@ -33,11 +33,14 @@ export const SettingsWizard: React.FC<SettingsWizardProps> = ({ initialConfig, o
       return;
     }
     if (step === 'apiKey') {
-      // Empty Enter is allowed: keep the saved key, or save without one and
-      // fall back to the provider's environment variable at load time.
-      const envFallback = config.provider === 'anthropic' || config.provider === 'openai';
-      if (!input && !config.apiKey && !envFallback) {
-        setError('กรุณาใส่ API key (หรือกด Enter ว่างๆ เพื่อข้ามถ้ามี key ใน config/env)');
+      // Empty Enter is allowed only when a key already exists somewhere:
+      // the saved config key or the provider's environment variable.
+      // Skipping with no fallback at all would dead-end after save.
+      const envKeyName =
+        config.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
+      const hasEnvFallback = Boolean(process.env[envKeyName]);
+      if (!input && !config.apiKey && !hasEnvFallback) {
+        setError(`กรุณาใส่ API key (หรือตั้ง ${envKeyName} แล้วกด Enter ว่างๆ เพื่อข้าม)`);
         return;
       }
       setConfig(current => ({ ...current, apiKey: input || current.apiKey }));
@@ -109,7 +112,7 @@ export const SettingsWizard: React.FC<SettingsWizardProps> = ({ initialConfig, o
             <Text color="#9f8aac">
               {config.apiKey
                 ? 'A key is already saved; press Enter on an empty field to keep it.'
-                : 'Enter ว่างๆ = ใช้ key จาก environment (ANTHROPIC_API_KEY / OPENAI_API_KEY)'}
+                : 'Enter ว่างๆ = ข้าม (ใช้ key จาก environment ถ้ามี)'}
             </Text>
           )}
           {step === 'model' && <Text color="#9f8aac">Enter ว่างๆ = ใช้ model เดิม ({config.model})</Text>}

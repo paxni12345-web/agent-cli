@@ -25,11 +25,21 @@ interface AppProps {
 let idCounter = 0;
 const nextId = () => `${Date.now()}-${++idCounter}`;
 
+// Full screen wipe: clear viewport + flush scrollback + cursor home.
+// Written synchronously right before a screen switch so every phase starts
+// on a clean terminal — like a brand-new session (no leftover UI above).
+const NEW_SESSION_CLEAR = '\x1B[2J\x1B[3J\x1B[H';
+const startFreshScreen = () => {
+  process.stdout.write(NEW_SESSION_CLEAR);
+};
+
 export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'normal', settingsOnly = false }) => {
   const { exit } = useApp();
 
+  // null = config still loading — render nothing so the wrong screen never
+  // flashes while the async config load decides between wizard and welcome.
   const [config, setConfig] = useState<Config | null>(null);
-  const [setupRequired, setSetupRequired] = useState(false);
+  const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [sessionNote, setSessionNote] = useState<string | null>(null);
@@ -84,6 +94,9 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
           cfg.provider === 'anthropic'
             ? new AnthropicProvider(apiKey, { baseUrl: cfg.baseUrl, model: cfg.model })
             : new OpenAIProvider(apiKey, { baseUrl: cfg.baseUrl, model: cfg.model });
+
+        // Happy path — dismiss the loading guard set up above.
+        setSetupRequired(false);
 
         const agent = new Agent(
           provider,
@@ -176,6 +189,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       if (nextStatus === 'thinking' || nextStatus === 'executing') setLiveStatus(nextStatus);
     });
     agentRef.current = agent;
+    startFreshScreen();
     setConfig(updatedConfig);
     setStatus(prev => ({ ...prev, model: updatedConfig.model }));
     setSetupRequired(false);
@@ -198,6 +212,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
               '  /help            this help',
               '  /clear           clear conversation view',
               '  /reset           reset agent memory',
+              '  /settings        open settings (fresh screen)',
               '  /status          agent status',
               '  /stats           tool performance',
               '  /tools           list registered tools',
@@ -224,6 +239,13 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
             content: 'Agent memory cleared.',
             timestamp: new Date(),
           });
+          break;
+
+        case 'settings':
+        case 'config':
+          if (busyRef.current) break;
+          startFreshScreen();
+          setSetupRequired(true);
           break;
 
         case 'status': {
@@ -321,12 +343,15 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
 
       setInput('');
 
+      // Any submit from the welcome screen — task or slash command — moves
+      // into the chat view so command output is actually visible.
+      startFreshScreen();
+      setHasStartedChat(true);
+
       if (message.startsWith('/')) {
         await handleCommand(message);
         return;
       }
-
-      setHasStartedChat(true);
       setSessionNote(null);
 
       const agent = agentRef.current;
@@ -374,10 +399,13 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
           tasksCompleted: prev.tasksCompleted + 1,
         }));
 
-        // Task finished — roll straight into a fresh session:
-        // reset memory, clear the view and land back on the welcome screen.
+        // Task finished — show the answer briefly, then roll straight into
+        // a fresh session: wipe the terminal, reset memory, clear the view
+        // and land back on the welcome screen with no leftovers.
         const secs = ((Date.now() - startedAt) / 1000).toFixed(1);
+        await new Promise(resolve => setTimeout(resolve, 1500));
         agent.reset();
+        startFreshScreen();
         setMessages([]);
         setToolEvents([]);
         runningToolsRef.current.clear();
@@ -410,6 +438,10 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
         <Text color="red">✗ {error}</Text>
       </Box>
     );
+  }
+
+  if (!config || setupRequired === null) {
+    return null;
   }
 
   if (setupRequired && config) {

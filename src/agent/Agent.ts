@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   AgentState, ChatMessage, ContentBlock, ToolCall, ToolExecution, ToolResult,
   Config, AgentError, PermissionManager, ToolContext,
@@ -11,6 +13,7 @@ import { ToolPerformanceMonitor } from './ToolPerformanceMonitor.js';
 import { CircuitBreaker } from './CircuitBreaker.js';
 import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
+import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 
 export class Agent extends EventEmitter {
   private state: AgentState;
@@ -26,6 +29,10 @@ export class Agent extends EventEmitter {
   private activeTimers = new Set<NodeJS.Timeout>();
   private readonly toolRouter: ToolRouter;
   private readonly toolQueue: ToolQueue;
+  /** Facts loaded from .agent/memory at boot and injected into the system prompt. */
+  private memoryContext = '';
+  /** True for the first model call of a run, which carries boot instructions. */
+  private awaitingBoot = false;
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -48,7 +55,9 @@ export class Agent extends EventEmitter {
   async run(userMessage: string): Promise<string> {
     this.setStatus('thinking'); this.state.currentTask = userMessage; this.state.iterationCount = 0;
     this.cleanupOldCache(); this.trimConversationHistory();
-    this.addMessage({ role: 'user', content: userMessage, timestamp: new Date() });
+    this.loadMemoryContext();
+    this.awaitingBoot = true;
+    this.addMessage({ role: 'user', content: buildBootInstructions(userMessage), timestamp: new Date() });
     let finalResponse = '';
     let completed = false;
     try {
@@ -64,6 +73,7 @@ export class Agent extends EventEmitter {
         if (response.content) finalResponse = response.content;
         if (response.toolCalls?.length) {
           this.setStatus('executing');
+          this.awaitingBoot = false;
           this.addMessage({ role: 'assistant', content: response.content || '', toolCalls: response.toolCalls, timestamp: new Date() });
           const toolResults: ContentBlock[] = [];
           const results = await Promise.all(response.toolCalls.map(async (toolCall) => {
@@ -83,6 +93,7 @@ export class Agent extends EventEmitter {
           continue;
         }
         this.addMessage({ role: 'assistant', content: response.content, timestamp: new Date() });
+        this.awaitingBoot = false;
         this.setStatus('completed'); completed = true; break;
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
@@ -146,7 +157,36 @@ export class Agent extends EventEmitter {
   private sleep(ms: number): Promise<void> { return new Promise(resolve => { const t = setTimeout(resolve, ms); t.unref(); }); }
   private cleanupOldCache(): void { if (this.toolCache.size > 1000) { const sorted = Array.from(this.toolCache.entries()).sort((a,b) => a[1].timestamp-b[1].timestamp); for (const [key] of sorted.slice(0,500)) this.toolCache.delete(key); } }
   private trimConversationHistory(): void { const max = 50; if (this.state.conversationMessages.length > max) this.state.conversationMessages = this.state.conversationMessages.slice(-max); }
-  private buildSystemPrompt(): string { const tools = this.toolRegistry.getSchemas(); return `You are an autonomous AI coding agent with native tool calling capabilities.\n\nYou have access to ${tools.length} tools. Inspect before editing, verify changes with tests/typecheck/build, and never claim completion without verification.\n\nCurrent workspace: ${this.config.workspaceRoot}\nPermission mode: ${this.config.permissionMode}\nIteration: ${this.state.iterationCount}/${this.config.maxIterations}`; }
+  private buildSystemPrompt(): string {
+    const tools = this.toolRegistry.getSchemas();
+    return buildAgentSystemPrompt({
+      workspaceRoot: this.config.workspaceRoot,
+      permissionMode: this.config.permissionMode,
+      iteration: this.state.iterationCount,
+      maxIterations: this.config.maxIterations,
+      tools,
+      subagentsEnabled: this.toolRegistry.has('delegate_task'),
+      memoryContext: this.memoryContext,
+    });
+  }
+
+  /** Reads the non-secret memory layers from disk so the prompt carries them. */
+  private loadMemoryContext(): void {
+    try {
+      const chunks: string[] = [];
+      const add = (label: string, filePath: string) => {
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8').trim();
+          if (content) chunks.push(`[${label}]\n${content}`);
+        } catch { /* layer absent — fine */ }
+      };
+      const home = process.env.HOME || process.env.USERPROFILE || '/root';
+      add('memory: project', path.join(this.config.workspaceRoot, '.agent', 'memory', 'project.md'));
+      add('memory: session', path.join(this.config.workspaceRoot, '.agent', 'memory', 'session.md'));
+      add('memory: global', path.join(home, '.agent', 'memory', 'global.md'));
+      this.memoryContext = chunks.join('\n\n').slice(0, 4000);
+    } catch { this.memoryContext = ''; }
+  }
   private addMessage(message: ChatMessage): void { this.state.conversationMessages.push(message); this.emit('message', message); }
   private setStatus(status: AgentState['status']): void { this.state.status = status; this.emit('status', status); }
   updateConfig(partial: Partial<Config>): void { this.config = { ...this.config, ...partial }; this.provider.setModel?.(this.config.model); }

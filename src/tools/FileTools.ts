@@ -3,7 +3,9 @@ import * as nodeFs from 'fs';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult, ToolError, WorkspaceError } from '../types/index.js';
 
-class PathValidator {
+/** Shared workspace-path sanitizer for all file tools.
+ *  Exported so sibling tool modules reuse the same rules. */
+export class PathValidator {
   private static readonly DANGEROUS_PATTERNS = [
     /\.\./,
     /\0/,

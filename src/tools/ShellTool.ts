@@ -1,6 +1,58 @@
 import { spawn } from 'child_process';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 
+/** Shared shell-execution core used by every tool that needs to run a
+ *  command (quality gates, git flow, build/deploy). Same semantics as
+ *  ShellTool: no shell interpolation, timeout + abort support.
+ *  Exported for reuse; NOT a tool itself. */
+export async function runShellCommand(
+  command: string,
+  options: { cwd: string; timeout?: number; signal?: AbortSignal },
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const { program, args } = parseCommand(command);
+  return new Promise((resolve, reject) => {
+    const child = spawn(program, args, { cwd: options.cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = ''; let stderr = ''; let settled = false;
+    const kill = (message: string, code: number) => { if (settled) return; settled = true; clearTimeout(timeoutId); child.kill('SIGTERM'); setTimeout(() => { if (!settled) child.kill('SIGKILL'); }, 5000); reject({ message, stdout, stderr, exitCode: code }); };
+    const timeoutId = setTimeout(() => kill('Command timed out', 124), options.timeout ?? 120000);
+    const onAbort = () => kill('Command cancelled', 130);
+    if (options.signal?.aborted) onAbort(); else options.signal?.addEventListener('abort', onAbort, { once: true });
+    child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
+    child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
+    child.on('error', error => { if (settled) return; settled = true; clearTimeout(timeoutId); reject({ message: error.message, stdout, stderr, exitCode: 1 }); });
+    child.on('close', code => {
+      if (settled) return; settled = true; clearTimeout(timeoutId);
+      options.signal?.removeEventListener('abort', onAbort);
+      if (code === 0) resolve({ stdout, stderr, exitCode: 0 });
+      else reject({ message: `Command failed with exit code ${code}`, stdout, stderr, exitCode: code || 1 });
+    });
+  });
+}
+
+/** Parses a command string into program + args (quote-aware, no shell). */
+export function parseCommand(command: string): { program: string; args: string[] } {
+  const tokens: string[] = []; let current = ''; let quote: '"' | "'" | null = null;
+  for (const char of command.trim()) { if (quote) { if (char === quote) quote = null; else current += char; } else if (char === '"' || char === "'") quote = char; else if (/\s/.test(char)) { if (current) { tokens.push(current); current = ''; } } else current += char; }
+  if (current) tokens.push(current); if (!tokens.length) throw new Error('Empty command');
+  return { program: tokens[0], args: tokens.slice(1) };
+}
+
+/** Uniform result for command-running tools: capture stderr as data, not an exception. */
+export async function runCaptured(command: string, options: { cwd: string; timeout?: number; signal?: AbortSignal }): Promise<{ ok: boolean; stdout: string; stderr: string; exitCode: number }> {
+  try {
+    const r = await runShellCommand(command, options);
+    return { ok: true, ...r };
+  } catch (error: any) {
+    return { ok: false, stdout: error?.stdout ?? '', stderr: error?.stderr ?? error?.message ?? String(error), exitCode: error?.exitCode ?? 1 };
+  }
+}
+
+/** Truncate long command output for tool results. */
+export function truncateOutput(output: string, maxLines = 500): string {
+  const lines = output.split('\n');
+  return lines.length > maxLines ? lines.slice(0, maxLines).join('\n') + `\n\n[... truncated ${lines.length - maxLines} lines ...]` : output;
+}
+
 export class ShellTool implements Tool {
   name = 'shell';
   description = 'Execute a shell command in the workspace.';

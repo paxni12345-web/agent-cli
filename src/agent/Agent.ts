@@ -82,7 +82,7 @@ export class Agent extends EventEmitter {
       validateToolInputs: config.validateToolInputs ?? true, autoRecovery: config.autoRecovery ?? true,
       strictToolCalling: config.strictToolCalling ?? true,
     };
-    this.toolRouter = new ToolRouter(this.config.toolRouterMaxTools ?? 12);
+    this.toolRouter = new ToolRouter(this.config.toolRouterMaxTools ?? 20);
     this.toolQueue = new ToolQueue(this.config.toolQueueConcurrency ?? 1);
     this.compressor = new ContextCompressor({ keepRecent: this.config.compressorKeepRecent });
     this.security = createSecurityPipeline({

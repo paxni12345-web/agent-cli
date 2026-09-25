@@ -102,7 +102,15 @@ export class PreExecutionGuard {
   /** Deterministic risk classification, shared with L2. */
   assessRisk(toolCall: ToolCall): 'safe' | 'low' | 'medium' | 'high' | 'critical' {
     if (toolCall.name !== 'shell') {
-      if (toolCall.name === 'write_file' || toolCall.name === 'edit_file') return 'medium';
+      if (toolCall.name === 'write_file' || toolCall.name === 'edit_file' || toolCall.name === 'find_and_replace') return 'medium';
+      // Destructive / irreversible operations always need a human.
+      if (toolCall.name === 'delete_file' || toolCall.name === 'mutation_test') return 'high';
+      // Deploy-tier: humans decide, no exceptions.
+      if (toolCall.name === 'create_pull_request' || toolCall.name === 'deploy_preview' || toolCall.name === 'rollback_deploy' || toolCall.name === 'docker_run') return 'high';
+      if (toolCall.name === 'install_package' || toolCall.name === 'update_lockfile' || toolCall.name === 'run_formatter'
+        || toolCall.name === 'git_commit' || toolCall.name === 'git_stash' || toolCall.name === 'move_file' || toolCall.name === 'rename_file'
+        || toolCall.name === 'copy_file' || toolCall.name === 'create_directory_structure' || toolCall.name === 'run_dev_server'
+        || toolCall.name === 'docker_build' || toolCall.name === 'database_query') return 'medium';
       return 'safe';
     }
     const cmd = String((toolCall.input as Record<string, unknown>)?.command ?? '').trim().toLowerCase();

@@ -33,8 +33,11 @@ export const SettingsWizard: React.FC<SettingsWizardProps> = ({ initialConfig, o
       return;
     }
     if (step === 'apiKey') {
-      if (!input && !config.apiKey) {
-        setError('กรุณาใส่ API key');
+      // Empty Enter is allowed: keep the saved key, or save without one and
+      // fall back to the provider's environment variable at load time.
+      const envFallback = config.provider === 'anthropic' || config.provider === 'openai';
+      if (!input && !config.apiKey && !envFallback) {
+        setError('กรุณาใส่ API key (หรือกด Enter ว่างๆ เพื่อข้ามถ้ามี key ใน config/env)');
         return;
       }
       setConfig(current => ({ ...current, apiKey: input || current.apiKey }));
@@ -42,11 +45,12 @@ export const SettingsWizard: React.FC<SettingsWizardProps> = ({ initialConfig, o
       return;
     }
     if (step === 'model') {
-      if (!input) {
+      // Empty Enter keeps the current/default model.
+      if (!input && !config.model) {
         setError('กรุณาใส่ชื่อ model');
         return;
       }
-      setConfig(current => ({ ...current, model: input }));
+      setConfig(current => ({ ...current, model: input || current.model }));
       setStep('baseUrl');
       return;
     }
@@ -101,8 +105,15 @@ export const SettingsWizard: React.FC<SettingsWizardProps> = ({ initialConfig, o
           <Text color="#d8b4fe">Step {['provider', 'apiKey', 'model', 'baseUrl'].indexOf(step) + 1} of 4</Text>
           <Text color="#f3e8ff" bold>{prompt}</Text>
           {step === 'provider' && <Text color="#9f8aac">Current: {config.provider}</Text>}
-          {step === 'apiKey' && config.apiKey && <Text color="#9f8aac">A key is already saved; press Enter to keep it.</Text>}
-          {step === 'model' && <Text color="#9f8aac">Example: claude-sonnet-4-20250514 or gpt-4o</Text>}
+          {step === 'apiKey' && (
+            <Text color="#9f8aac">
+              {config.apiKey
+                ? 'A key is already saved; press Enter on an empty field to keep it.'
+                : 'Enter ว่างๆ = ใช้ key จาก environment (ANTHROPIC_API_KEY / OPENAI_API_KEY)'}
+            </Text>
+          )}
+          {step === 'model' && <Text color="#9f8aac">Enter ว่างๆ = ใช้ model เดิม ({config.model})</Text>}
+
           {step === 'baseUrl' && <Text color="#9f8aac">For compatible/custom endpoints only.</Text>}
           {step === 'saving' || step === 'done' ? <Text color="#d8b4fe">{prompt}</Text> : (
             <InputBox value={value} onChange={setValue} onSubmit={submit} placeholder={step === 'apiKey' ? 'Paste API key…' : 'Type value and press Enter…'} welcome secure={step === 'apiKey'} />

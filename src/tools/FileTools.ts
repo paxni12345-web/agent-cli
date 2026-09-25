@@ -378,7 +378,7 @@ export class WriteFileTool implements Tool {
         risk: 'medium',
       });
 
-      if (!permissionResult.allowed) {
+      if (permissionResult.allowed === false) {
         return {
           success: false,
           error: `Permission denied: ${permissionResult.reason}`,
@@ -452,7 +452,7 @@ export class EditFileTool implements Tool {
         risk: 'medium',
       });
 
-      if (!permissionResult.allowed) {
+      if (permissionResult.allowed === false) {
         return {
           success: false,
           error: `Permission denied: ${permissionResult.reason}`,

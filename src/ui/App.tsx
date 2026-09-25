@@ -32,6 +32,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
   const [setupRequired, setSetupRequired] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [sessionNote, setSessionNote] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [busy, setBusy] = useState(false);
@@ -326,6 +327,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       }
 
       setHasStartedChat(true);
+      setSessionNote(null);
 
       const agent = agentRef.current;
       if (!agent || !config) {
@@ -371,6 +373,21 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
           ...prev,
           tasksCompleted: prev.tasksCompleted + 1,
         }));
+
+        // Task finished — roll straight into a fresh session:
+        // reset memory, clear the view and land back on the welcome screen.
+        const secs = ((Date.now() - startedAt) / 1000).toFixed(1);
+        agent.reset();
+        setMessages([]);
+        setToolEvents([]);
+        runningToolsRef.current.clear();
+        setInput('');
+        setStatus(prev => ({ ...prev, tokensUsed: 0 }));
+        setLiveStatus('idle');
+        busyRef.current = false;
+        setBusy(false);
+        setHasStartedChat(false);
+        setSessionNote(`✓ task เสร็จใน ${secs}s — เริ่ม session ใหม่ได้เลย`);
       } catch (e) {
         addMessage({
           id: nextId(),
@@ -378,7 +395,6 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
           content: `✗ ${e instanceof Error ? e.message : 'Unknown error'}`,
           timestamp: new Date(),
         });
-      } finally {
         busyRef.current = false;
         setBusy(false);
         setLiveStatus('idle');
@@ -425,7 +441,23 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
               <Text color="#8b7a9e">  ·  terminal AI workspace</Text>
             </Box>
           </Box>
-          <Box width={Math.min(92, Math.max(40, (process.stdout.columns || 96) - 4))}>
+          {/* Large, prominent centered first-message box — wide and tall,
+              but still inside the middle area so the title bar stays visible. */}
+          <Box
+            width={Math.min(100, Math.max(56, (process.stdout.columns || 96) - 2))}
+            minHeight={9}
+            flexDirection="column"
+            justifyContent="center"
+            borderStyle="round"
+            borderColor="#a78bfa"
+            paddingX={2}
+            paddingY={1}
+          >
+            <Box marginBottom={1} gap={1}>
+              <Text color="#e9d5ff" bold>❯ ข้อความแรกของคุณ</Text>
+              <Text color="#8b7a9e" dimColor>(Enter เพื่อเริ่ม)</Text>
+            </Box>
+            {sessionNote && <Text color="#86efac">{sessionNote}</Text>}
             <InputBox
               value={input}
               onChange={setInput}

@@ -11,7 +11,7 @@ export class ShellTool implements Tool {
       const command = String(input.command || '');
       if (!command.trim()) return { success: false, error: 'Command is required' };
       const permission = await context.permissions.check({ type: 'execute_command', description: `Execute: ${command}`, command, risk: this.assessCommandRisk(command) });
-      if (!permission.allowed) return { success: false, error: `Permission denied: ${permission.reason}` };
+      if (permission.allowed === false) return { success: false, error: `Permission denied: ${permission.reason}` };
       const result = await this.executeCommand(command, { cwd: context.workspaceRoot, timeout: Number(input.timeout) || 120000, signal: context.signal });
       return { success: true, output: this.formatOutput(result.stdout, result.stderr), metadata: { command, exitCode: result.exitCode } };
     } catch (error: any) {

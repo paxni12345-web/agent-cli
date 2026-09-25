@@ -15,6 +15,8 @@ import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
 import { ProjectMemoryTool } from '../tools/ProjectMemoryTool.js';
 import { createSecurityPipeline, SecurityPipeline } from './SecurityPipeline.js';
+import { TaskPriorityEngine, TaskTier } from './TaskPriorityEngine.js';
+import { CompletionRouter, BrainstormEngine, PlanningSystem, FullPlan, CompletionRequest } from './WorkOrchestrator.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
 import { NoteSystem } from './NoteSystem.js';
@@ -43,6 +45,12 @@ export class Agent extends EventEmitter {
   readonly sandbox = new SandboxManager();
   /** Four-layer defense: L1 guard → L2 human → L3 sandbox → L4 output check. */
   readonly security: SecurityPipeline;
+  /** Three-tier work queue: critical / normal / background. */
+  readonly taskQueue: TaskPriorityEngine;
+  /** Routes tiny code-completion chores to a fast model (when configured). */
+  readonly completionRouter: CompletionRouter;
+  /** Multi-perspective ideation engine. */
+  readonly brainstorm: BrainstormEngine;
 
   private static readonly READ_ONLY_TOOLS = new Set(['list_files','read_file','search_code','git_status','git_diff','git_log','project_map']);
 
@@ -67,15 +75,55 @@ export class Agent extends EventEmitter {
       autoApproveBelow: this.config.securityAutoApproveBelow,
       docker: { image: this.config.sandboxDockerImage, memoryMb: this.config.sandboxMemoryMb },
     });
+    this.taskQueue = new TaskPriorityEngine({ maxBackgroundPerRun: this.config.maxBackgroundTasksPerRun });
+    this.completionRouter = new CompletionRouter({ completer: this.config.miniCompleter ?? null });
+    this.brainstorm = new BrainstormEngine({ advisor: this.config.brainstormAdvisor ?? null });
     for (const tool of toolRegistry.list()) {
       if (tool instanceof ProjectMemoryTool) tool.noteSink = this.notes;
     }
     this.state = { status: 'idle', history: [], conversationMessages: [], iterationCount: 0, metadata: {} };
   }
 
+  /** Queues a follow-on task into the three-tier engine (critical/normal/background). */
+  queueTask(description: string, run: () => Promise<string>, tier?: TaskTier): string {
+    const task = this.taskQueue.add(description, run, tier);
+    this.emit('taskQueued', { id: task.id, tier: task.tier, description });
+    return task.id;
+  }
+
+  /** Drains queued work after the main task, highest tier first. */
+  private async drainTaskQueue(): Promise<string[]> {
+    const results: string[] = [];
+    while (this.taskQueue.hasWork()) {
+      const task = this.taskQueue.next();
+      if (!task) break;
+      this.emit('taskStarted', { id: task.id, tier: task.tier, description: task.description });
+      try {
+        const result = await task.run();
+        results.push(`[${task.tier}] ${task.description} → ${result.slice(0, 200)}`);
+      } catch (error) {
+        results.push(`[${task.tier}] ${task.description} → FAILED: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    return results;
+  }
+
+  /** Runs a structured brainstorm round and returns the merged recommendation. */
+  async ideate(topic: string) {
+    return this.brainstorm.brainstorm(topic);
+  }
+
+  /** Validates and renders a three-tier plan coming from the model or user. */
+  renderPlan(plan: FullPlan): string {
+    const issues = PlanningSystem.validate(plan);
+    if (issues.length) throw new Error(`Invalid plan: ${issues.join('; ')}`);
+    return PlanningSystem.render(plan);
+  }
+
   async run(userMessage: string): Promise<string> {
     this.setStatus('thinking'); this.state.currentTask = userMessage; this.state.iterationCount = 0;
     this.cleanupOldCache(); this.trimConversationHistory();
+    this.taskQueue.startRun(false);
     await this.loadMemoryContext();
     this.awaitingBoot = true;
     this.addMessage({ role: 'user', content: buildBootInstructions(userMessage), timestamp: new Date() });
@@ -137,6 +185,15 @@ export class Agent extends EventEmitter {
         this.setStatus('completed'); completed = true; break;
       }
       if (!completed) throw new AgentError(`Maximum iterations (${this.config.maxIterations}) reached`, 'MAX_ITERATIONS');
+
+      // Drain queued follow-on work (critical → normal → background).
+      if (this.taskQueue.hasWork()) {
+        const drained = await this.drainTaskQueue();
+        if (drained.length) {
+          finalResponse += '\n\nQUEUED WORK COMPLETED:\n' + drained.join('\n');
+        }
+      }
+
       await this.flushNotes();
       await this.security.audit.flush(this.config.workspaceRoot);
       return finalResponse;

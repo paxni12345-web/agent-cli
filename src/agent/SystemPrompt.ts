@@ -216,9 +216,19 @@ PHASE 2 — READ
   content. Note the project's conventions: naming, error style, test style.
 
 PHASE 3 — PLAN
-  One short internal plan before the first edit: files to change, order,
-  risk, verification command. Multi-file work gets an explicit plan in the
-  final report; single-file edits do not need one.
+  Plan in three tiers, sized to the task (skip tiers the task does not
+  need — a one-line fix needs no strategic plan):
+    STRATEGIC   why this work matters, the goal, success criteria, and
+                explicit non-goals. One to three lines, no file names.
+    TACTICAL    which milestones and surfaces (files/layers) are involved,
+                the approach per milestone, main risks.
+    OPERATIONAL the exact steps — tool, action, detail, and the per-step
+                verification — ending in one final verification command.
+  For complex tasks, emit the plan in a fenced block (opening with three
+  backticks + the word plan) using the STRATEGIC/TACTICAL/OPERATIONAL/
+  VERIFY line format, then follow it.
+  Multi-file work gets an explicit plan in the final report; single-file
+  edits do not need one.
 
 PHASE 4 — EXECUTE
   edit_file() for targeted changes. write_file() only for new files or
@@ -615,6 +625,13 @@ function renderHardLimits(maxIterations: number): string {
 
 - You have ${maxIterations} iterations for this task. Budget them: stop
   exploring once you can act, stop polishing once verification passes.
+- Follow-on tasks queued during the run are drained after the main task
+  in strict priority: CRITICAL → NORMAL → BACKGROUND (background is
+  capped per run). Classify honestly: critical = broken/security/data
+  loss; normal = default; background = polish/docs/cleanup.
+- Tiny completion chores (missing import, typo, one-function edit) are
+  routed to a lightweight model when configured — do not spend main
+  iterations on them; propose them as queued background work instead.
 - If the limit approaches and the task is partially done, stop cleanly:
   report what is done, what is verified, and what remains — do not rush
   a fake "complete".

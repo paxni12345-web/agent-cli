@@ -39,7 +39,13 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   /** Docker image for the execution sandbox (default node:20-alpine). */
   sandboxDockerImage?: string;
   /** Docker sandbox memory limit in MB (default 512). */
-  sandboxMemoryMb?: number; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
+  sandboxMemoryMb?: number;
+  /** Max background-tier tasks processed per run (default 3). */
+  maxBackgroundTasksPerRun?: number;
+  /** Fast-model callback for tiny completion chores (optional). */
+  miniCompleter?: import('../agent/WorkOrchestrator.js').MiniCompleter | null;
+  /** Advisor callback for brainstorm rounds (optional). */
+  brainstormAdvisor?: import('../agent/WorkOrchestrator.js').Advisor | null; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
 export interface Session { id: string; timestamp: Date; workspace: string; messages: ChatMessage[]; toolCalls: ToolExecution[]; plan?: Plan; state: Record<string, unknown>; }
 export class AgentError extends Error { constructor(message: string, public code: string, public details?: unknown) { super(message); this.name = 'AgentError'; } }
 export class ToolError extends AgentError { constructor(message: string, details?: unknown) { super(message, 'TOOL_ERROR', details); this.name = 'ToolError'; } }

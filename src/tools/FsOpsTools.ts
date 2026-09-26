@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
+import * as nodeFs from 'fs';
 import * as path from 'path';
-import { Tool, ToolContext, ToolResult, WorkspaceError } from '../types/index.js';
+import { Tool, ToolContext, ToolResult } from '../types/index.js';
 import { PathValidator } from './FileTools.js';
 
 /**
@@ -327,10 +328,10 @@ export class WatchFilesTool implements Tool {
       const seconds = Math.min(Math.max(Number(input.seconds) || 10, 1), 60);
       const suffix = str(input, 'pattern');
       const events: string[] = [];
-      const watcher = nodeFsWatch(target, { recursive: true });
+      const watcher = watchDir(target);
       const timer = new Promise<void>(resolve => setTimeout(resolve, seconds * 1000));
       const collect = (async () => {
-        for await (const event of watcher) {
+        for await (const event of watcher.stream) {
           const file = String(event.filename ?? '');
           if (suffix && !file.endsWith(suffix)) continue;
           events.push(`${event.eventType}: ${file}`);
@@ -338,37 +339,59 @@ export class WatchFilesTool implements Tool {
         }
       })();
       await Promise.race([timer, collect]);
-      await watcher.close().catch(() => undefined);
+      await watcher.close();
       return ok(events.length
         ? `${events.length} change(s) in ${seconds}s:\n` + events.slice(0, 30).join('\n')
-        : `No changes in ${target} within ${seconds}s`, { events: events.length });
+        : `No changes in ${target} within ${seconds}s`, { events: events.length, recursive: watcher.recursive });
     } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) }; }
   }
 }
 
-// Event-based fs.watch wrapped as a simple async event source.
-import * as nodeFs from 'fs';
-function nodeFsWatch(target: string, options: { recursive: boolean }): AsyncIterable<{ eventType: string; filename: string | null }> & { close(): Promise<void> } {
-  const watcher = nodeFs.watch(target, options as never);
-  const queue: Array<{ eventType: string; filename: string | null }> = [];
-  const resolvers: Array<() => void> = [];
+// Event-based fs.watch wrapped as a simple async event source. Recursive
+// watching is only available on some platforms/runtimes (Linux needs Node
+// 20+), so it degrades to a top-level watch instead of failing the call.
+type WatchEvent = { eventType: string; filename: string | null };
+
+function watchDir(target: string) {
+  let watcher: nodeFs.FSWatcher;
+  let recursive = true;
+  try {
+    watcher = nodeFs.watch(target, { recursive: true });
+  } catch {
+    recursive = false;
+    watcher = nodeFs.watch(target);
+  }
+
+  const queue: WatchEvent[] = [];
+  const waiters: Array<(event: WatchEvent | null) => void> = [];
+  let closed = false;
+
   watcher.on('change', (eventType: string, filename: string | Buffer | null) => {
-    queue.push({ eventType, filename: filename ? String(filename) : null });
-    const next = resolvers.shift();
-    if (next) next();
+    const event: WatchEvent = { eventType, filename: filename ? String(filename) : null };
+    const waiter = waiters.shift();
+    if (waiter) waiter(event);
+    else queue.push(event);
   });
-  const iterator: AsyncIterator<{ eventType: string; filename: string | null }> = {
-    next: () => new Promise(resolve => {
-      const queued = queue.shift();
-      if (queued) return resolve({ value: queued, done: false });
-      resolvers.push(() => resolve({ value: queue.shift()!, done: false }));
-    }),
+
+  const stop = () => {
+    if (closed) return;
+    closed = true;
+    watcher.close();
+    while (waiters.length) waiters.shift()!(null);
   };
-  const wrapper = {
-    [Symbol.asyncIterator]() { return iterator; },
-    async close() { watcher.close(); },
-  } as never;
-  return wrapper;
+
+  const iterator: AsyncIterator<WatchEvent> = {
+    next: () => {
+      const queued = queue.shift();
+      if (queued) return Promise.resolve({ value: queued, done: false });
+      if (closed) return Promise.resolve({ value: undefined, done: true });
+      return new Promise(resolve => waiters.push(event =>
+        resolve(event ? { value: event, done: false } : { value: undefined, done: true })));
+    },
+    return: () => { stop(); return Promise.resolve({ value: undefined, done: true }); },
+  };
+
+  return { recursive, stream: { [Symbol.asyncIterator]: () => iterator }, close: async () => stop() };
 }
 
 // Grouped export for registry assembly.
@@ -377,5 +400,3 @@ export const FS_OPS_TOOLS: Tool[] = [
   new DiffFilesTool(), new FindAndReplaceTool(), new FileStatTool(),
   new CreateDirectoryStructureTool(), new WatchFilesTool(),
 ];
-
-void WorkspaceError; // reserved for future typed errors

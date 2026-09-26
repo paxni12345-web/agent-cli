@@ -21,6 +21,11 @@
 - Leftover scratch files (`tool-exports.tmp`, `tool-context.patch`)
 - Stale internal checklist references in comments and test names
 
+### Fixed
+- `watch_files` fails on runtimes without recursive `fs.watch` support
+  (Node < 20 on Linux): it now degrades to a top-level watch and reports
+  which mode it used
+- CI matrix now runs Node 20 and 22 (Node 18 is EOL)
 
 ## 0.2.0 — Project Cleanup & UI Overhaul
 

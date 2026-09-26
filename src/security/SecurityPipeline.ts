@@ -187,7 +187,7 @@ export class HumanGate {
         timeoutMs: this.timeoutMs,
       });
       if (decision === 'approved') {
-        // ---- Item 27: irreversible actions need a SECOND confirmation.
+        // Irreversible actions need a SECOND confirmation.
         if (HumanGate.isIrreversible(toolCall) && this.approver) {
           const second = await this.approver({
             tool: toolCall.name,
@@ -209,7 +209,7 @@ export class HumanGate {
     }
   }
 
-  /** Item 27 — destructive/irreversible operations requiring double confirmation. */
+  /** Destructive/irreversible operations requiring double confirmation. */
   static isIrreversible(toolCall: ToolCall): boolean {
     if (toolCall.name === 'delete_file' || toolCall.name === 'rollback_deploy') return true;
     if (toolCall.name === 'shell') {
@@ -297,13 +297,13 @@ export interface DockerOptions {
   pidsLimit: number;
   timeoutMs: number;
   /**
-   * Non-root user inside the container (item 7 — least privilege).
+   * Non-root user inside the container (least privilege).
    * "nobody" works on all images; a numeric "1000:1000" keeps file ownership
    * aligned with the first host user. Set '' to disable (not recommended).
    */
   user?: string;
   /**
-   * Disk quota for the writable layer (item 5). Docker has no native
+   * Disk quota for the writable layer. Docker has no native
    * per-container disk cap for the workspace bind-mount, so we mount a
    * bounded tmpfs at /tmp and rely on the memory cap to bound overall
    * writes. Value in MB for /tmp (default 256).
@@ -361,16 +361,16 @@ export class SecureSandbox {
    * Build the docker argv for an isolated run. Exported as a method so the
    * isolation guarantees are unit-testable without the docker daemon.
    *
-   * Isolation guarantees (items 1, 2, 5, 7, 8):
-   *   --network none         no outbound/inbound network (item 8)
-   *   --memory / --cpus      CPU + memory caps (item 5)
-   *   --pids-limit           fork-bomb containment (item 5)
-   *   --ulimit fsize=        disk quota on files written inside (item 5)
+   * Isolation guarantees:
+   *   --network none         no outbound/inbound network
+   *   --memory / --cpus      CPU + memory caps
+   *   --pids-limit           fork-bomb containment
+   *   --ulimit fsize=        disk quota on files written inside
    *   --read-only + tmpfs    immutable rootfs; /tmp is the only writable
-   *                          surface and it is size-capped (items 2 + 5)
-   *   --user                 least-privileged non-root user (item 7)
+   *                          surface and it is size-capped
+   *   --user                 least-privileged non-root user
    *   --security-opt         no-new-privileges, all capabilities dropped
-   *   workspace bind-mount   the only host surface visible (item 2)
+   *   workspace bind-mount   the only host surface visible
    */
   buildRunArgs(command: string, workspaceRoot: string): string[] {
     const o = this.options;
@@ -382,14 +382,14 @@ export class SecureSandbox {
       '--memory', `${o.memoryMb}m`,
       '--cpus', String(o.cpus),
       '--pids-limit', String(o.pidsLimit),
-      // Disk quota (item 5): cap per-file size inside the container.
+      // Disk quota: cap per-file size inside the container.
       '--ulimit', 'fsize=' + tmpfsMb * 1024 * 1024,
       // Read-only rootfs: only /tmp (capped tmpfs) and /workspace are writable.
       '--read-only',
       '--tmpfs', `/tmp:rw,noexec,nosuid,size=${tmpfsMb}m`,
       '--security-opt', 'no-new-privileges',
       '--cap-drop', 'ALL',
-      // Least privilege (item 7): never run as root inside the container.
+      // Least privilege: never run as root inside the container.
       ...(o.user ? ['--user', o.user] : []),
       '-v', mount,
       '-w', '/workspace',
@@ -427,16 +427,16 @@ const LOCAL_SANDBOX_STATE_DIR = '.agent/sandbox-state';
  * LocalSandbox — best-effort OS-level isolation for environments without
  * Docker. It cannot match container isolation, but it enforces:
  *
- *   item 1+2  the child's cwd is the workspace; a pre-flight scan rejects
- *             commands that reference paths outside it (absolute paths,
- *             ~, /etc, /usr, …) unless allowOutsideWorkspace is set
- *   item 5    `ulimit` caps CPU seconds, address space, file size, and
- *             process count before the command starts
- *   item 7    uid/gid demotion to `nobody` via setpriv when running as
- *             root and the platform supports it (Linux)
- *   item 8    network isolation via `unshare -n` when available
- *   item 6    timeout is enforced by the caller (ShellTool/Agent), this
- *             class only adds the pre-exec wrapper
+ *   path scan   the child's cwd is the workspace; a pre-flight scan rejects
+ *               commands that reference paths outside it (absolute paths,
+ *               ~, /etc, /usr, …) unless allowOutsideWorkspace is set
+ *   ulimit      caps CPU seconds, address space, file size, and process
+ *               count before the command starts
+ *   setpriv     uid/gid demotion to `nobody` when running as root and the
+ *               platform supports it (Linux)
+ *   unshare     network isolation via `unshare -n` when available
+ *   timeout     enforced by the caller (ShellTool/Agent); this class only
+ *               adds the pre-exec wrapper
  *
  * Detection of each capability is cached so repeated calls are cheap, and
  * `describe()` reports exactly which guards are active (auditable).
@@ -491,7 +491,7 @@ export class LocalSandbox {
   }
 
   /**
-   * Pre-flight path scan (items 1+2): reject commands that reference
+   * Pre-flight path scan: reject commands that reference
    * absolute paths outside the workspace or shell-expand ~/$HOME.
    * Relative paths and bare program names pass — the actual boundary is
    * still enforced by cwd + permission checks; this closes the obvious
@@ -527,11 +527,11 @@ export class LocalSandbox {
     const fileKb = o.maxFileKb ?? 256 * 1024;
     const procs = o.maxProcesses ?? 128;
 
-    // ---- ulimit resource caps (item 5) --------------------------------
+    // ---- ulimit resource caps --------------------------------
     const ulimit = `ulimit -t ${cpu}; ulimit -v ${memKb}; ulimit -f ${fileKb}; ulimit -u ${procs}; ulimit -c 0;`;
     guards.push(`ulimit(cpu=${cpu}s,mem=${Math.round(memKb / 1024)}MB,file=${Math.round(fileKb / 1024)}MB,procs=${procs})`);
 
-    // ---- network namespace (item 8) ------------------------------------
+    // ---- network namespace ------------------------------------
     let netPrefix = '';
     const wantNet = o.isolateNetwork === true || (o.isolateNetwork === undefined && true) || (o.isolateNetwork as 'auto') === 'auto';
     if (wantNet && (await this.hasUnshare())) {
@@ -539,7 +539,7 @@ export class LocalSandbox {
       guards.push('unshare -n (isolated network namespace)');
     }
 
-    // ---- least privilege (item 7) --------------------------------------
+    // ---- least privilege --------------------------------------
     let userPrefix = '';
     if ((o.demoteUser ?? true) && this.isRoot() && (await this.hasSetpriv())) {
       userPrefix = 'setpriv --re-exec --inh-caps=-all -- ';
@@ -556,7 +556,7 @@ export class LocalSandbox {
     return path.join(workspaceRoot, LOCAL_SANDBOX_STATE_DIR);
   }
 
-  /** Host temp dir available to the command (item 2 — inside workspace). */
+  /** Host temp dir available to the command (inside workspace). */
   static tmpDir(workspaceRoot: string): string {
     return path.join(LocalSandbox.stateDir(workspaceRoot), 'tmp');
   }
@@ -621,7 +621,7 @@ export class OutputChecker {
       warnings.push('output contains error-like text');
     }
 
-    // ---- Item 44/49: injection scan before the output re-enters context.
+    // Injection scan before the output re-enters context.
     const injection = new InjectionDetector().sanitizeToolOutput(text, 'tool-output');
     if (injection.scan.verdict !== 'clean') {
       warnings.push(`injection scan: ${injection.scan.verdict} (${injection.scan.findings.map(f => f.ruleId).join(', ')})`);
@@ -652,7 +652,7 @@ export class AuditLogger {
   }
 
   /**
-   * Item 89 — append-only audit trail: flush() now APPENDS instead of
+   * Append-only audit trail: flush() APPENDS instead of
    * rewriting, and each line is JSON (machine-parseable, tamper-evident
    * enough for a local file: entries are never reordered or edited).
    */

@@ -29,9 +29,8 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   /** Bounded retries for a failed model call (rate limit / network blip / 5xx). Default 3. */
   providerRetries?: number;
   /** Require human approval before applying sandboxed writes to the real workspace (default true). */
-  sandboxHumanLoop?: boolean;
   /** Async approval callback for the security pipeline's human gate (high-risk actions). */
-  securityApprover?: import('../agent/SecurityPipeline.js').HumanApprover | null;
+  securityApprover?: import('../security/SecurityPipeline.js').HumanApprover | null;
   /** Risk level at/under which no human approval is required (default: low). */
   securityAutoApproveBelow?: 'safe' | 'low' | 'medium' | 'high' | 'critical';
   /** Human approval timeout in ms (default 120000). */
@@ -67,9 +66,9 @@ export interface Config { provider: string; model: string; apiKey?: string; base
   /** Max background-tier tasks processed per run (default 3). */
   maxBackgroundTasksPerRun?: number;
   /** Fast-model callback for tiny completion chores (optional). */
-  miniCompleter?: import('../agent/WorkOrchestrator.js').MiniCompleter | null;
+  miniCompleter?: import('../agent/CompletionRouter.js').MiniCompleter | null;
   /** Advisor callback for brainstorm rounds (optional). */
-  brainstormAdvisor?: import('../agent/WorkOrchestrator.js').Advisor | null; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
+  brainstormAdvisor?: import('../agent/BrainstormEngine.js').Advisor | null; validateToolInputs?: boolean; autoRecovery?: boolean; strictToolCalling?: boolean; toolRouterMaxTools?: number; toolQueueConcurrency?: number; serverApiKey?: string; enableSubagents?: boolean; subagentMaxIterations?: number; }
 export interface Session { id: string; timestamp: Date; workspace: string; messages: ChatMessage[]; toolCalls: ToolExecution[]; plan?: Plan; state: Record<string, unknown>; }
 export class AgentError extends Error { constructor(message: string, public code: string, public details?: unknown) { super(message); this.name = 'AgentError'; } }
 export class ToolError extends AgentError { constructor(message: string, details?: unknown) { super(message, 'TOOL_ERROR', details); this.name = 'ToolError'; } }

@@ -1,9 +1,6 @@
-import {
-  CompletionRouter,
-  BrainstormEngine,
-  PlanningSystem,
-  FullPlan,
-} from '../../src/agent/WorkOrchestrator.js';
+import { CompletionRouter } from '../../src/agent/CompletionRouter.js';
+import { BrainstormEngine } from '../../src/agent/BrainstormEngine.js';
+import { PlanningSystem, FullPlan } from '../../src/agent/PlanningSystem.js';
 import { TaskPriorityEngine } from '../../src/agent/TaskPriorityEngine.js';
 
 describe('TaskPriorityEngine (three-tier queue)', () => {

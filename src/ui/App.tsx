@@ -7,10 +7,7 @@ import { StatusBar } from './components/StatusBar.js';
 import { AgentStatus, Message, ToolEvent } from './types.js';
 
 import { Agent } from '../agent/Agent.js';
-import { AnthropicProvider } from '../providers/AnthropicProvider.js';
-import { OpenAIProvider } from '../providers/OpenAIProvider.js';
-import { createDefaultToolRegistry } from '../tools/index.js';
-import { DefaultPermissionManager } from '../security/PermissionManager.js';
+import { createAgent as defaultCreateAgent } from '../createAgent.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { Config } from '../types/index.js';
 import { SettingsWizard } from './components/SettingsWizard.js';
@@ -20,6 +17,8 @@ interface AppProps {
   model?: string;
   mode?: 'normal' | 'fast' | 'ultra';
   settingsOnly?: boolean;
+  /** Built by the caller so the UI never wires providers/tools itself. */
+  createAgent?: (config: Config, apiKey: string) => Agent;
 }
 
 let idCounter = 0;
@@ -33,7 +32,7 @@ const startFreshScreen = () => {
   process.stdout.write(NEW_SESSION_CLEAR);
 };
 
-export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'normal', settingsOnly = false }) => {
+export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'normal', settingsOnly = false, createAgent = defaultCreateAgent }) => {
   const { exit } = useApp();
 
   // null = config still loading — render nothing so the wrong screen never
@@ -90,20 +89,10 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       }
 
       try {
-        const provider =
-          cfg.provider === 'anthropic'
-            ? new AnthropicProvider(apiKey, { baseUrl: cfg.baseUrl, model: cfg.model })
-            : new OpenAIProvider(apiKey, { baseUrl: cfg.baseUrl, model: cfg.model });
-
         // Happy path — dismiss the loading guard set up above.
         setSetupRequired(false);
 
-        const agent = new Agent(
-          provider,
-          createDefaultToolRegistry(),
-          new DefaultPermissionManager(cfg.permissionMode),
-          cfg
-        );
+        const agent = createAgent(cfg, apiKey);
         agentRef.current = agent;
 
         agent.on('toolStart', (call: { id: string; name: string; input: unknown }) => {
@@ -166,10 +155,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
       setSetupRequired(true);
       return;
     }
-    const provider = updatedConfig.provider === 'anthropic'
-      ? new AnthropicProvider(apiKey, { baseUrl: updatedConfig.baseUrl, model: updatedConfig.model })
-      : new OpenAIProvider(apiKey, { baseUrl: updatedConfig.baseUrl, model: updatedConfig.model });
-    const agent = new Agent(provider, createDefaultToolRegistry(), new DefaultPermissionManager(updatedConfig.permissionMode), updatedConfig);
+    const agent = createAgent(updatedConfig, apiKey);
     agent.on('toolStart', (call: { id: string; name: string; input: unknown }) => {
       const ev: ToolEvent = { id: call.id || nextId(), name: call.name, status: 'running', startedAt: Date.now(), summary: summarizeInput(call.input) };
       runningToolsRef.current.set(ev.id, ev);
@@ -194,7 +180,7 @@ export const App: React.FC<AppProps> = ({ workingDirectory, model, mode = 'norma
     setStatus(prev => ({ ...prev, model: updatedConfig.model }));
     setSetupRequired(false);
     setError(null);
-  }, [setLiveStatus]);
+  }, [createAgent, setLiveStatus]);
 
   const handleCommand = useCallback(
     async (message: string) => {

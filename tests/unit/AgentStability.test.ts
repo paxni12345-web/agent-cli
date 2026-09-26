@@ -5,7 +5,7 @@ import { Agent } from '../../src/agent/Agent.js';
 import { AIProvider } from '../../src/providers/AIProvider.js';
 import { ToolRegistry } from '../../src/tools/ToolRegistry.js';
 import { PermissionManager, Config, ChatRequest, ChatResponse } from '../../src/types/index.js';
-import { NoteSystem } from '../../src/agent/NoteSystem.js';
+import { NoteSystem } from '../../src/memory/NoteSystem.js';
 
 /** Provider whose chat() fails N times before succeeding — simulates
  *  rate limits / network blips / 5xx without a real API. */

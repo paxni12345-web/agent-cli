@@ -16,7 +16,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { SecretScanner } from '../agent/SecretScanner.js';
+import { SecretScanner } from '../security/SecretScanner.js';
 
 export type RuleKind = 'guardrail' | 'preference' | 'agreement' | 'history';
 

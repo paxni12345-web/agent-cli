@@ -1,13 +1,13 @@
 /**
- * InjectionDetector — security items 41–50 (untrusted content handling):
+ * InjectionDetector — untrusted content handling.
  *
- *   41. treat file/web content as data, never as instructions
- *   43. detect classic injection patterns ("ignore previous instructions", …)
- *   44. sanitize tool output before it re-enters the context
- *   45. mark external content with lower trust
- *   46. trust hierarchy: user prompt > project file > fetched web content
- *   47. tool-call schema validation stays in ToolCallValidator (unchanged)
- *   49. detect backdoor-ish payloads arriving from external content
+ *   - treat file/web content as data, never as instructions
+ *   - detect classic injection patterns ("ignore previous instructions", …)
+ *   - sanitize tool output before it re-enters the context
+ *   - mark external content with lower trust
+ *   - trust hierarchy: user prompt > project file > fetched web content
+ *   - tool-call schema validation stays in ToolCallValidator (unchanged)
+ *   - detect backdoor-ish payloads arriving from external content
  *
  * Findings are (a) returned to the caller, (b) marked into the content so
  * the model sees the boundary, and (c) logged by the caller for audit.
@@ -30,7 +30,7 @@ export interface ScanResult {
   verdict: 'clean' | 'suspicious' | 'hostile';
 }
 
-/** Item 46 — explicit trust ranking (higher number = more trusted). */
+/** Explicit trust ranking (higher number = more trusted). */
 export const TRUST_RANK: Record<ContentSource, number> = {
   user: 3,
   'project-file': 2,
@@ -65,7 +65,7 @@ const RULES: Rule[] = [
 
 export class InjectionDetector {
   /**
-   * Scan untrusted text for injection patterns (items 43 + 49).
+   * Scan untrusted text for injection patterns.
    */
   scan(text: string): ScanResult {
     const findings: InjectionFinding[] = [];
@@ -90,8 +90,8 @@ export class InjectionDetector {
   }
 
   /**
-   * Item 44 — sanitize tool output before it re-enters the model context:
-   * neutralize injection attempts and mark the boundary (item 41).
+   * Sanitize tool output before it re-enters the model context:
+   * neutralize injection attempts and mark the boundary.
    */
   sanitizeToolOutput(output: string, source: ContentSource = 'tool-output'): { text: string; scan: ScanResult } {
     const scan = this.scan(output);
@@ -109,7 +109,7 @@ export class InjectionDetector {
   }
 
   /**
-   * Item 45/46 — wrap fetched web content with a low-trust envelope.
+   * Wrap fetched web content with a low-trust envelope.
    */
   wrapWebContent(text: string, origin: string): string {
     const scan = this.scan(text);

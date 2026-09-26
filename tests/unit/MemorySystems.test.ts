@@ -5,7 +5,7 @@ import { RulesStore } from '../../src/memory/RulesStore.js';
 import { CodeVectorStore } from '../../src/memory/CodeVectorStore.js';
 import { KnowledgeGraph } from '../../src/memory/KnowledgeGraph.js';
 import { LearningEngine, ReinforcementLearner } from '../../src/memory/LearningEngine.js';
-import { SANDBOX_PROFILES, SecureSandbox } from '../../src/agent/SecurityPipeline.js';
+import { SANDBOX_PROFILES, SecureSandbox } from '../../src/security/SecurityPipeline.js';
 
 async function tmpWorkspace(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'iris-mem-'));

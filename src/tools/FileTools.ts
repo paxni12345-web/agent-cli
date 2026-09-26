@@ -2,13 +2,14 @@ import * as fs from 'fs/promises';
 import * as nodeFs from 'fs';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult, ToolError, WorkspaceError } from '../types/index.js';
-import { BackupManager, ProtectedPaths } from '../agent/BackupManager.js';
+import { BackupManager } from '../security/BackupManager.js';
+import { ProtectedPaths } from '../security/ProtectedPaths.js';
 
 /** Session-wide backup store used by write_file/edit_file (undo support).
  *  One instance per process is safe: paths are absolute keys. */
 export const sessionBackups = new BackupManager();
 
-/** Item 23 — max distinct files one task may touch. Session-scoped. */
+/** Max distinct files one task may touch. Session-scoped. */
 export const taskEditGuard = {
   maxFilesPerTask: 25,
   currentTask: '',
@@ -139,7 +140,7 @@ export class PathValidator {
   }
 }
 
-/** Compact before/after summary used as the write_file diff preview (item 70). */
+/** Compact before/after summary used as the write_file diff preview. */
 export function buildDiffSummary(before: string, after: string): string {
   if (before === after) return '';
   const beforeLines = before.split('\n');
@@ -407,7 +408,7 @@ export class WriteFileTool implements Tool {
     try {      const validatedPath = await PathValidator.validatePath(input.path, context.workspaceRoot);
       await assertInsideWorkspace(validatedPath, context.workspaceRoot);
 
-      // ---- Item 71: system/config paths require special (critical) approval.
+      // System/config paths require special (critical) approval.
       const protectedReason = ProtectedPaths.check(input.path);
 
       const permissionResult = await context.permissions.check({
@@ -424,7 +425,7 @@ export class WriteFileTool implements Tool {
         };
       }
 
-      // ---- Item 23: per-task file-count cap (mass destructive edit guard).
+      // Per-task file-count cap (mass destructive edit guard).
       const capError = taskEditGuard.registerAndCheck(context.workspaceRoot, validatedPath);
       if (capError) return { success: false, error: capError };
 
@@ -435,7 +436,7 @@ export class WriteFileTool implements Tool {
       } catch (error: any) {
         if (error.code !== 'ENOENT') throw error;
       }
-      // ---- Item 70: diff preview of the overwrite in metadata.
+      // Diff preview of the overwrite in metadata.
       const unifiedDiff = buildDiffSummary(previousContent, String(input.content));
       await fs.writeFile(validatedPath, input.content, 'utf-8');
       const oldLines = previousContent ? previousContent.split('\n').length : 0;
@@ -493,7 +494,7 @@ export class EditFileTool implements Tool {
     try {
       const validatedPath = await PathValidator.validatePath(input.path, context.workspaceRoot);
 
-      // ---- Item 71: system/config paths require special (critical) approval.
+      // System/config paths require special (critical) approval.
       const protectedReason = ProtectedPaths.check(input.path);
 
       const permissionResult = await context.permissions.check({
@@ -521,7 +522,7 @@ export class EditFileTool implements Tool {
         throw new ToolError('Path is not a file');
       }
 
-      // ---- Item 23: per-task file-count cap.
+      // Per-task file-count cap.
       const capError = taskEditGuard.registerAndCheck(context.workspaceRoot, validatedPath);
       if (capError) return { success: false, error: capError };
 

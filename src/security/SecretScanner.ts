@@ -1,10 +1,10 @@
 /**
- * SecretScanner — security items 29–40:
+ * SecretScanner — secrets must never leave the agent in the clear.
  *
- *   30. redact secrets from logs and tool output before display
- *   31. detect API key / token patterns in code the agent is about to commit
- *   34. never hardcode credentials in prompts/system messages (strip on build)
- *   40. mask secrets in error messages / stack traces
+ *   - redact secrets from logs and tool output before display
+ *   - detect API key / token patterns in code the agent is about to commit
+ *   - strip hard-coded credentials from anything destined for a prompt
+ *   - mask secrets in error messages and stack traces
  *
  * Pattern list mirrors OutputChecker's redaction rules but adds entropy
  * filtering, .env-style assignments, and a `scanForCommit` API used by the
@@ -52,7 +52,7 @@ function shannonEntropy(text: string): number {
 
 export class SecretScanner {
   /**
-   * Item 30/40 — replace every detected secret with a typed marker.
+   * Replace every detected secret with a typed marker.
    * Used for logs, memory writes, error messages, and tool output.
    */
   redact(text: string): { text: string; found: string[] } {
@@ -74,13 +74,13 @@ export class SecretScanner {
     return { text: out, found: [...found] };
   }
 
-  /** Item 40 — error/stack masking. */
+  /** Error/stack masking. */
   maskError(message: string): string {
     return this.redact(message).text;
   }
 
   /**
-   * Item 31 — scan full text (a file or a diff) for secrets that must not
+   * Scan full text (a file or a diff) for secrets that must not
    * be committed. Returns findings with 1-based line numbers.
    */
   scanForCommit(content: string): SecretFinding[] {
@@ -113,7 +113,7 @@ export class SecretScanner {
   }
 
   /**
-   * Item 31 — pre-commit gate: scan every staged/changed file's content.
+   * Pre-commit gate: scan every staged/changed file's content.
    * Returns human-readable blockers (empty = safe to commit).
    */
   async scanFilesForCommit(files: Array<{ path: string; content: string }>): Promise<string[]> {
@@ -127,7 +127,7 @@ export class SecretScanner {
     return blockers;
   }
 
-  /** Item 34 — strip hard-coded credentials from text destined for prompts. */
+  /** Strip hard-coded credentials from text destined for prompts. */
   sanitizeForPrompt(text: string): string {
     return this.redact(text).text;
   }

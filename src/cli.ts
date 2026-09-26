@@ -5,10 +5,7 @@ import * as readline from 'readline';
 import path from 'path';
 import chalk from 'chalk';
 import { Agent } from './agent/Agent.js';
-import { AnthropicProvider } from './providers/AnthropicProvider.js';
-import { OpenAIProvider } from './providers/OpenAIProvider.js';
-import { createDefaultToolRegistry } from './tools/index.js';
-import { DefaultPermissionManager } from './security/PermissionManager.js';
+import { createAgent } from './createAgent.js';
 import { ConfigLoader } from './config/ConfigLoader.js';
 import { Config, PermissionMode } from './types/index.js';
 
@@ -361,23 +358,6 @@ async function runTask(task: string, options: any) {
     console.error(error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
-}
-
-function createAgent(config: Config, apiKey: string): Agent {
-  const provider = createProvider(config, apiKey);
-  const toolRegistry = createDefaultToolRegistry();
-  const permissions = new DefaultPermissionManager(config.permissionMode);
-  return new Agent(provider, toolRegistry, permissions, config);
-}
-
-function createProvider(config: Config, apiKey: string) {
-  if (config.provider === 'anthropic') {
-    return new AnthropicProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
-  }
-  if (config.provider === 'openai') {
-    return new OpenAIProvider(apiKey, { baseUrl: config.baseUrl, model: config.model });
-  }
-  throw new Error(`Unsupported provider: ${config.provider}`);
 }
 
 function runWithGlobalTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

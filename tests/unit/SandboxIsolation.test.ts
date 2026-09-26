@@ -1,5 +1,5 @@
 /**
- * Unit tests for Sandbox & Execution Isolation (security items 1–8).
+ * Unit tests for sandbox & execution isolation.
  *
  * Covers:
  *  - SecureSandbox.buildRunArgs: docker isolation flags (network none,
@@ -7,17 +7,17 @@
  *    fsize ulimit for disk quota, no-new-privileges, cap-drop ALL)
  *  - LocalSandbox.checkPathEscape: workspace path-escape rejection
  *  - LocalSandbox.wrap: ulimit resource caps, unshare/setpriv wrapping
- *  - PathValidator: canonicalization + traversal blocking (items 3–4)
+ *  - PathValidator: canonicalization + traversal blocking
  */
 
-import { SecureSandbox, LocalSandbox, DEFAULT_DOCKER, SANDBOX_PROFILES } from '../../src/agent/SecurityPipeline.js';
+import { SecureSandbox, LocalSandbox, DEFAULT_DOCKER, SANDBOX_PROFILES } from '../../src/security/SecurityPipeline.js';
 import { PathValidator } from '../../src/tools/FileTools.js';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 
 // ---------------------------------------------------------------------------
-// SecureSandbox docker args (items 1, 2, 5, 7, 8)
+// SecureSandbox docker args
 // ---------------------------------------------------------------------------
 
 describe('SecureSandbox.buildRunArgs', () => {
@@ -108,7 +108,7 @@ describe('SecureSandbox.buildRunArgs', () => {
 });
 
 // ---------------------------------------------------------------------------
-// LocalSandbox path-escape check (items 1 + 2)
+// LocalSandbox path-escape check
 // ---------------------------------------------------------------------------
 
 describe('LocalSandbox.checkPathEscape', () => {
@@ -155,7 +155,7 @@ describe('LocalSandbox.checkPathEscape', () => {
 });
 
 // ---------------------------------------------------------------------------
-// LocalSandbox.wrap (items 5, 7, 8)
+// LocalSandbox.wrap
 // ---------------------------------------------------------------------------
 
 describe('LocalSandbox.wrap', () => {
@@ -232,7 +232,7 @@ describe('LocalSandbox.wrap', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PathValidator (items 3 + 4 — canonicalization & traversal)
+// PathValidator (canonicalization & traversal)
 // ---------------------------------------------------------------------------
 
 describe('PathValidator workspace boundary (existing guarantees)', () => {
@@ -248,15 +248,15 @@ describe('PathValidator workspace boundary (existing guarantees)', () => {
     await fs.rm(tmpRoot, { recursive: true, force: true });
   });
 
-  it('rejects ../ traversal (item 4)', async () => {
+  it('rejects ../ traversal', async () => {
     await expect(PathValidator.validatePath('../outside.txt', tmpRoot)).rejects.toThrow(/traversal|outside|dangerous/i);
   });
 
-  it('rejects encoded traversal (item 4)', async () => {
+  it('rejects encoded traversal', async () => {
     await expect(PathValidator.validatePath('%2e%2e/secret', tmpRoot)).rejects.toThrow(/dangerous/i);
   });
 
-  it('rejects symlink escapes to outside the workspace (items 3+4)', async () => {
+  it('rejects symlink escapes to outside the workspace', async () => {
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'agentcli-out-'));
     await fs.writeFile(path.join(outside, 'leak.txt'), 'secret');
     const link = path.join(tmpRoot, 'link');
@@ -268,7 +268,7 @@ describe('PathValidator workspace boundary (existing guarantees)', () => {
     }
   });
 
-  it('canonicalizes paths that resolve inside the workspace (item 3)', async () => {
+  it('canonicalizes paths that resolve inside the workspace', async () => {
     const resolved = await PathValidator.validatePath('src/a.ts', tmpRoot);
     expect(resolved.startsWith(path.resolve(tmpRoot))).toBe(true);
     expect(resolved.endsWith(path.join('src', 'a.ts'))).toBe(true);

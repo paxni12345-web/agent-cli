@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ToolExecution } from '../types/index.js';
-import { SecretScanner } from './SecretScanner.js';
+import { SecretScanner } from '../security/SecretScanner.js';
 
 /**
  * NoteSystem — structured notebook with four note kinds.
@@ -117,7 +117,7 @@ export class NoteSystem {
 
   /** Record a bug entry (called by the Agent when tools fail).
    *  Capped per run and deduped per run so error loops can't flood it.
-   *  Item 40: error text is secret-masked before storage. */
+   *  Error text is secret-masked before storage. */
   observeBug(source: string, error: string, resolution?: string): void {
     if (this.runBugCount >= NoteSystem.MAX_BUGS_PER_RUN) return;
     const err = new SecretScanner().maskError(error.replace(/\s+/g, ' ').trim().slice(0, 160));

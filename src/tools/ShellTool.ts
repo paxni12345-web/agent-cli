@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
-import { LocalSandbox } from '../agent/SecurityPipeline.js';
-import { ShellSafety } from '../agent/ShellSafety.js';
+import { LocalSandbox } from '../security/SecurityPipeline.js';
+import { ShellSafety } from '../security/ShellSafety.js';
 
 /** Shared shell-execution core used by every tool that needs to run a
  *  command (quality gates, git flow, build/deploy). Same semantics as
@@ -69,7 +69,7 @@ export class ShellTool implements Tool {
    *  Public so tests can swap in a stub. */
   localSandbox = new LocalSandbox();
 
-  /** Command-level safety: allowlist/blocklist/metachar/rate-limit/log (items 9–18). */
+  /** Command-level safety: allowlist/blocklist/metachar/rate-limit/log. */
   shellSafety = new ShellSafety();
 
   async execute(input: any, context: ToolContext): Promise<ToolResult> {
@@ -88,12 +88,12 @@ export class ShellTool implements Tool {
         return { success: false, error: 'Rate limit: too many commands this minute (try again shortly)', metadata: { command, blocked: 'rate-limit' } };
       }
 
-      // ---- Item 13/14: permission/ownership mutations and network
+      // Permission/ownership mutations and network
       // commands always escalate to the permission manager as high risk.
       const escalation = ShellSafety.isPermissionMutation(command) || ShellSafety.isNetworkCommand(command);
       const risk = escalation ? this.escalate(this.assessCommandRisk(command)) : this.assessCommandRisk(command);
 
-      // ---- Item 1+2: refuse obvious out-of-workspace references before
+      // Refuse obvious out-of-workspace references before
       // anything else runs. Docker/local isolation enforces the rest.
       const escape = this.localSandbox.checkPathEscape(command);
       if (escape.ok === false) {
@@ -108,7 +108,7 @@ export class ShellTool implements Tool {
       }
       const startedAt = Date.now();
       const result = await this.executeCommand(command, { cwd: context.workspaceRoot, timeout: Number(input.timeout) || 120000, signal: context.signal });
-      // ---- Item 15: append-only command log with timestamp + outcome.
+      // Append-only command log with timestamp + outcome.
       await this.shellSafety.logExecution(context.workspaceRoot, { command, exitCode: result.exitCode, durationMs: Date.now() - startedAt, category: verdict.category });
       return { success: true, output: this.formatOutput(result.stdout, result.stderr), metadata: { command, exitCode: result.exitCode, sandboxed: result.sandboxed, category: verdict.category } };
     } catch (error: any) {
@@ -117,7 +117,7 @@ export class ShellTool implements Tool {
     }
   }
 
-  /** Item 18 — dry-run preview without executing. */
+  /** Dry-run preview without executing. */
   dryRun(command: string): string {
     return this.shellSafety.preview(command);
   }
@@ -136,10 +136,10 @@ export class ShellTool implements Tool {
   }
 
   /**
-   * Local execution with OS isolation (items 1, 2, 5, 7, 8):
+   * Local execution with OS isolation:
    * the command runs via LocalSandbox.wrap() → ulimit resource caps,
    * optional `unshare -n` network namespace, optional setpriv demotion
-   * from root — plus the mandatory timeout/abort handling below (item 6).
+   * from root — plus the mandatory timeout/abort handling below.
    */
   private async executeCommand(command: string, options: { cwd: string; timeout: number; signal?: AbortSignal }): Promise<{ stdout: string; stderr: string; exitCode: number; sandboxed?: string }> {
     const { argv, guards } = await this.localSandbox.wrap(command);

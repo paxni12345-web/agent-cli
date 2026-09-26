@@ -2,22 +2,21 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 /**
- * ShellSafety — command-level safety layer for every shell invocation
- * (security items 9–18):
+ * ShellSafety — command-level safety layer for every shell invocation.
  *
- *   9.  command allowlist (by first token) instead of pure blacklist
- *   10. explicit dangerous-command blocklist (rm -rf /, dd, mkfs, fork bomb)
- *   11. shell metacharacter injection block (;, |, &&, backtick, $(...))
- *   12. spawn uses array argv (parseCommand) — enforced by ShellTool, this
- *       module rejects commands that would need a shell to interpret
- *   13. ownership/permission mutation review (chmod 777, chown, chgrp)
- *   14. network exfil review (curl, wget, nc, ssh, scp …) — flagged, needs
- *       higher approval, never silently allowed
- *   15. append-only command log with timestamp + result (this module persists;
- *       the tool records exit codes)
- *   16. rate limit per session (commands/minute)
- *   17. read-only vs mutation classification (shared with permission modes)
- *   18. dry-run: preview() renders exactly what would run + risk verdicts
+ *   - command allowlist (by first token) instead of a pure blacklist
+ *   - explicit dangerous-command blocklist (rm -rf /, dd, mkfs, fork bomb)
+ *   - shell metacharacter injection block (;, |, &&, backtick, $(...))
+ *   - spawn uses array argv (parseCommand) — this module rejects commands
+ *     that would need a shell to interpret
+ *   - ownership/permission mutation review (chmod 777, chown, chgrp)
+ *   - network exfil review (curl, wget, nc, ssh, scp …) — flagged, needs
+ *     higher approval, never silently allowed
+ *   - append-only command log with timestamp + result (this module persists;
+ *     the tool records exit codes)
+ *   - rate limit per session (commands/minute)
+ *   - read-only vs mutation classification (shared with permission modes)
+ *   - dry-run: preview() renders exactly what would run + risk verdicts
  */
 
 export interface ShellSafetyOptions {
@@ -61,7 +60,7 @@ const MUTATION_FIRST_TOKENS = new Set([
 
 const NETWORK_COMMANDS = new Set(['curl', 'wget', 'nc', 'netcat', 'ssh', 'scp', 'sftp', 'rsync', 'ftp', 'telnet', 'ping', 'ping6', 'dig', 'nslookup']);
 
-/** Dangerous patterns — never run, in any mode (item 10). */
+/** Dangerous patterns — never run, in any mode. */
 const DANGEROUS_PATTERNS: Array<{ id: string; pattern: RegExp; why: string }> = [
   { id: 'rmrf-root', pattern: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*(-[a-zA-Z]*r[a-zA-Z]*\s+)*(\/|~|\$HOME|\*)(\s|$)/, why: 'recursive delete of root/home/glob' },
   { id: 'dd', pattern: /\bdd\s+if=/, why: 'raw disk write tool' },
@@ -73,7 +72,7 @@ const DANGEROUS_PATTERNS: Array<{ id: string; pattern: RegExp; why: string }> = 
   { id: 'history-wipe', pattern: /(>\s*\.?bash_history|history\s+-c|unset\s+HISTFILE)/, why: 'history tampering' },
 ];
 
-/** Shell metacharacters that only make sense inside a real shell (item 11). */
+/** Shell metacharacters that only make sense inside a real shell. */
 const METACHARACTER_PATTERN = /[;&|`$<>\n]|\$\(|\|\|/;
 const METACHARACTER_ALLOWED_WITHIN_ARG = /^[\w./:=@%+,-]+$/;
 
@@ -83,7 +82,7 @@ export class ShellSafety {
   private readonly logCommands: boolean;
   private readonly allowNetwork: boolean;
   private readonly allowMutations: boolean;
-  /** Rolling per-session counter (item 16). */
+  /** Rolling per-session counter. */
   private windowStart = 0;
   private windowCount = 0;
 
@@ -100,14 +99,14 @@ export class ShellSafety {
     const trimmed = command.trim();
     if (!trimmed) return { ok: false, reason: 'empty command', rules: ['empty'], category: 'readonly' };
 
-    // Item 10 — dangerous patterns first (fast fail).
+    // Dangerous patterns first (fast fail).
     for (const rule of DANGEROUS_PATTERNS) {
       if (rule.pattern.test(trimmed)) {
         return { ok: false, reason: `dangerous command (${rule.why})`, rules: [rule.id], category: this.classify(trimmed) };
       }
     }
 
-    // Item 11 — metacharacter injection: with spawn(shell:false) these are
+    // Metacharacter injection: with spawn(shell:false) these are
     // either literal (harmless-ish but never what the model intends) or an
     // injection attempt. Block unless every token is plain.
     if (METACHARACTER_PATTERN.test(trimmed)) {
@@ -121,12 +120,12 @@ export class ShellSafety {
     const tokens = tokenize(trimmed);
     const program = tokens[0] ?? '';
 
-    // Item 9 — allowlist.
+    // Allowlist.
     if (this.allowlist.size > 0 && !this.allowlist.has(program)) {
       return { ok: false, reason: `'${program}' is not on the command allowlist`, rules: ['allowlist'], category: this.classify(trimmed) };
     }
 
-    // Item 17 — read-only vs mutation split.
+    // Read-only vs mutation split.
     const category = this.classify(trimmed);
     if (category === 'network' && !this.allowNetwork) {
       return { ok: false, reason: `network command '${program}' is disabled (allowNetworkCommands=false)`, rules: ['network-disabled'], category };
@@ -138,18 +137,18 @@ export class ShellSafety {
     return { ok: true, rules: [], category };
   }
 
-  /** Item 13 — ownership/permission mutations need explicit review. */
+  /** Ownership/permission mutations need explicit review. */
   static isPermissionMutation(command: string): boolean {
     return /\b(chmod|chown|chgrp|setfacl|umask)\b/.test(command) || /chmod\s+(-[a-zA-Z]+\s+)*[0-7]{3,4}/.test(command);
   }
 
-  /** Item 14 — network/exfil review. Returns the reason a net command needs review. */
+  /** Network/exfil review. Returns the reason a net command needs review. */
   static isNetworkCommand(command: string): boolean {
     const program = tokenize(command.trim())[0] ?? '';
     return NETWORK_COMMANDS.has(program);
   }
 
-  /** Item 16 — rate limit per session. True = within budget. */
+  /** Rate limit per session. True = within budget. */
   consumeSlot(): boolean {
     const now = Date.now();
     if (now - this.windowStart >= 60_000) {
@@ -167,7 +166,7 @@ export class ShellSafety {
     return Math.max(0, this.maxPerMinute - this.windowCount);
   }
 
-  /** Item 15 — append-only command log (timestamp + command; exit code appended by the tool). */
+  /** Append-only command log (timestamp + command; exit code appended by the tool). */
   async logExecution(workspaceRoot: string, entry: { command: string; exitCode: number | 'blocked'; durationMs?: number; category: string; rules?: string[] }): Promise<void> {
     if (!this.logCommands) return;
     const logPath = path.join(workspaceRoot, '.agent', 'logs', 'commands.log');
@@ -181,7 +180,7 @@ export class ShellSafety {
     }
   }
 
-  /** Item 18 — dry-run preview: what would run, with which verdicts. */
+  /** Dry-run preview: what would run, with which verdicts. */
   preview(command: string): string {
     const verdict = this.review(command);
     const lines = [
@@ -197,7 +196,7 @@ export class ShellSafety {
     return lines.join('\n');
   }
 
-  /** Shared classification used by permission routing (item 17). */
+  /** Shared classification used by permission routing. */
   private classify(command: string): 'readonly' | 'mutation' | 'network' {
     const tokens = tokenize(command);
     const program = tokens[0] ?? '';

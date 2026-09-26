@@ -4,12 +4,13 @@ import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
 import { App } from './ui/App.js';
+import { createAgent } from './createAgent.js';
 
 const program = new Command();
 
 program
   .name('agent-ui')
-  .description('Autonomous AI coding agent CLI with beautiful terminal UI')
+  .description('Autonomous AI coding agent with a live terminal UI')
   .version('0.2.0')
   .option('-m, --model <model>', 'AI model to use')
   .option('--mode <mode>', 'Operating mode (normal/fast/ultra)', 'normal')
@@ -28,5 +29,6 @@ render(
     workingDirectory={options.dir}
     model={options.model}
     mode={options.mode}
+    createAgent={createAgent}
   />
 );

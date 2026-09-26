@@ -1,6 +1,0 @@
-export interface ToolContext {
-  workspaceRoot: string;
-  permissions: PermissionManager;
-  currentState: AgentState;
-  signal?: AbortSignal;
-}

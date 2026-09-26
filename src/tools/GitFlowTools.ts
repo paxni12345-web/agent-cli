@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Tool, ToolContext, ToolResult } from '../types/index.js';
 import { runCaptured, truncateOutput } from './ShellTool.js';
-import { SecretScanner } from '../agent/SecretScanner.js';
+import { SecretScanner } from '../security/SecretScanner.js';
 
 /**
  * Git & Version Control tools (group 4). Every mutation runs through the
@@ -84,7 +84,7 @@ export class GitCommitTool implements Tool {
       if (input.dryRun === true) {
         return { success: true, output: `DRY RUN — would commit:\n\n${message}\n\nStaged files:\n${truncateOutput(status.stdout, 20)}`, metadata: { dryRun: true, message } };
       }
-      // ---- Item 31: secret scanning before every real commit.
+      // Secret scanning before every real commit.
       const scanner = new SecretScanner();
       const staged = await runCaptured('git diff --cached --name-only', { cwd: ws, timeout: 15000 });
       const stagedFiles = staged.stdout.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 100);

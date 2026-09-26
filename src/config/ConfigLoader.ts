@@ -81,7 +81,7 @@ export class ConfigLoader {
     if (process.env.AGENT_PERMISSION_MODE) config.permissionMode = process.env.AGENT_PERMISSION_MODE as PermissionMode;
     if (process.env.AGENT_MAX_ITERATIONS) config.maxIterations = parseInt(process.env.AGENT_MAX_ITERATIONS, 10);
     if (process.env.AGENT_DEBUG) config.debug = process.env.AGENT_DEBUG === 'true';
-    // Sandbox & execution isolation (security items 1–8)
+    // Sandbox & execution isolation
     if (process.env.AGENT_SANDBOX_DOCKER_USER !== undefined) config.sandboxDockerUser = process.env.AGENT_SANDBOX_DOCKER_USER;
     if (process.env.AGENT_SANDBOX_TMPFS_MB) config.sandboxTmpfsMb = parseInt(process.env.AGENT_SANDBOX_TMPFS_MB, 10);
     if (process.env.AGENT_SANDBOX_REQUIRE_ISOLATION) config.sandboxRequireIsolation = process.env.AGENT_SANDBOX_REQUIRE_ISOLATION === 'true';

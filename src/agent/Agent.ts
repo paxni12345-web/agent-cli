@@ -14,17 +14,18 @@ import { CircuitBreaker } from './CircuitBreaker.js';
 import { ToolRouter } from './ToolRouter.js';
 import { ToolQueue } from './ToolQueue.js';
 import { ProjectMemoryTool } from '../tools/ProjectMemoryTool.js';
-import { createSecurityPipeline, SecurityPipeline } from './SecurityPipeline.js';
+import { createSecurityPipeline, SecurityPipeline } from '../security/SecurityPipeline.js';
 import { TaskPriorityEngine, TaskTier } from './TaskPriorityEngine.js';
-import { CompletionRouter, BrainstormEngine, PlanningSystem, FullPlan, CompletionRequest } from './WorkOrchestrator.js';
+import { CompletionRouter } from './CompletionRouter.js';
+import { BrainstormEngine } from './BrainstormEngine.js';
+import { PlanningSystem, FullPlan } from './PlanningSystem.js';
 import { SpecialtyRouter, renderActiveSpecialties, SpecialtyContext } from './SpecialtyPrompts.js';
 import { MemoryHub } from '../memory/MemoryHub.js';
 import { LearningEngine, ReinforcementLearner } from '../memory/LearningEngine.js';
 import { SearchCodeMemoryTool, ImpactOfTool } from '../tools/MemoryHubTools.js';
 import { buildAgentSystemPrompt, buildBootInstructions } from './SystemPrompt.js';
 import { ContextCompressor } from './ContextCompressor.js';
-import { NoteSystem } from './NoteSystem.js';
-import { SandboxManager, Rehearsal } from './SandboxManager.js';
+import { NoteSystem } from '../memory/NoteSystem.js';
 
 export class Agent extends EventEmitter {
   private state: AgentState;
@@ -46,7 +47,6 @@ export class Agent extends EventEmitter {
   private awaitingBoot = false;
   private readonly compressor: ContextCompressor;
   private readonly notes = new NoteSystem();
-  readonly sandbox = new SandboxManager();
   /** Four-layer defense: L1 guard → L2 human → L3 sandbox → L4 output check. */
   readonly security: SecurityPipeline;
   /** Three-tier work queue: critical / normal / background. */
@@ -107,7 +107,6 @@ export class Agent extends EventEmitter {
         allowOutsideWorkspace: this.config.sandboxLocalAllowOutsideWorkspace,
       },
     });
-    this.sandbox.humanLoopEnabled = this.config.sandboxHumanLoop ?? true;
     this.taskQueue = new TaskPriorityEngine({ maxBackgroundPerRun: this.config.maxBackgroundTasksPerRun });
     this.completionRouter = new CompletionRouter({ completer: this.config.miniCompleter ?? null });
     this.brainstorm = new BrainstormEngine({ advisor: this.config.brainstormAdvisor ?? null });
@@ -153,12 +152,12 @@ export class Agent extends EventEmitter {
     return PlanningSystem.render(plan);
   }
 
-  // ---- Item 91: kill-switch — aborts the current run at the next loop
+  // Kill-switch — aborts the current run at the next loop
   // boundary and rejects all further tool executions.
   private killSwitch = false;
   private abortController: AbortController | null = null;
 
-  /** Item 91 — immediately stop the agent (idempotent). */
+  /** Immediately stop the agent (idempotent). */
   kill(reason = 'kill switch engaged'): void {
     this.killSwitch = true;
     this.abortController?.abort(reason);
@@ -202,7 +201,7 @@ export class Agent extends EventEmitter {
         this.state.iterationCount++;
         this.emit('iteration', this.state.iterationCount, this.config.maxIterations);
 
-        // Item 91: kill-switch check at every loop boundary.
+        // Kill-switch check at every loop boundary.
         if (this.killSwitch || this.abortController?.signal.aborted) {
           throw new AgentError('Run aborted by kill switch', 'AGENT_KILLED');
         }
@@ -379,7 +378,7 @@ export class Agent extends EventEmitter {
     if (this.config.strictToolCalling) { const safety = ToolCallValidator.checkSafety(toolCall); if (!safety.safe) return { success: false, error: `Safety check failed: ${safety.issues.join(', ')}`, isError: true, retryable: false }; }
 
     // ---- Security Pipeline (L1 → L2 → L3) -------------------------------
-    // Item 91: a killed agent executes nothing.
+    // A killed agent executes nothing.
     if (this.killSwitch) {
       return { success: false, error: 'Agent killed — tool execution refused', isError: true, retryable: false };
     }
@@ -388,7 +387,7 @@ export class Agent extends EventEmitter {
     if (guard.action === 'reject') {
       // Bounce back to the AI: the reason instructs it to rethink.
       this.security.audit.log({ time: new Date().toISOString(), layer: 'L1-guard', tool: toolCall.name, decision: 'REJECT', detail: guard.matched.join('; ') });
-      // Item 88: out-of-bounds attempts surface as an alert event.
+      // Out-of-bounds attempts surface as an alert event.
       this.emit('securityAlert', { kind: 'guard-reject', tool: toolCall.name, matched: guard.matched });
       return { success: false, error: guard.reason, isError: true, retryable: false };
     }
@@ -428,7 +427,7 @@ export class Agent extends EventEmitter {
           return { success: false, error: `Sandboxed execution failed: ${error instanceof Error ? error.message : String(error)}`, isError: true, retryable: false };
         }
       }
-      // Docker unavailable: item 1 fail-closed policy.
+      // Docker unavailable: fail-closed policy.
       if (this.config.sandboxRequireIsolation) {
         this.security.audit.log({ time: new Date().toISOString(), layer: 'L3-sandbox', tool: 'shell', decision: 'DENY', detail: 'docker unavailable and sandboxRequireIsolation=true (fail closed)' });
         return { success: false, error: 'Shell execution requires an isolated sandbox (Docker) but none is available on this machine. Enable Docker or set sandboxRequireIsolation=false to allow guarded local execution.', isError: true, retryable: false };
@@ -487,14 +486,13 @@ export class Agent extends EventEmitter {
     } catch { this.memoryContext = ''; }
   }
 
-  /** Writes pending notes and auto-facts, then cleans the sandbox. */
+  /** Writes pending notes and auto-facts at the end of a run. */
   private async flushNotes(): Promise<void> {
     try {
       this.notes.endRun();
       const written = await this.notes.flush(this.config.workspaceRoot);
       if (written.length) this.emit('notesWritten', written);
     } catch { /* best-effort */ }
-    try { await this.sandbox.cleanup(this.config.workspaceRoot); } catch { /* best-effort */ }
   }
   private addMessage(message: ChatMessage): void { this.state.conversationMessages.push(message); this.emit('message', message); }
   private setStatus(status: AgentState['status']): void { this.state.status = status; this.emit('status', status); }

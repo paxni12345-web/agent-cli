@@ -2,9 +2,10 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 /**
- * BackupManager — item 26 "backup before edit" + item 25 "undo/rollback
- * after apply". Every mutating file tool records the previous content here
- * before writing, so any change can be rolled back within the session.
+ * BackupManager — backup-before-edit and undo/rollback.
+ *
+ * Every mutating file tool records the previous content here before
+ * writing, so any change can be rolled back within the session.
  *
  * Backups live in .agent/backups/<task>/… (gitignored) and never leave the
  * workspace. Memory-bounded: oldest backups are evicted first.
@@ -79,8 +80,8 @@ export class BackupManager {
   }
 
   /**
-   * Item 24 — undo: restore the most recent backup for a path.
-   * Returns the restored content length, or null when nothing to undo.
+   * Undo: restore the most recent backup for a path.
+   * Returns the restored backup record, or null when nothing to undo.
    */
   async undo(workspaceRoot: string, absolutePath: string): Promise<BackupRecord | null> {
     const list = this.backups.get(absolutePath);
@@ -115,36 +116,5 @@ export class BackupManager {
   reset(): void {
     this.backups.clear();
     this.taskEditCounts.clear();
-  }
-}
-
-/**
- * ProtectedPaths — item 71-ish "never overwrite system/config files without
- * special approval": .env*, .git/, CI configs, lockfile-adjacent security
- * configs. Mutating tools call `check()` before writing; a hit forces the
- * permission call to 'critical' so a human must explicitly approve.
- */
-export class ProtectedPaths {
-  private static readonly PATTERNS: Array<{ id: string; test: (p: string) => boolean; why: string }> = [
-    { id: 'env-file', test: p => /(^|\/)\.env(\..*)?$/.test(p), why: 'environment/secret file' },
-    { id: 'git-dir', test: p => /(^|\/)\.git(\/|$)/.test(p), why: 'git internals' },
-    { id: 'ci-config', test: p => /(^|\/)\.github\/workflows\//.test(p) || /(^|\/)\.gitlab-ci\.yml$/.test(p), why: 'CI pipeline config' },
-    { id: 'deploy-config', test: p => /(^|\/)(render\.yaml|vercel\.json|netlify\.toml|fly\.toml|docker-compose\.ya?ml|Dockerfile)$/.test(p), why: 'deployment config' },
-    { id: 'agent-config', test: p => /(^|\/)\.agent\/config\.json$/.test(p), why: 'agent security configuration' },
-    { id: 'npmrc', test: p => /(^|\/)\.npmrc$/.test(p), why: 'npm registry/auth config' },
-  ];
-
-  /** Returns the protection reason, or null when the path is unprotected. */
-  static check(workspaceRelativePath: string): string | null {
-    const normalized = workspaceRelativePath.replace(/\\/g, '/');
-    for (const rule of ProtectedPaths.PATTERNS) {
-      if (rule.test(normalized)) return `${rule.why} (${rule.id})`;
-    }
-    return null;
-  }
-
-  /** Risk level a mutation on this path should carry. */
-  static riskFor(workspaceRelativePath: string): 'medium' | 'high' | 'critical' {
-    return ProtectedPaths.check(workspaceRelativePath) ? 'critical' : 'medium';
   }
 }

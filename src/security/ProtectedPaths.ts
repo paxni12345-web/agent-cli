@@ -6,8 +6,7 @@
  * `.env` files hold credentials, `.git/` holds history, CI workflows hold the
  * supply-chain trust boundary, and the agent's own security config decides how
  * much freedom the agent gets. An agent must never be able to silently loosen
- * its own constraints (checklist item: "ห้าม agent แก้ไฟล์ config ความปลอดภัย
- * ของตัวเองโดยไม่ผ่าน approval").
+ * its own constraints, so writes to these paths always need approval.
  *
  * This module classifies a path into a protection tier. The pipeline maps the
  * tier to "always ask a human" regardless of permission mode.
@@ -113,7 +112,7 @@ const RULES: Rule[] = [
     id: 'tool-execution-core',
     tier: 'protected',
     reason: 'tool execution core — touches the permission and sandbox path',
-    test: (rel) => /(^|\/)src\/agent\/(SecurityPipeline|SandboxManager|ToolCallValidator)\.ts$/.test(rel),
+    test: (rel) => /(^|\/)src\/agent\/ToolCallValidator\.ts$/.test(rel),
   },
 ];
 
@@ -167,5 +166,21 @@ export class ProtectedPaths {
   /** All rule ids, for documentation and `/security` output. */
   static ruleIds(): string[] {
     return RULES.map(r => r.id);
+  }
+
+  /**
+   * Convenience for the file tools: the protection reason for a
+   * workspace-relative path, or null when nothing special covers it.
+   */
+  static check(workspaceRelativePath: string): string | null {
+    const rel = workspaceRelativePath.replace(/\\/g, '/');
+    const base = rel.split('/').pop() ?? rel;
+    const hit = RULES.find(rule => rule.test(rel, base));
+    return hit ? `${hit.reason} (${hit.id})` : null;
+  }
+
+  /** Risk level a mutation on this path should carry. */
+  static riskFor(workspaceRelativePath: string): 'medium' | 'high' | 'critical' {
+    return ProtectedPaths.check(workspaceRelativePath) ? 'critical' : 'medium';
   }
 }

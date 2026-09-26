@@ -11,7 +11,7 @@ export class DefaultPermissionManager implements PermissionManager {
   private autoApproveCache = new Set<string>();
   private inputSource: NodeJS.ReadableStream;
 
-  // ---- Item 28: elevated permissions expire — the manager auto-reverts
+  // Elevated permissions expire — the manager auto-reverts
   // from 'auto' back to 'safe' after a bounded window (default 30 min).
   private elevatedUntil: number | null = null;
   private static readonly ELEVATED_TTL_MS = 30 * 60 * 1000;

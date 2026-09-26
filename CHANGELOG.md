@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Changed
+- Require Node.js 20 or newer, matching the supported CI matrix.
 - Safety modules (backups, secret scanner, shell safety, injection detector,
   security pipeline) moved from `agent/` into `security/`; notes moved into
   `memory/` — `tools/` and `memory/` no longer import from `agent/`

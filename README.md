@@ -15,6 +15,8 @@ Autonomous AI coding agent for your terminal — it plans, edits files, runs com
 
 ## Install
 
+Requires Node.js 20 or newer.
+
 ```bash
 npm install
 npm run build

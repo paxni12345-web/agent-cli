@@ -1,6 +1,6 @@
 # ◆ Agent CLI
 
-Autonomous AI coding agent for your terminal — clean core, real tool calling, and a beautiful TUI.
+Autonomous AI coding agent for your terminal — it plans, edits files, runs commands in a sandbox, and verifies its own work before reporting back.
 
 ## Features
 
@@ -10,7 +10,7 @@ Autonomous AI coding agent for your terminal — clean core, real tool calling, 
 - **Workflow-aware automation** — maps frontend, backend, data, tests, and deployment before making cross-layer changes
 - **Dependency/API support** — can install required libraries through the project package manager and integrate APIs through environment-based credentials
 - **Three-layer memory** — separates temporary session notes, workspace project knowledge, and user-wide preferences; never stores secrets
-- **Beautiful TUI** — live streaming output, tool activity feed, token usage bar, command history
+- **Live TUI** — streaming output, tool activity feed, token usage bar, command history
 - **Two interfaces** — classic readline REPL (`agent chat`) or Ink UI (`agent-ui`)
 
 ## Install
@@ -38,7 +38,7 @@ agent chat -p openai -m gpt-4o
 agent chat --permission-mode auto --max-iterations 50
 ```
 
-### Beautiful TUI (Ink)
+### TUI (Ink)
 
 ```bash
 agent-ui
@@ -190,13 +190,15 @@ npm run server     # HTTP API around the agent (POST /api/agent/run)
 
 ```
 src/
-├── agent/          # Agent loop, validator, recovery, circuit breaker, monitor
+├── agent/          # Agent loop, routing/queue, recovery, prompt builder (prompts/)
+├── memory/         # Notes, rules, code vectors, knowledge graph, learning
 ├── providers/      # Anthropic + OpenAI (native tool calling, streaming)
-├── tools/          # File, shell, search, git tools + registry
+├── tools/          # File, shell, search, git, quality, build tools + registry
+├── security/       # Permission modes, command policy, sandbox, scanners, backups
 ├── ui/             # Ink TUI (header, chat, input, status bar)
 ├── config/         # Config loader (global + project + env)
-├── security/       # Permission modes
 ├── types/          # Shared types
+├── createAgent.ts  # Wires provider + tools + permissions into an Agent
 ├── cli.ts          # readline entry (agent chat | run | init | doctor)
 ├── cli-ui.tsx      # Ink entry (agent-ui)
 └── agent-server.ts # HTTP API entry (agent-server)

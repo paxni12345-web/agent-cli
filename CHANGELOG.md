@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Safety modules (backups, secret scanner, shell safety, injection detector,
+  security pipeline) moved from `agent/` into `security/`; notes moved into
+  `memory/` — `tools/` and `memory/` no longer import from `agent/`
+- Work orchestration split into `CompletionRouter`, `BrainstormEngine`, and
+  `PlanningSystem`
+- System prompt split into `agent/prompts/` modules; `SystemPrompt.ts` is now
+  just the assembler
+- Agent construction unified in `createAgent.ts`, used by the CLI, the TUI
+  entry, and the settings flow
+- Protected-path rules consolidated into `security/ProtectedPaths.ts`
+  (single implementation, protection tiers kept)
+
+### Removed
+- Unused modules: `SandboxManager` (rehearsal flow was never wired),
+  `MemoryNoteTaker`, `checkpoint/DiffPreview`
+- Leftover scratch files (`tool-exports.tmp`, `tool-context.patch`)
+- Stale internal checklist references in comments and test names
+
+
 ## 0.2.0 — Project Cleanup & UI Overhaul
 
 ### Removed

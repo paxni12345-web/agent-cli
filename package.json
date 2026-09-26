@@ -1,7 +1,7 @@
 {
   "name": "agent-cli",
   "version": "0.2.0",
-  "description": "Autonomous AI coding agent CLI — clean, fast, beautiful terminal UI",
+  "description": "Autonomous AI coding agent for the terminal",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

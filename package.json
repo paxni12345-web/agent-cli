@@ -49,7 +49,7 @@
     "cors": "2.8.6",
     "express": "4.22.2",
     "ink": "4.4.1",
-    "ink-text-input": "5.0.1",
+    "ink-text-input": "6.0.0",
     "openai": "4.104.0",
     "react": "18.3.1"
   },

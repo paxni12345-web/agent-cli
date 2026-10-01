@@ -608,6 +608,16 @@
     .cb-file span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cb-lang { padding: 1px var(--sp-2); border-radius: 999px; background: var(--bg-hover); color: var(--text-mute); flex: none; }
     .codeblock pre { margin: 0; padding: var(--sp-3); overflow: auto; max-height: 420px; }
+    .cb-preview-btn {
+      display: inline-flex; align-items: center; gap: 5px; flex: none;
+      padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-family: var(--mono);
+      background: var(--bg-hover); color: var(--text-dim); border: 1px solid var(--border);
+      cursor: pointer; transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+    }
+    .cb-preview-btn:hover { background: var(--bg-btn-hover); color: var(--text); }
+    .cb-preview-btn .ico { width: 12px; height: 12px; }
+    .cb-preview { border-top: 1px solid var(--border-inset); background: var(--bg); }
+    .cb-preview iframe { display: block; width: 100%; height: 320px; border: 0; background: #fff; }
     .codeblock code { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--code-text); white-space: pre; }
     .tok-kw { color: var(--tok-kw); }
     .tok-str { color: var(--tok-str); }
@@ -739,6 +749,76 @@
     }
     .attach-del:hover { background: var(--bg-danger); color: var(--err); }
 
+    /* section B: image previews on attachment chips */
+    .attach-chip.is-image { padding: 3px; }
+    .attach-thumb {
+      width: 40px; height: 40px; border-radius: 11px; object-fit: cover; flex: none;
+      border: 1px solid var(--border-soft); background: var(--bg-sunken); display: block;
+    }
+    .attach-chip.is-image .attach-name { max-width: 140px; padding-right: 4px; }
+
+    /* section B: attachment preview modal + inline diff view */
+    .preview-img { max-width: 100%; max-height: 60vh; display: block; margin: 0 auto; border-radius: var(--sp-2); border: 1px solid var(--border); }
+    .preview-pre {
+      margin: 0; padding: var(--sp-3); overflow: auto; max-height: 60vh;
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+      color: var(--code-text); white-space: pre; background: var(--bg-sunken);
+      border: 1px solid var(--border-inset); border-radius: var(--sp-2);
+    }
+    .diffview {
+      border: 1px solid var(--border-inset); border-radius: var(--sp-2); overflow: hidden;
+      background: var(--bg-sunken); margin-top: var(--sp-2); max-height: 360px; overflow-y: auto;
+    }
+    .diffview .dv-line { display: flex; font-family: var(--mono); font-size: 12px; line-height: 1.55; white-space: pre; }
+    .diffview .dv-line > span:first-child { flex: none; width: 1.4em; text-align: center; user-select: none; color: var(--text-mute); }
+    .diffview .dv-line > span:last-child { overflow: hidden; white-space: pre; }
+    .diffview .dv-add { background: rgba(46, 160, 67, .14); }
+    .diffview .dv-add > span:last-child { color: var(--ok); }
+    .diffview .dv-del { background: rgba(248, 81, 73, .12); }
+    .diffview .dv-del > span:last-child { color: var(--err); }
+    .diffview .dv-hunk { color: var(--text-mute); background: var(--bg-hover); }
+    .diffview .dv-more { color: var(--text-mute); padding: 2px var(--sp-3); font-size: 11px; }
+    .dv-toggle { margin-top: var(--sp-2); }
+
+    /* ---- section C: stop button + message action buttons ---- */
+    .send.stop { background: var(--bg-danger); color: var(--err); }
+    .send.stop:hover { background: var(--err); color: var(--bg); }
+    .send.stop .ico { animation: none; }
+    .msg-actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; opacity: 0; transition: opacity var(--fast) var(--ease); }
+    .msg:hover .msg-actions, .msg:focus-within .msg-actions { opacity: 1; }
+    .msg-act {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 12px; font-size: 11px;
+      background: var(--bg-chip); border: 1px solid var(--border-chip); color: var(--text-dim);
+      transition: background var(--fast) var(--ease), color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+    }
+    .msg-act:hover { background: var(--bg-chip-hover); color: var(--text); }
+    .msg-act.done { color: var(--ok, var(--fg-primary)); }
+    .msg-edit-form { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; max-width: 78%; margin-left: auto; }
+    .msg-edit-form textarea {
+      width: 100%; background: var(--bg-elev-2); border: 1px solid var(--border-strong); border-radius: 14px;
+      padding: 10px 12px; color: var(--text); font: inherit; font-size: 14px; line-height: 1.5;
+      resize: vertical; min-height: 60px; outline: none;
+    }
+    .msg-edit-form textarea:focus { border-color: var(--border-stronger); }
+    .msg-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .msg-edit-actions button {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 12px; border-radius: 14px; font-size: 12px; font-weight: 600;
+      background: var(--bg-chip); border: 1px solid var(--border-chip); color: var(--text-dim);
+    }
+    .msg-edit-actions button.primary { background: var(--bg-primary); border-color: var(--bg-primary); color: var(--fg-primary); }
+
+    /* image previews on attachment chips (section B) */
+    .attach-chip.is-image { padding: 3px; }
+    .attach-thumb {
+      width: 40px; height: 40px; border-radius: 11px; object-fit: cover;
+      border: 1px solid var(--border-soft); flex: none; display: block; background: var(--bg-sunken);
+    }
+    .attach-chip.is-image .attach-name { max-width: 140px; padding-right: 4px; }
+    .attach-chip.is-image .attach-del { margin-right: 4px; }
+
+
     /* ---------------------------------------------------------------
        Metrics panel
        --------------------------------------------------------------- */
@@ -857,6 +937,20 @@
       padding: var(--sp-2) var(--sp-3) var(--sp-3);
     }
     .popover-foot .spacer { flex: 1; }
+
+    /* Saved provider profiles (settings modal) */
+    .prof-section { border-top: 1px solid var(--border-soft); padding-top: var(--sp-3); }
+    .prof-list { display: flex; flex-direction: column; gap: var(--sp-1); }
+    .prof-row {
+      display: flex; align-items: center; gap: var(--sp-2);
+      padding: var(--sp-2); border: 1px solid var(--border-soft); border-radius: var(--sp-2);
+    }
+    .prof-row.active { border-color: var(--accent, var(--text)); background: color-mix(in srgb, var(--accent, var(--text)) 8%, transparent); }
+    .prof-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .prof-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prof-sub { font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prof-empty { font-size: 12px; color: var(--text-dim); }
+    .prof-form { display: flex; flex-direction: column; gap: var(--sp-2); }
 
     .docs { gap: var(--sp-3); }
     .doc { display: flex; flex-direction: column; gap: 4px; }
@@ -1029,6 +1123,8 @@
   <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" /></symbol>
   <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" /></symbol>
   <symbol id="i-circle-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" /></symbol>
   <symbol id="i-file-code" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 12.5 8 15l2 2.5" /> <path d="m14 12.5 2 2.5-2 2.5" /></symbol>
   <symbol id="i-message-square" viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" /></symbol>
   <symbol id="i-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /> <path d="M9 3v18" /></symbol>
@@ -1178,6 +1274,9 @@
             <button class="send" id="sendBtn" type="submit" title="Send" aria-label="Send" disabled>
               <svg class="ico lg" aria-hidden="true"><use href="#i-arrow-up"></use></svg>
             </button>
+            <button class="send stop" id="stopBtn" type="button" title="Stop" aria-label="Stop the current run" hidden>
+              <svg class="ico lg" aria-hidden="true"><use href="#i-x"></use></svg>
+            </button>
           </div>
           <input class="file-input" id="fileInput" type="file" multiple hidden aria-hidden="true" tabindex="-1">
         </form>
@@ -1277,8 +1376,8 @@
       <form class="modal-body" id="settingsForm">
         <div class="field-group">
           <label for="setBaseUrl">Base URL <span class="badge" id="baseUrlBadge">—</span></label>
-          <input class="input mono" id="setBaseUrl" type="url" placeholder="https://api.anthropic.com" autocomplete="off" spellcheck="false">
-          <span class="hint">Empty uses the SDK default. Point it at a relay or proxy to switch channel.</span>
+          <input class="input mono" id="setBaseUrl" type="text" placeholder="https://api.anthropic.com" autocomplete="off" spellcheck="false">
+          <span class="hint">Any provider base URL, e.g. https://api.anthropic.com, https://api.openai.com/v1 or a relay/proxy address. Empty uses the SDK default.</span>
         </div>
         <!-- The model field is a single element shared with the header popover;
              it is moved between the two forms so the id stays unique. -->
@@ -1296,6 +1395,25 @@
             <button class="btn" id="clearKeyBtn" type="button" title="Forget the key held in memory">Clear</button>
           </div>
           <span class="hint">Held in memory for this server process only — never written to disk, never sent back to this page.</span>
+        </div>
+        <div class="field-group prof-section">
+          <span class="field-label">Saved providers</span>
+          <div class="prof-list" id="profList"><span class="hint">Loading…</span></div>
+        </div>
+        <div class="field-group prof-section">
+          <span class="field-label">Save current as profile</span>
+          <div class="prof-form">
+            <input class="input" id="profName" type="text" maxlength="100" placeholder="Profile name (e.g. MyOpenRouter)" autocomplete="off" spellcheck="false">
+            <div class="radio-row" id="profApiStyle" role="radiogroup" aria-label="API style">
+              <label class="radio"><input type="radio" name="profApiStyle" value="anthropic" checked> <span>Anthropic</span></label>
+              <label class="radio"><input type="radio" name="profApiStyle" value="openai"> <span>[OI]</span></label>
+            </div>
+            <input class="input mono" id="profBaseUrl" type="text" maxlength="500" placeholder="Base URL (empty = provider default)" autocomplete="off" spellcheck="false">
+            <input class="input mono" id="profModel" type="text" maxlength="200" placeholder="Model (empty = default)" autocomplete="off" spellcheck="false">
+            <input class="input mono" id="profApiKey" type="password" maxlength="500" placeholder="API key for this profile (optional)" autocomplete="new-password" spellcheck="false">
+            <button class="btn" id="profSaveBtn" type="button">Save profile</button>
+          </div>
+          <span class="hint">Profiles remember name, API style, base URL and model. Base URL is any absolute http(s) endpoint — e.g. https://api.openai.com/v1. Keys stay in memory on the server for this process only.</span>
         </div>
         <div class="modal-foot">
           <span class="modal-msg" id="settingsMsg"></span>
@@ -1452,7 +1570,8 @@
       var state = {
         busy: false,
         model: '',
-        settings: { model: '', baseUrl: '', hasApiKey: false, provider: 'anthropic', thinkingLevel: 'off' },
+        settings: { model: '', baseUrl: '', hasApiKey: false, provider: 'anthropic', thinkingLevel: 'off', activeProfile: '' },
+        profiles: [],
         tools: [],
         stats: {
           totalCalls: 0, successCalls: 0, avgDuration: 0, iterations: 0, modelCalls: null,
@@ -1466,6 +1585,7 @@
         currentId: null,
         filter: '',
         attachments: [],
+        runAbort: null,
         sidebarCollapsed: false,
         sidebarWidth: 264,
         feed: null,
@@ -1665,12 +1785,146 @@
           return m;
         });
       }
-      function codeBlock(code, lang, file) {
+      var PREVIEW_LANGS = /^(html|htm|css|svg)$/i;
+      var previewSources = {}, previewSeq = 0;
+      function isPreviewable(lang) {
+        return PREVIEW_LANGS.test(String(lang || '').trim());
+      }
+      /** Wrap CSS in a minimal HTML shell so it renders standalone in the preview iframe. */
+      function previewDoc(code, lang) {
+        if (/^css$/i.test(String(lang || '').trim())) {
+          return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + code + '</style></head>' +
+            '<body><div class="demo"><h1>Heading</h1><p>Sample paragraph text.</p>' +
+            '<button>Button</button> <a href="#">Link</a>' +
+            '<ul><li>List item one</li><li>List item two</li></ul>' +
+            '<div class="box card container item">Box</div></div></body></html>';
+        }
+        return code;
+      }
+      function codeBlock(code, lang, file, opts) {
+        var previewable = opts && opts.preview && isPreviewable(lang);
+        var head = '<span class="cb-file">' + ico('file-code', 'sm') +
+          '<span>' + esc(file || 'output') + '</span></span>';
+        if (previewable) {
+          var pid = 'pv' + (++previewSeq);
+          previewSources[pid] = code;
+          head += '<span style="display:inline-flex;align-items:center;gap:6px;flex:none;">' +
+            '<span class="cb-lang">' + esc(lang || 'text') + '</span>' +
+            '<button type="button" class="cb-preview-btn" data-preview-id="' + pid + '">' +
+            ico('eye', 'sm') + '<span>Preview</span></button></span>';
+        } else {
+          head += '<span class="cb-lang">' + esc(lang || 'text') + '</span>';
+        }
         return '<div class="codeblock">' +
-          '<div class="cb-head"><span class="cb-file">' + ico('file-code', 'sm') +
-          '<span>' + esc(file || 'output') + '</span></span>' +
-          '<span class="cb-lang">' + esc(lang || 'text') + '</span></div>' +
+          '<div class="cb-head">' + head + '</div>' +
           '<pre><code>' + highlight(code, lang) + '</code></pre></div>';
+      }
+      /** Toggle a sandboxed iframe preview panel under a code block. */
+      function toggleCodePreview(btn) {
+        var pid = btn.getAttribute('data-preview-id');
+        var block = btn.closest('.codeblock');
+        if (!block || !(pid in previewSources)) return;
+        var pane = block.querySelector('.cb-preview');
+        if (pane) {
+          pane.remove();
+          btn.innerHTML = ico('eye', 'sm') + '<span>Preview</span>';
+          return;
+        }
+        pane = el('div', 'cb-preview');
+        var frame = document.createElement('iframe');
+        frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-popups');
+        frame.setAttribute('title', 'Code preview');
+        frame.srcdoc = previewDoc(previewSources[pid], btn.closest('.cb-head').querySelector('.cb-lang').textContent);
+        pane.appendChild(frame);
+        block.appendChild(pane);
+        btn.innerHTML = ico('eye-off', 'sm') + '<span>Hide preview</span>';
+      }
+      document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('.cb-preview-btn') : null;
+        if (btn) toggleCodePreview(btn);
+      });
+
+      /* ===================== attachment previews (section B) ===================== */
+      function isImageAttachment(f) {
+        return Boolean(f && typeof f.data === 'string' && f.data && /^image\//i.test(f.mimeType || ''));
+      }
+      /** Chip HTML shared by the composer and transcript chip painters. */
+      function attachChipHtml(f) {
+        var inner = isImageAttachment(f)
+          ? '<img class="attach-thumb" alt="" src="data:' + esc(f.mimeType) + ';base64,' + f.data + '">'
+          : ico('file', 'sm');
+        return inner +
+          '<span class="attach-name">' + esc(f.name) + '</span>' +
+          (fmtBytes(f.size) ? '<span class="attach-size">' + esc(fmtBytes(f.size)) + '</span>' : '');
+      }
+      /** One attachment in a modal: images full-size, text as a code panel. */
+      function showAttachmentPreview(f) {
+        var body = $('previewBody');
+        if (!body) return;
+        body.innerHTML = '';
+        if (isImageAttachment(f)) {
+          var img = document.createElement('img');
+          img.className = 'preview-img';
+          img.alt = f.name;
+          img.src = 'data:' + f.mimeType + ';base64,' + f.data;
+          body.appendChild(img);
+        } else if (typeof f.data === 'string') {
+          var pre = document.createElement('pre');
+          pre.className = 'preview-pre';
+          try {
+            pre.textContent = decodeURIComponent(escape(atob(f.data))).slice(0, 200000);
+          } catch (e) {
+            pre.textContent = '(binary file — no preview available)';
+          }
+          body.appendChild(pre);
+        } else {
+          body.appendChild(el('div', 'modal-msg', 'No preview available'));
+        }
+        var title = $('previewTitle');
+        if (title) title.textContent = f.name || 'Attachment';
+        $('previewOverlay').hidden = false;
+      }
+      function closeAttachmentPreview() {
+        var ov = $('previewOverlay');
+        if (ov) ov.hidden = true;
+      }
+
+      /* ===================== inline diff view (section B) ===================== */
+      var DIFF_MAX_LINES = 400;
+      function diffRow(line) {
+        var cls = 'dv-line';
+        var marker = ' ';
+        var body = line;
+        if (/^@@/.test(line)) { cls += ' dv-hunk'; marker = '@'; }
+        else if (line.charAt(0) === '+') { cls += ' dv-add'; marker = '+'; body = line.slice(1); }
+        else if (line.charAt(0) === '-') { cls += ' dv-del'; marker = '-'; body = line.slice(1); }
+        else if (line.charAt(0) === ' ') { body = line.slice(1); }
+        return '<div class="' + cls + '"><span>' + esc(marker) + '</span><span>' +
+          highlight(body, 'js') + '</span></div>';
+      }
+      function diffHtml(diffText) {
+        var lines = String(diffText).split('\n');
+        var out = '<div class="diffview">';
+        lines.slice(0, DIFF_MAX_LINES).forEach(function (line) { out += diffRow(line); });
+        if (lines.length > DIFF_MAX_LINES) {
+          out += '<div class="dv-more">… ' + (lines.length - DIFF_MAX_LINES) + ' more diff lines</div>';
+        }
+        return out + '</div>';
+      }
+      function diffNode(diffText) {
+        var box = el('div');
+        box.innerHTML = diffHtml(diffText);
+        return box.firstChild;
+      }
+      /** First diff-carrying tool result (write_file / edit_file metadata.diffText). */
+      function findDiffText(execs) {
+        var list = execs || [];
+        for (var i = 0; i < list.length; i++) {
+          var meta = list[i] && list[i].result && list[i].result.metadata;
+          var text = meta && typeof meta.diffText === 'string' ? meta.diffText : '';
+          if (text && text.charAt(0) === '@') return { path: (meta && meta.path) || '', text: text };
+        }
+        return null;
       }
 
       /* ===================== minimal markdown ===================== */
@@ -1711,7 +1965,7 @@
         }
         if (last < src.length) blocks.push({ t: 'p', v: src.slice(last) });
         return blocks.map(function (b) {
-          if (b.t === 'code') return codeBlock(b.v, b.lang, (b.lang || 'output') + ' block');
+          if (b.t === 'code') return codeBlock(b.v, b.lang, (b.lang || 'output') + ' block', { preview: true });
           return '<div>' + prose(b.v) + '</div>';
         }).join('');
       }
@@ -1822,10 +2076,30 @@
       function attachmentChips(files) {
         var box = el('div', 'attach-chips');
         (files || []).forEach(function (f) {
-          box.appendChild(el('span', 'attach-chip',
-            ico('file', 'sm') +
+          var inner = f.url && isImageAttachment(f)
+            ? '<img class="attach-thumb" alt="' + esc(f.name) + '" src="' + esc(f.url) + '">'
+            : ico('file', 'sm');
+          var chip = el('span', 'attach-chip',
+            inner +
             '<span class="attach-name">' + esc(f.name) + '</span>' +
-            (fmtBytes(f.size) ? '<span class="attach-size">' + esc(fmtBytes(f.size)) + '</span>' : '')));
+            (fmtBytes(f.size) ? '<span class="attach-size">' + esc(fmtBytes(f.size)) + '</span>' : ''));
+          if (f.url && isImageAttachment(f)) chip.classList.add('is-image');
+          if (f.url) {
+            var open = el('button', 'attach-name');
+            open.type = 'button';
+            open.textContent = f.name;
+            open.title = 'Preview ' + f.name;
+            open.setAttribute('aria-label', 'Preview ' + f.name);
+            open.onclick = function () { window.open(f.url, '_blank'); };
+            chip.appendChild(open);
+            var view = el('a', 'attach-size');
+            view.href = f.url;
+            view.target = '_blank';
+            view.rel = 'noopener';
+            view.textContent = 'view';
+            chip.appendChild(view);
+          }
+          box.appendChild(chip);
         });
         return box;
       }
@@ -1834,10 +2108,15 @@
         box.innerHTML = '';
         box.hidden = !state.attachments.length;
         state.attachments.forEach(function (f, index) {
-          var chip = el('span', 'attach-chip',
-            ico('file', 'sm') +
-            '<span class="attach-name">' + esc(f.name) + '</span>' +
-            (fmtBytes(f.size) ? '<span class="attach-size">' + esc(fmtBytes(f.size)) + '</span>' : ''));
+          var chip = el('span', 'attach-chip', attachChipHtml(f));
+          if (isImageAttachment(f)) chip.classList.add('is-image');
+          var open = el('button', 'attach-name');
+          open.type = 'button';
+          open.textContent = f.name;
+          open.title = 'Preview ' + f.name;
+          open.setAttribute('aria-label', 'Preview ' + f.name);
+          open.onclick = function () { showAttachmentPreview(f); };
+          chip.appendChild(open);
           var remove = el('button', 'attach-del', ico('x', 'sm'));
           remove.type = 'button';
           remove.title = 'Remove ' + f.name;
@@ -1932,13 +2211,19 @@
 
       function messageNode(item) {
         var wrap = el('div', 'msg ' + item.role);
+        wrap.setAttribute('data-msg-index', String(state.thread.indexOf(item)));
         if (item.role === 'user') {
           if (item.files && item.files.length) wrap.appendChild(attachmentChips(item.files));
           wrap.appendChild(el('div', 'bubble', esc(item.text)));
+          wrap.appendChild(msgActionRow(item));
           return wrap;
         }
         wrap.appendChild(el('div', 'answer', item.text ? renderMarkdown(item.text) : ''));
-        if (item.tools && item.tools.length) wrap.appendChild(toolNodes(item.tools));
+        if (item.tools && item.tools.length) {
+          var diffInfo = findDiffText(item.tools);
+          if (diffInfo && diffInfo.text) wrap.appendChild(diffNode(diffInfo.text));
+          wrap.appendChild(toolNodes(item.tools));
+        }
         if (item.code) {
           var card = el('div', 'result-card');
           card.appendChild(el('div', 'rc-title', esc(item.title || 'Result')));
@@ -1967,7 +2252,54 @@
           wrap.appendChild(card);
         }
         if (item.meta) wrap.appendChild(el('div', 'msg-foot', esc(item.meta)));
+        wrap.appendChild(msgActionRow(item));
         return wrap;
+      }
+      /* Hover action row per message: Edit (user) / Copy (assistant). */
+      function msgActionRow(item) {
+        var row = el('div', 'msg-actions');
+        if (item.role === 'user') {
+          var edit = el('button', 'msg-act', ico('square-pen', 'sm') + '<span>Edit</span>');
+          edit.type = 'button';
+          edit.onclick = function () { startEdit(item); };
+          row.appendChild(edit);
+        }
+        if (item.text) {
+          var copy = el('button', 'msg-act', ico('copy', 'sm') + '<span>Copy</span>');
+          copy.type = 'button';
+          copy.onclick = function () {
+            copyCode(item.text).then(function () {
+              copy.classList.add('done');
+              copy.innerHTML = ico('check', 'sm') + '<span>Copied</span>';
+              setTimeout(function () { copy.classList.remove('done'); copy.innerHTML = ico('copy', 'sm') + '<span>Copy</span>'; }, 1500);
+            });
+          };
+          row.appendChild(copy);
+        }
+        return row.children.length ? row : null;
+      }
+      /** Puts a sent user message back into the composer; sending it resends everything from here. */
+      function startEdit(item) {
+        if (state.busy) { toast('Wait for the current run to finish before editing', 'bad'); return; }
+        var idx = state.thread.indexOf(item);
+        if (idx < 0) return;
+        state.editIndex = idx;
+        var input = $('messageInput');
+        input.value = item.text;
+        autoGrow();
+        input.focus();
+        toast('Editing message — send to resend from here', 'ok');
+      }
+      /** Drops the edited message and everything after it from thread and DOM. */
+      function truncateThreadFrom(idx) {
+        state.thread = state.thread.slice(0, idx);
+        var inner = $('chatInner');
+        Array.prototype.slice.call(inner.querySelectorAll('[data-msg-index]')).forEach(function (node) {
+          if (parseInt(node.getAttribute('data-msg-index'), 10) >= idx) node.remove();
+        });
+        var feed = state.feed;
+        if (feed) { feed.remove(); if (state.feed === feed) state.feed = null; }
+        persistThread();
       }
       function copyCode(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
@@ -2133,6 +2465,11 @@
         var text = input.value.trim();
         if (!text) return;
         var files = state.attachments.slice();
+        var editIndex = typeof state.editIndex === 'number' ? state.editIndex : null;
+        if (editIndex !== null) {
+          if (editIndex < 0 || editIndex >= state.thread.length || state.thread[editIndex].role !== 'user') editIndex = null;
+          state.editIndex = null;
+        }
         var body = {
           message: text,
           config: state.options,
@@ -2142,20 +2479,27 @@
         };
         input.value = '';
         autoGrow();
-        if (!state.thread.length) {
+        if (!state.thread.length || editIndex === 0) {
           state.currentId = 'c' + Date.now().toString(36);
           setLayout(true);
+        }
+        if (editIndex !== null) {
+          state.thread[editIndex].text = text;
+          truncateThreadFrom(editIndex);
+          renderHistory();
         }
         pushMessage({
           role: 'user',
           text: text,
           files: files.map(function (f) { return { name: f.name, size: f.size, mimeType: f.mimeType }; })
         });
+        var sentUserMsg = state.thread[state.thread.length - 1];
         state.attachments = [];
         paintAttachments();
 
         state.busy = true;
         setStatus('working', 'Working');
+        paintBusyComposer();
         var sendBtn = $('sendBtn');
         sendBtn.disabled = true;
         sendBtn.className = 'send busy';
@@ -2165,10 +2509,15 @@
         scrollToEnd();
         startActivityFeed();
 
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        state.runAbort = controller;
+        var aborted = false;
+
         fetch('/api/agent/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          signal: controller ? controller.signal : undefined
         })
           .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
           .then(function (r) {
@@ -2181,6 +2530,18 @@
               setLayout(true);
             }
             var tools = data.toolExecutions || [];
+            // Attach the server's stored-file URLs back onto the sent user
+            // message so its chips can render inline previews after a reload.
+            var storedUrls = data.files || [];
+            if (sentUserMsg && storedUrls.length) {
+              var byName = {};
+              storedUrls.forEach(function (sf) { if (!byName[sf.name]) byName[sf.name] = sf; });
+              (sentUserMsg.files || []).forEach(function (f) {
+                var sf = byName[f.name];
+                if (sf) { f.url = sf.url; f.size = sf.size || f.size; }
+              });
+              renderHistory();
+            }
             var path = null;
             tools.forEach(function (ex) {
               if (path || !ex || typeof ex.input !== 'object' || ex.input === null) return;
@@ -2210,6 +2571,13 @@
           })
           .catch(function (err) {
             typing.remove();
+            if (state.stopping || (aborted && err && err.name === 'AbortError')) {
+              pushMessage({ role: 'assistant', text: '(stopped)', meta: 'run stopped' });
+              setStatus('ready', 'Ready');
+              state.stopping = false;
+              finishActivityFeed();
+              return;
+            }
             pushMessage({ role: 'assistant', text: 'Error: ' + err.message, meta: 'request failed' });
             setStatus('error', 'Error');
             toast(err.message, 'bad');
@@ -2220,8 +2588,44 @@
           })
           .then(function () {
             state.busy = false;
+            state.runAbort = null;
             autoGrow();
+            paintBusyComposer();
           });
+      }
+      /* Swaps the spinning send button for the stop button while a run is active. */
+      function paintBusyComposer() {
+        var sendBtn = $('sendBtn');
+        var stopBtn = $('stopBtn');
+        if (state.busy) {
+          sendBtn.hidden = true;
+          sendBtn.disabled = true;
+          stopBtn.hidden = false;
+        } else {
+          stopBtn.hidden = true;
+          sendBtn.hidden = false;
+          var ready = Boolean($('messageInput').value.trim());
+          sendBtn.disabled = !ready;
+          sendBtn.className = 'send' + (ready ? ' ready' : '');
+          sendBtn.innerHTML = ico('arrow-up', 'lg');
+        }
+      }
+      function stopRun() {
+        if (!state.busy) return;
+        var stopBtn = $('stopBtn');
+        stopBtn.disabled = true;
+        state.stopping = true;
+        if (state.runAbort) {
+          try { state.runAbort.abort(); } catch (e) { /* controller already settled */ }
+        }
+        fetch('/api/agent/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+          .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+          .then(function (r) {
+            if (!r.ok) throw new Error((r.data && r.data.error) || 'Could not stop the run');
+            toast('Stopping the agent…', 'ok');
+          })
+          .catch(function (err) { toast(err.message, 'bad'); })
+          .then(function () { stopBtn.disabled = false; });
       }
 
       /* ===================== metrics ===================== */
@@ -2667,12 +3071,19 @@
               baseUrl: d.baseUrl || '',
               hasApiKey: Boolean(d.hasApiKey),
               provider: d.provider === 'openai' ? 'openai' : 'anthropic',
-              thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : 'off'
+              thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : 'off',
+              activeProfile: typeof d.activeProfile === 'string' ? d.activeProfile : (state.settings.activeProfile || '')
             };
             $('setBaseUrl').value = state.settings.baseUrl;
             $('setModel').value = state.settings.model;
             paintSettingsBadges();
             paintProvider();
+            renderProfiles();
+            fetchProfiles().then(renderProfiles);
+            var style = radioGroup('profApiStyle');
+            if (style) style.value = state.settings.provider === 'openai' ? 'openai' : 'anthropic';
+            $('profBaseUrl').value = '';
+            $('profModel').value = '';
             $('setModel').focus();
           })
           .catch(function () {
@@ -2711,7 +3122,8 @@
               baseUrl: d.baseUrl || '',
               hasApiKey: Boolean(d.hasApiKey),
               provider: d.provider === 'openai' ? 'openai' : state.settings.provider,
-              thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : state.settings.thinkingLevel
+              thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : state.settings.thinkingLevel,
+              activeProfile: typeof d.activeProfile === 'string' ? d.activeProfile : (state.settings.activeProfile || '')
             };
             $('setApiKey').value = '';
             paintSettingsBadges();
@@ -2748,6 +3160,119 @@
         var name = state.settings.model || state.model || '';
         $('modelName').textContent = name;
         $('heroTitle').textContent = name;
+      }
+
+      /* ===================== saved provider profiles ===================== */
+      function applySettingsPayload(d) {
+        state.settings = {
+          model: d.model || '',
+          baseUrl: d.baseUrl || '',
+          hasApiKey: Boolean(d.hasApiKey),
+          provider: d.provider === 'openai' ? 'openai' : (d.provider === 'anthropic' ? 'anthropic' : state.settings.provider),
+          thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : state.settings.thinkingLevel,
+          activeProfile: typeof d.activeProfile === 'string' ? d.activeProfile : (state.settings.activeProfile || '')
+        };
+        saveProfile();
+        paintSettingsBadges();
+        paintProvider();
+        paintModelName();
+        renderProfiles();
+      }
+      function fetchProfiles() {
+        return fetch('/api/agent/profiles')
+          .then(function (r) { return r.json(); })
+          .then(function (d) { state.profiles = Array.isArray(d) ? d : []; return state.profiles; })
+          .catch(function () { state.profiles = []; return state.profiles; });
+      }
+      function renderProfiles() {
+        var box = $('profList');
+        if (!box) return;
+        box.innerHTML = '';
+        var list = state.profiles || [];
+        if (!list.length) {
+          box.appendChild(el('span', 'prof-empty', 'No saved profiles yet — save the current provider below.'));
+          return;
+        }
+        list.forEach(function (p) {
+          var row = el('div', 'prof-row' + (p.name === state.settings.activeProfile ? ' active' : ''));
+          var meta = el('div', 'prof-meta');
+          meta.title = p.baseUrl || 'provider default';
+          // el() sets innerHTML, so pass plain text nodes rather than pre-escaped
+          // strings — that double-escapes and shows entities on screen.
+          var nameEl = el('span', 'prof-name');
+          nameEl.textContent = p.name + ' · ' + p.apiStyle;
+          var subEl = el('span', 'prof-sub');
+          subEl.textContent = (p.model || 'default model') + ' · ' + (p.baseUrl || 'provider default') + (p.hasApiKey ? ' · key held' : '');
+          meta.appendChild(nameEl);
+          meta.appendChild(subEl);
+          row.appendChild(meta);
+          var use = el('button', 'btn', 'Use');
+          use.type = 'button';
+          use.onclick = function () { activateProfile(p.name); };
+          var del = el('button', 'btn', 'Delete');
+          del.type = 'button';
+          del.onclick = function () {
+            if (!window.confirm('Delete profile "' + p.name + '"?')) return;
+            fetch('/api/agent/profiles/' + encodeURIComponent(p.name), { method: 'DELETE' })
+              .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+              .then(function (r) {
+                if (!r.ok) throw new Error((r.data && r.data.error) || 'Could not delete the profile');
+                state.profiles = Array.isArray(r.data) ? r.data : [];
+                toast('Profile deleted: ' + p.name, 'ok');
+                return fetch('/api/agent/settings');
+              })
+              .then(function (r) { return r.json(); })
+              .then(function (d) { applySettingsPayload(d); })
+              .catch(function (err) { toast(err.message, 'bad'); });
+          };
+          row.appendChild(use);
+          row.appendChild(del);
+          box.appendChild(row);
+        });
+      }
+      function activateProfile(name) {
+        fetch('/api/agent/profiles/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (r) {
+            if (!r.ok) throw new Error((r.data && r.data.error) || 'Could not activate the profile');
+            applySettingsPayload(r.data || {});
+            $('setBaseUrl').value = state.settings.baseUrl;
+            $('setModel').value = state.settings.model;
+            paintProfileFields();
+            toast('Profile active: ' + name, 'ok');
+          })
+          .catch(function (err) { toast(err.message, 'bad'); });
+      }
+      function saveProfileForm() {
+        var name = $('profName').value.trim();
+        if (!name) { toast('Give the profile a name first', 'bad'); $('profName').focus(); return; }
+        var payload = {
+          name: name,
+          apiStyle: (radioGroup('profApiStyle') && radioGroup('profApiStyle').value) || 'anthropic',
+          baseUrl: $('profBaseUrl').value.trim(),
+          model: $('profModel').value.trim()
+        };
+        var apiKey = $('profApiKey').value;
+        if (apiKey) payload.apiKey = apiKey;
+        fetch('/api/agent/profiles', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (r) {
+            if (!r.ok) throw new Error((r.data && r.data.error) || 'Could not save the profile');
+            state.profiles = Array.isArray(r.data) ? r.data : [];
+            $('profName').value = '';
+            $('profApiKey').value = '';
+            renderProfiles();
+            toast('Profile saved: ' + name, 'ok');
+          })
+          .catch(function (err) { toast(err.message, 'bad'); });
       }
 
       /* ===================== provider profile (header popover) ===================== */
@@ -2864,6 +3389,7 @@
       function newChat() {
         state.thread = [];
         state.currentId = null;
+        state.editIndex = null;
         state.attachments = [];
         paintAttachments();
         stopActivityFeed();
@@ -2877,6 +3403,7 @@
         if (!chat) return;
         state.currentId = id;
         state.thread = Array.isArray(chat.thread) ? chat.thread : [];
+        state.editIndex = null;
         if (chat.options) {
           state.options = {
             cache: chat.options.cache !== false,
@@ -2937,6 +3464,7 @@
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
       });
       $('composer').addEventListener('submit', function (e) { e.preventDefault(); send(); });
+      $('stopBtn').onclick = stopRun;
       $('newChatBtn').onclick = newChat;
       $('navHistory').onclick = toggleHistoryPanel;
       $('navSearch').onclick = function () {
@@ -2990,6 +3518,7 @@
       $('settingsCancel').onclick = closeSettings;
       $('settingsForm').addEventListener('submit', saveSettings);
       $('clearKeyBtn').onclick = clearApiKey;
+      $('profSaveBtn').onclick = saveProfileForm;
       $('settingsOverlay').addEventListener('click', function (e) { if (e.target === this) closeSettings(); });
       $('docsClose').onclick = closeDocs;
       $('docsOk').onclick = closeDocs;
@@ -3093,7 +3622,8 @@
             baseUrl: d.baseUrl || '',
             hasApiKey: Boolean(d.hasApiKey),
             provider: d.provider === 'openai' ? 'openai' : 'anthropic',
-            thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : 'off'
+            thinkingLevel: THINKING_LEVELS.indexOf(d.thinkingLevel) >= 0 ? d.thinkingLevel : 'off',
+            activeProfile: typeof d.activeProfile === 'string' ? d.activeProfile : ''
           };
           applyProfileDefaults();
           paintProfileFields();

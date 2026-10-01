@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { Agent } from './agent/Agent.js';
@@ -135,26 +136,54 @@ const SETTINGS_FILE = path.join(SETTINGS_DIR, 'ui-settings.json');
  * credential itself is never written to disk and never echoed to a client —
  * only whether one is present is reported.
  */
-interface ProviderSettings { provider: ProviderName; model: string; baseUrl: string; apiKey: string; thinkingLevel: ThinkingLevel }
+interface ProviderSettings { provider: ProviderName; model: string; baseUrl: string; apiKey: string; thinkingLevel: ThinkingLevel; activeProfile: string }
 
-function readPersistedSettings(): Partial<ProviderSettings> {
+/**
+ * A named provider profile. Everything here is non-secret and safe to persist;
+ * the API key for a profile only ever lives in the in-memory `profileApiKeys`
+ * map for the lifetime of the process.
+ */
+interface ProviderProfile { name: string; apiStyle: ProviderName; baseUrl: string; model: string }
+
+const MAX_PROFILES = 64;
+
+/** API keys held per profile, in memory only — never written to disk. */
+const profileApiKeys = new Map<string, string>();
+
+function readPersistedSettings(): Partial<ProviderSettings> & { profiles?: ProviderProfile[] } {
   try {
     const raw = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) as Record<string, unknown>;
-    const out: Partial<ProviderSettings> = {};
+    const out: Partial<ProviderSettings> & { profiles?: ProviderProfile[] } = {};
     if (raw.provider === 'anthropic' || raw.provider === 'openai') out.provider = raw.provider;
     if (typeof raw.model === 'string') out.model = raw.model;
     if (typeof raw.baseUrl === 'string') out.baseUrl = raw.baseUrl;
     if (raw.thinkingLevel === 'off' || raw.thinkingLevel === 'low' || raw.thinkingLevel === 'medium' || raw.thinkingLevel === 'high') out.thinkingLevel = raw.thinkingLevel;
+    if (typeof raw.activeProfile === 'string') out.activeProfile = raw.activeProfile;
+    // Older files have no `profiles` array — migrate gracefully by treating that
+    // as an empty list. Anything that does not look like a profile is skipped.
+    if (Array.isArray(raw.profiles)) {
+      const profiles: ProviderProfile[] = [];
+      for (const entry of raw.profiles.slice(0, MAX_PROFILES)) {
+        if (typeof entry !== 'object' || entry === null) continue;
+        const p = entry as Record<string, unknown>;
+        if (typeof p.name !== 'string' || !p.name.trim()) continue;
+        if (p.apiStyle !== 'anthropic' && p.apiStyle !== 'openai') continue;
+        if (typeof p.model !== 'string' || typeof p.baseUrl !== 'string') continue;
+        profiles.push({ name: p.name.trim().slice(0, 100), apiStyle: p.apiStyle, baseUrl: p.baseUrl, model: p.model.slice(0, 200) });
+      }
+      out.profiles = profiles;
+    }
     return out;
   } catch { return {}; }
 }
 
 /** Writes the non-secret subset back so a restart resumes the same channel. */
-function persistSettings(settings: ProviderSettings): void {
+function persistSettings(settings: ProviderSettings, profiles: ProviderProfile[]): void {
   try {
     fs.mkdirSync(SETTINGS_DIR, { recursive: true });
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
       provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, thinkingLevel: settings.thinkingLevel,
+      activeProfile: settings.activeProfile, profiles,
     }, null, 2) + '\n', 'utf8');
   } catch (error) {
     console.error('Could not persist UI settings:', error);
@@ -168,14 +197,46 @@ const settings: ProviderSettings = {
   baseUrl: persisted.baseUrl || process.env.ANTHROPIC_BASE_URL || process.env.OPENAI_BASE_URL || '',
   apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '',
   thinkingLevel: persisted.thinkingLevel ?? 'off',
+  activeProfile: persisted.activeProfile ?? '',
 };
+const profiles: ProviderProfile[] = persisted.profiles ?? [];
 
 function envKeyFor(provider: ProviderName): string {
   return provider === 'openai' ? process.env.OPENAI_API_KEY || '' : process.env.ANTHROPIC_API_KEY || '';
 }
 
-function publicSettings(): { provider: ProviderName; model: string; baseUrl: string; hasApiKey: boolean; thinkingLevel: ThinkingLevel } {
-  return { provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, hasApiKey: Boolean(settings.apiKey), thinkingLevel: settings.thinkingLevel };
+function publicSettings(): { provider: ProviderName; model: string; baseUrl: string; hasApiKey: boolean; thinkingLevel: ThinkingLevel; activeProfile: string } {
+  return { provider: settings.provider, model: settings.model, baseUrl: settings.baseUrl, hasApiKey: Boolean(settings.apiKey), thinkingLevel: settings.thinkingLevel, activeProfile: settings.activeProfile };
+}
+
+function publicProfileList(): Array<{ name: string; apiStyle: ProviderName; baseUrl: string; model: string; hasApiKey: boolean }> {
+  return profiles.map(p => ({ name: p.name, apiStyle: p.apiStyle, baseUrl: p.baseUrl, model: p.model, hasApiKey: Boolean(profileApiKeys.get(p.name)) }));
+}
+
+/** Shared validation for profile payloads; returns the profile or null (response sent). */
+function readProfilePayload(body: Record<string, unknown>, res: Response): ProviderProfile | null {
+  const invalid = (message: string): null => { res.status(400).json({ error: message }); return null; };
+  if (typeof body.name !== 'string' || !body.name.trim()) return invalid('name must be a non-empty string');
+  const name = body.name.trim();
+  if (name.length > 100) return invalid('name is too long (max 100 characters)');
+  if (body.apiStyle !== 'anthropic' && body.apiStyle !== 'openai') return invalid('apiStyle must be "anthropic" or "openai"');
+  if (body.model !== undefined && typeof body.model !== 'string') return invalid('model must be a string');
+  if (body.baseUrl !== undefined && typeof body.baseUrl !== 'string') return invalid('baseUrl must be a string');
+  const model = (typeof body.model === 'string' ? body.model : '').trim();
+  const baseUrl = (typeof body.baseUrl === 'string' ? body.baseUrl : '').trim();
+  if (model.length > 200) return invalid('model is too long (max 200 characters)');
+  if (/[\r\n]/.test(name) || /[\r\n]/.test(model) || /[\r\n]/.test(baseUrl)) return invalid('fields must not contain line breaks');
+  if (baseUrl) {
+    let parsed: URL;
+    try { parsed = new URL(baseUrl); } catch { return invalid('baseUrl must be a valid absolute URL'); }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return invalid('baseUrl must use http or https');
+  }
+  return { name, apiStyle: body.apiStyle, baseUrl, model };
+}
+
+/** Key resolution when a profile is activated: held key wins, then env key. */
+function keyForProfile(profile: ProviderProfile): string {
+  return profileApiKeys.get(profile.name) || envKeyFor(profile.apiStyle);
 }
 
 /* ---------------- live activity feed (Server-Sent Events) ---------------- */
@@ -224,14 +285,21 @@ function attachAgentListeners(instance: Agent): void {
   instance.on('securityAlert', (info: unknown) => broadcast({ type: 'securityAlert', info }));
 }
 
-function initializeAgent(): Agent {
-  if (!settings.apiKey) throw new Error('An API key is required to start the agent server (set ANTHROPIC_API_KEY or configure one in the UI)');
+function initializeAgent(): Agent | null {
+  if (!settings.apiKey) {
+    console.log('No API key configured yet — the web UI is available at http://localhost:' + PORT + '. Set a key via the UI settings to start chatting.');
+    return null;
+  }
   const apiKey = settings.apiKey;
   const model = settings.model;
   const baseUrl = settings.baseUrl || undefined;
   const allowMutations = process.env.AGENT_SERVER_ALLOW_MUTATIONS === 'true';
+  // When a profile is active, its apiStyle decides the wire protocol; the
+  // `provider` field is kept in sync by activate but the profile is authoritative.
+  const activeProfile = settings.activeProfile ? profiles.find(p => p.name === settings.activeProfile) : undefined;
+  const provider = activeProfile ? activeProfile.apiStyle : settings.provider;
   config = {
-    provider: settings.provider, model, apiKey, baseUrl,
+    provider, model, apiKey, baseUrl,
     thinkingLevel: settings.thinkingLevel,
     permissionMode: allowMutations ? 'auto' : 'safe', maxIterations: 20, temperature: 0.7,
     workspaceRoot: process.cwd(), debug: false, enableToolRetry: true, maxToolRetries: 3,
@@ -249,7 +317,7 @@ function initializeAgent(): Agent {
   });
   return agent;
 }
-function getAgent(): Agent { return agent || initializeAgent(); }
+function getAgent(): Agent | null { return agent || initializeAgent(); }
 function publicError(error: unknown): string { return process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : 'Agent request failed'; }
 
 /* ---------------- attachments ---------------- */
@@ -287,6 +355,75 @@ function toContentBlocks(raw: RawAttachment[]): ContentBlock[] {
   return blocks;
 }
 
+/* ---------------- uploaded file store (view sent files in the UI) ---------------- */
+
+/**
+ * Uploaded files live here for the lifetime of the process, keyed by an id the
+ * server hands back. The UI needs them so a transcript rendered after a reload
+ * can still show what was sent; buffers are capped so memory stays bounded.
+ */
+interface StoredFile { id: string; name: string; mimeType: string; size: number; data: Buffer; uploadedAt: number }
+
+const MAX_STORED_FILES = 200;
+const storedFiles = new Map<string, StoredFile>();
+
+function storeUploadedFile(raw: RawAttachment): StoredFile | null {
+  const name = typeof raw.name === 'string' && raw.name.trim() ? path.basename(raw.name.trim()).slice(0, 200) : 'attachment';
+  const mimeType = typeof raw.mimeType === 'string' && raw.mimeType ? raw.mimeType : 'application/octet-stream';
+  if (typeof raw.data !== 'string' || !raw.data) return null;
+  const data = Buffer.from(raw.data, 'base64');
+  if (!data.length || data.length > MAX_ATTACHMENT_BYTES) return null;
+  const id = `f${Date.now().toString(36)}${crypto.randomBytes(8).toString('hex')}`;
+  const file: StoredFile = { id, name, mimeType, size: data.length, data, uploadedAt: Date.now() };
+  storedFiles.set(id, file);
+  // Bounded store: drop the oldest uploads first.
+  while (storedFiles.size > MAX_STORED_FILES) {
+    const oldest = [...storedFiles.values()].sort((a, b) => a.uploadedAt - b.uploadedAt)[0];
+    if (!oldest) break;
+    storedFiles.delete(oldest.id);
+  }
+  return file;
+}
+
+function publicStoredFile(file: StoredFile): { id: string; name: string; mimeType: string; size: number; uploadedAt: number; url: string } {
+  return { id: file.id, name: file.name, mimeType: file.mimeType, size: file.size, uploadedAt: file.uploadedAt, url: `/api/agent/files/${file.id}` };
+}
+
+/**
+ * Store attachments that arrive with a run so the transcript can still show and
+ * re-open them later. Returns per-attachment download metadata in the response.
+ */
+app.post('/api/agent/files', (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  if (!Array.isArray(body.files)) { res.status(400).json({ error: 'files must be an array' }); return; }
+  const stored: ReturnType<typeof publicStoredFile>[] = [];
+  for (const item of (body.files as RawAttachment[]).slice(0, MAX_ATTACHMENTS)) {
+    if (typeof item !== 'object' || item === null) continue;
+    const file = storeUploadedFile(item);
+    if (file) stored.push(publicStoredFile(file));
+  }
+  if (!stored.length) { res.status(400).json({ error: 'No valid files to store (each needs base64 data within 8mb)' }); return; }
+  res.json({ files: stored });
+});
+
+app.get('/api/agent/files/:id', (req, res) => {
+  const file = storedFiles.get(req.params.id);
+  if (!file) { res.status(404).json({ error: 'File not found' }); return; }
+  res.setHeader('Content-Type', file.mimeType);
+  res.setHeader('Content-Length', String(file.data.length));
+  res.setHeader('Content-Disposition', `inline; filename="${file.name.replace(/["\\\r\n]/g, '_')}"`);
+  res.send(file.data);
+});
+
+app.get('/api/agent/files', (_req, res) => {
+  const list = [...storedFiles.values()].sort((a, b) => b.uploadedAt - a.uploadedAt).map(publicStoredFile);
+  res.json({ files: list });
+});
+
+app.delete('/api/agent/files/:id', (req, res) => {
+  if (!storedFiles.delete(req.params.id)) { res.status(404).json({ error: 'File not found' }); return; }
+  res.json({ success: true });
+});
 
 app.post('/api/agent/run', async (req, res) => {
   try {
@@ -296,9 +433,17 @@ app.post('/api/agent/run', async (req, res) => {
     if (clientConfig !== undefined && (typeof clientConfig !== 'object' || clientConfig === null || Array.isArray(clientConfig))) { res.status(400).json({ error: 'config must be an object' }); return; }
     if (attachments !== undefined && !Array.isArray(attachments)) { res.status(400).json({ error: 'attachments must be an array' }); return; }
     const contentBlocks = Array.isArray(attachments) ? toContentBlocks(attachments as RawAttachment[]) : [];
+    // Keep a copy of each valid attachment so the transcript can re-view them
+    // later via /api/agent/files/:id even after a page reload.
+    const storedAttachments = Array.isArray(attachments)
+      ? (attachments as RawAttachment[]).slice(0, MAX_ATTACHMENTS)
+          .map(item => (typeof item === 'object' && item !== null ? storeUploadedFile(item) : null))
+          .filter((f): f is StoredFile => f !== null)
+      : [];
     if (requestInProgress) { res.status(409).json({ error: 'Another agent request is already in progress' }); return; }
     requestInProgress = true;
     const currentAgent = getAgent();
+    if (!currentAgent) { requestInProgress = false; res.status(503).json({ error: 'No API key configured. Open the settings gear in the web UI to add one.' }); return; }
     if (clientConfig) currentAgent.updateConfig({
       enableToolRetry: clientConfig.retry ?? true, enableToolCache: clientConfig.cache ?? true,
       validateToolInputs: clientConfig.validation ?? true, autoRecovery: clientConfig.recovery ?? true,
@@ -321,11 +466,26 @@ app.post('/api/agent/run', async (req, res) => {
       },
       usage: currentAgent.getUsage(),
       toolUsage,
+      files: storedAttachments.map(publicStoredFile),
     });
   } catch (error) {
     console.error('Agent error:', error);
+    if (agent && agent.killed) { res.status(499).json({ error: 'Run stopped', stopped: true }); return; }
     res.status(500).json({ error: publicError(error), ...(process.env.NODE_ENV === 'development' && error instanceof Error ? { stack: error.stack } : {}) });
   } finally { requestInProgress = false; }
+});
+
+/**
+ * Stops the in-flight run. The agent's kill switch aborts the provider loop at
+ * the next iteration boundary; the run endpoint then answers with a `stopped`
+ * response so the UI can show "stopped" instead of a generic error. The kill
+ * switch clears itself at the start of the next run.
+ */
+app.post('/api/agent/stop', (_req, res) => {
+  if (!requestInProgress || !agent) { res.status(409).json({ error: 'No agent run in progress' }); return; }
+  agent.kill('stopped from the web UI');
+  broadcast({ type: 'status', status: 'cancelled' });
+  res.json({ success: true });
 });
 
 app.get('/api/agent/status', (_req, res) => {
@@ -406,14 +566,98 @@ app.put('/api/agent/settings', (req, res) => {
   if (typeof body.thinkingLevel === 'string') settings.thinkingLevel = body.thinkingLevel as ThinkingLevel;
   if (body.clearApiKey === true) settings.apiKey = '';
 
+  // Optional `profile` field: also save these one-off settings as a named profile.
+  if (body.profile !== undefined) {
+    if (typeof body.profile !== 'object' || body.profile === null || Array.isArray(body.profile)) {
+      res.status(400).json({ error: 'profile must be an object' });
+      return;
+    }
+    const profileBody = body.profile as Record<string, unknown>;
+    // Missing fields fall back to the one-off settings being saved, so
+    // `profile: { name }` alone snapshots the current provider/model/baseUrl.
+    if (profileBody.apiStyle === undefined && body.provider !== undefined) profileBody.apiStyle = body.provider;
+    if (profileBody.model === undefined && model !== null) profileBody.model = model;
+    if (profileBody.baseUrl === undefined && baseUrl !== null) profileBody.baseUrl = baseUrl;
+    const newProfile = readProfilePayload(profileBody, res);
+    if (!newProfile) return;
+    const existing = profiles.findIndex(p => p.name === newProfile.name);
+    if (existing >= 0) profiles[existing] = newProfile;
+    else if (profiles.length >= MAX_PROFILES) { res.status(400).json({ error: `Too many profiles (maximum ${MAX_PROFILES})` }); return; }
+    else profiles.push(newProfile);
+    if (typeof profileBody.apiKey === 'string') profileApiKeys.set(newProfile.name, profileBody.apiKey);
+  }
+
+  // A one-off settings PUT overrides whatever profile was active.
+  settings.activeProfile = '';
+
   // Rebuild lazily so the next request uses the new endpoint/model/credentials.
   // The rebuilt agent gets a fresh registry, so MCP servers and plugins have to
   // be detached from the old one first or their child processes would leak.
   if (agent) extensions.deactivate(agent.getToolRegistry());
   agent = null;
-  persistSettings(settings);
+  persistSettings(settings, profiles);
   res.json(publicSettings());
 });
+
+/* ---------------- named provider profiles ---------------- */
+
+app.get('/api/agent/profiles', (_req, res) => { res.json(publicProfileList()); });
+
+app.put('/api/agent/profiles', (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const profile = readProfilePayload(body, res);
+  if (!profile) return;
+  const existing = profiles.findIndex(p => p.name === profile.name);
+  if (existing < 0 && profiles.length >= MAX_PROFILES) { res.status(400).json({ error: `Too many profiles (maximum ${MAX_PROFILES})` }); return; }
+  if (typeof body.apiKey !== 'undefined' && typeof body.apiKey !== 'string') { res.status(400).json({ error: 'apiKey must be a string' }); return; }
+  if (typeof body.apiKey === 'string' && body.apiKey.length > 500) { res.status(400).json({ error: 'apiKey is too long (max 500 characters)' }); return; }
+  if (existing >= 0) profiles[existing] = profile;
+  else profiles.push(profile);
+  // The key lives in memory only; an empty string clears the held key.
+  if (typeof body.apiKey === 'string') {
+    if (body.apiKey) profileApiKeys.set(profile.name, body.apiKey);
+    else profileApiKeys.delete(profile.name);
+  }
+  persistSettings(settings, profiles);
+  res.json(publicProfileList());
+});
+
+app.delete('/api/agent/profiles/:name', (req, res) => {
+  const index = profiles.findIndex(p => p.name === req.params.name);
+  if (index < 0) { res.status(404).json({ error: 'Profile not found' }); return; }
+  profiles.splice(index, 1);
+  profileApiKeys.delete(req.params.name);
+  if (settings.activeProfile === req.params.name) {
+    // Fall back to plain env-based settings; no profile is active anymore.
+    settings.activeProfile = '';
+    settings.provider = process.env.AGENT_PROVIDER === 'openai' ? 'openai' : 'anthropic';
+    settings.model = process.env.ANTHROPIC_MODEL || process.env.OPENAI_MODEL || '';
+    settings.baseUrl = process.env.ANTHROPIC_BASE_URL || process.env.OPENAI_BASE_URL || '';
+    settings.apiKey = envKeyFor(settings.provider);
+  }
+  if (agent) extensions.deactivate(agent.getToolRegistry());
+  agent = null;
+  persistSettings(settings, profiles);
+  res.json(publicProfileList());
+});
+
+app.post('/api/agent/profiles/activate', (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  if (typeof body.name !== 'string' || !body.name.trim()) { res.status(400).json({ error: 'name must be a non-empty string' }); return; }
+  const profileName = body.name.trim();
+  const profile = profiles.find(p => p.name === profileName);
+  if (!profile) { res.status(404).json({ error: 'Profile not found' }); return; }
+  settings.activeProfile = profile.name;
+  settings.provider = profile.apiStyle;
+  settings.model = profile.model;
+  settings.baseUrl = profile.baseUrl;
+  settings.apiKey = keyForProfile(profile);
+  if (agent) extensions.deactivate(agent.getToolRegistry());
+  agent = null;
+  persistSettings(settings, profiles);
+  res.json(publicSettings());
+});
+
 app.get('/api/agent/report', (_req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } const report = agent.getPerformanceMonitor().generateReport(); res.json({ overview: report.overview, slowestTools: report.slowestTools, mostUnreliable: report.mostUnreliable, recommendations: report.recommendations, usage: agent.getUsage(), modelCalls }); });
 app.get('/api/agent/metrics/:toolName', (req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } const metrics = agent.getPerformanceMonitor().getToolMetrics(req.params.toolName); if (!metrics) { res.status(404).json({ error: 'Tool not found' }); return; } res.json({ ...metrics, errorTypes: Array.from(metrics.errorTypes.entries()) }); });
 app.get('/api/agent/export', (_req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } res.setHeader('Content-Type', 'application/json'); res.setHeader('Content-Disposition', `attachment; filename=agent-metrics-${Date.now()}.json`); res.send(agent.exportPerformanceData()); });
@@ -449,14 +693,15 @@ app.post('/api/agent/extensions/install', async (req, res) => {
     res.status(400).json({ error: 'kind must be "skill", "mcp" or "plugin"' }); return;
   }
   if (body.name !== undefined && typeof body.name !== 'string') { res.status(400).json({ error: 'name must be a string' }); return; }
+  const registry = getAgent()?.getToolRegistry();
+  if (!registry) { res.status(503).json({ error: 'No API key configured. Open the settings gear in the web UI to add one.' }); return; }
   try {
     const result = await extensions.installFromGitHub(body.url.trim(), {
       kind: body.kind as ExtensionKind | undefined,
       name: typeof body.name === 'string' && body.name.trim() ? body.name.trim() : undefined,
       overwrite: body.overwrite === true,
-      registry: getAgent().getToolRegistry(),
+      registry,
     });
-    broadcast({ type: 'extensions', action: 'install', kind: result.kind, name: result.name });
     res.json({ ...result, snapshot: extensions.snapshot(agent?.getToolRegistry()) });
   } catch (error) {
     res.status(isExtensionError(error) ? 400 : 502).json({ error: (error as Error).message });
@@ -479,7 +724,7 @@ app.post('/api/agent/extensions/mcp', async (req, res) => {
       args: Array.isArray(body.args) ? body.args.map(String) : [],
       env: body.env as Record<string, string> | undefined,
       enabled: body.enabled !== false,
-    }, getAgent().getToolRegistry());
+    }, getAgent()?.getToolRegistry());
     broadcast({ type: 'extensions', action: 'mcp-added', name: body.name });
     res.json({ snapshot: extensions.snapshot(agent?.getToolRegistry()) });
   } catch (error) {
@@ -492,7 +737,7 @@ app.post('/api/agent/extensions/mcp/reload', async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   if (body.name !== undefined && typeof body.name !== 'string') { res.status(400).json({ error: 'name must be a string' }); return; }
   try {
-    await extensions.mcp.reload(body.name as string | undefined, getAgent().getToolRegistry());
+    await extensions.mcp.reload(body.name as string | undefined, getAgent()?.getToolRegistry());
     res.json({ snapshot: extensions.snapshot(agent?.getToolRegistry()) });
   } catch (error) {
     res.status(isExtensionError(error) ? 400 : 500).json({ error: (error as Error).message });
@@ -503,7 +748,7 @@ app.delete('/api/agent/extensions/:kind/:name', async (req, res) => {
   const kind = req.params.kind as ExtensionKind;
   if (!EXTENSION_KINDS.includes(kind)) { res.status(400).json({ error: 'kind must be "skill", "mcp" or "plugin"' }); return; }
   try {
-    await extensions.remove(kind, req.params.name, getAgent().getToolRegistry());
+    await extensions.remove(kind, req.params.name, getAgent()?.getToolRegistry());
     broadcast({ type: 'extensions', action: 'removed', kind, name: req.params.name });
     res.json({ snapshot: extensions.snapshot(agent?.getToolRegistry()) });
   } catch (error) {
@@ -513,8 +758,10 @@ app.delete('/api/agent/extensions/:kind/:name', async (req, res) => {
 
 /** Load a plugin that is installed but not yet imported (or retry a failed one). */
 app.post('/api/agent/extensions/plugins/:name/load', async (req, res) => {
+  const registry = getAgent()?.getToolRegistry();
+  if (!registry) { res.status(503).json({ error: 'No API key configured. Open the settings gear in the web UI to add one.' }); return; }
   try {
-    const plugin = await extensions.plugins.load(req.params.name, getAgent().getToolRegistry());
+    const plugin = await extensions.plugins.load(req.params.name, registry);
     res.json({ plugin, snapshot: extensions.snapshot(agent?.getToolRegistry()) });
   } catch (error) {
     res.status(isExtensionError(error) ? 400 : 500).json({ error: (error as Error).message });

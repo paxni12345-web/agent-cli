@@ -159,6 +159,32 @@ export function buildDiffSummary(before: string, after: string): string {
   return parts.join(', ');
 }
 
+/**
+ * A small unified-diff renderer result: only the changed region plus context
+ * lines, hunk-header style, so the UI can colour add/remove lines.
+ */
+export function buildUnifiedDiffText(before: string, after: string, context = 3): string {
+  if (before === after) return '';
+  const a = before.split('\n');
+  const b = after.split('\n');
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let endA = a.length;
+  let endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA--; endB--; }
+  const ctxStart = Math.max(0, start - context);
+  const ctxEndA = Math.min(a.length, endA + context);
+  const ctxEndB = Math.min(b.length, endB + context);
+  const lines = [`@@ -${ctxStart + 1},${ctxEndA - ctxStart} +${ctxStart + 1},${ctxEndB - ctxStart} @@`];
+  for (let i = ctxStart; i < start; i++) lines.push(' ' + a[i]);
+  for (let i = start; i < endA; i++) lines.push('-' + a[i]);
+  for (let i = start; i < endB; i++) lines.push('+' + b[i]);
+  for (let i = endA; i < ctxEndA; i++) lines.push(' ' + a[i]);
+  const MAX_DIFF_CHARS = 8000;
+  const text = lines.join('\n');
+  return text.length > MAX_DIFF_CHARS ? text.slice(0, MAX_DIFF_CHARS) + '\n[diff truncated]' : text;
+}
+
 async function assertInsideWorkspace(validatedPath: string, workspaceRoot: string): Promise<void> {
   const root = await fs.realpath(path.resolve(workspaceRoot));
   const normalizedRoot = path.normalize(root + path.sep);
@@ -459,6 +485,7 @@ export class WriteFileTool implements Tool {
           startLine: 1,
           protected: protectedReason ?? undefined,
           diff: unifiedDiff || undefined,
+          diffText: buildUnifiedDiffText(previousContent, String(input.content)),
           undoable: true,
         },
       };
@@ -571,6 +598,7 @@ export class EditFileTool implements Tool {
           startLine: firstChangedLine + 1,
           addedLines: Math.max(0, lineDelta),
           removedLines: Math.max(0, -lineDelta),
+          diffText: buildUnifiedDiffText(content, newContent),
         },
       };
     } catch (error) {

@@ -106,7 +106,7 @@ describe('agent server HTTP surface', () => {
     const persisted = JSON.parse(await fs.readFile(SETTINGS_FILE, 'utf8'));
     expect(persisted.thinkingLevel).toBe('high');
     expect(persisted.model).toBe('claude-sonnet-4');
-    expect(Object.keys(persisted).sort()).toEqual(['baseUrl', 'model', 'provider', 'thinkingLevel']);
+    expect(Object.keys(persisted).sort()).toEqual(['activeProfile', 'baseUrl', 'model', 'profiles', 'provider', 'thinkingLevel']);
   });
 
   it('streams activity as server-sent events', async () => {

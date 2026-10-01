@@ -367,6 +367,48 @@ interface StoredFile { id: string; name: string; mimeType: string; size: number;
 const MAX_STORED_FILES = 200;
 const storedFiles = new Map<string, StoredFile>();
 
+/* Attachments persist to .agent/uploads so sent files survive a restart.
+   The index is one JSON line per file; buffers sit next to it by id. */
+const UPLOAD_DIR = path.join(process.cwd(), '.agent', 'uploads');
+const UPLOAD_INDEX = path.join(UPLOAD_DIR, 'index.jsonl');
+
+function loadStoredFiles(): void {
+  try {
+    const lines = fs.readFileSync(UPLOAD_INDEX, 'utf8').split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const meta = JSON.parse(line) as { id: string; name: string; mimeType: string; size: number; uploadedAt: number };
+        const data = fs.readFileSync(path.join(UPLOAD_DIR, meta.id));
+        storedFiles.set(meta.id, { ...meta, data });
+      } catch { /* missing buffer or bad line — skip */ }
+    }
+  } catch { /* no index yet — first run */ }
+}
+
+function persistStoredFile(file: StoredFile): void {
+  try {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    fs.writeFileSync(path.join(UPLOAD_DIR, file.id), file.data);
+    fs.appendFileSync(UPLOAD_INDEX, JSON.stringify({ id: file.id, name: file.name, mimeType: file.mimeType, size: file.size, uploadedAt: file.uploadedAt }) + '\n');
+  } catch (error) {
+    console.error('[agent-server] failed to persist upload:', error);
+  }
+}
+
+function deleteStoredFileFromDisk(file: StoredFile): void {
+  try {
+    fs.rmSync(path.join(UPLOAD_DIR, file.id), { force: true });
+    if (fs.existsSync(UPLOAD_INDEX)) {
+      const kept = fs.readFileSync(UPLOAD_INDEX, 'utf8').split('\n')
+        .filter(line => { try { return JSON.parse(line).id !== file.id; } catch { return Boolean(line.trim()); } });
+      fs.writeFileSync(UPLOAD_INDEX, kept.join('\n'));
+    }
+  } catch (error) {
+    console.error('[agent-server] failed to remove upload from disk:', error);
+  }
+}
+
 function storeUploadedFile(raw: RawAttachment): StoredFile | null {
   const name = typeof raw.name === 'string' && raw.name.trim() ? path.basename(raw.name.trim()).slice(0, 200) : 'attachment';
   const mimeType = typeof raw.mimeType === 'string' && raw.mimeType ? raw.mimeType : 'application/octet-stream';
@@ -376,11 +418,13 @@ function storeUploadedFile(raw: RawAttachment): StoredFile | null {
   const id = `f${Date.now().toString(36)}${crypto.randomBytes(8).toString('hex')}`;
   const file: StoredFile = { id, name, mimeType, size: data.length, data, uploadedAt: Date.now() };
   storedFiles.set(id, file);
+  persistStoredFile(file);
   // Bounded store: drop the oldest uploads first.
   while (storedFiles.size > MAX_STORED_FILES) {
     const oldest = [...storedFiles.values()].sort((a, b) => a.uploadedAt - b.uploadedAt)[0];
     if (!oldest) break;
     storedFiles.delete(oldest.id);
+    deleteStoredFileFromDisk(oldest);
   }
   return file;
 }
@@ -421,7 +465,10 @@ app.get('/api/agent/files', (_req, res) => {
 });
 
 app.delete('/api/agent/files/:id', (req, res) => {
-  if (!storedFiles.delete(req.params.id)) { res.status(404).json({ error: 'File not found' }); return; }
+  const file = storedFiles.get(req.params.id);
+  if (!file) { res.status(404).json({ error: 'File not found' }); return; }
+  storedFiles.delete(req.params.id);
+  deleteStoredFileFromDisk(file);
   res.json({ success: true });
 });
 
@@ -774,5 +821,5 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(tooLarge ? 413 : 500).json({ error: tooLarge ? 'Request body is too large (12mb maximum)' : 'Internal server error' });
 });
 
-if (process.env.NODE_ENV !== 'test') app.listen(PORT, HOST, () => { console.log(`Agent CLI Web Server running at http://localhost:${PORT}`); try { initializeAgent(); } catch (error) { console.error('Failed to initialize agent:', error); } });
+if (process.env.NODE_ENV !== 'test') { loadStoredFiles(); app.listen(PORT, HOST, () => { console.log(`Agent CLI Web Server running at http://localhost:${PORT}`); try { initializeAgent(); } catch (error) { console.error('Failed to initialize agent:', error); } }); }
 export default app;

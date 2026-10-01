@@ -27,13 +27,13 @@ fi
 if curl -fsS -m 2 "http://127.0.0.1:11434/api/tags" | grep -q "\"name\":\"$XLAM_MODEL"; then
   echo "    xLAM model '$XLAM_MODEL' already present."
 else
-  echo "    Pulling xLAM…"
-  # SalesForce xLAM-1B is GGUF-convertible; the community ollama pull name is tried first,
-  # then a HuggingFace GGUF import as fallback.
-  if ! ollama pull "$XLAM_MODEL"; then
-    echo "    Registry pull failed, importing GGUF from HuggingFace…"
+  echo "    Pulling xLAM (4-bit)…"
+  # Official Salesforce GGUF: Q4_K_S 4-bit (~776MB, runs in well under 1GB RAM).
+  # Override the quant file with XLAM_GGUF_URL if wanted.
+  if ! ollama pull "$XLAM_MODEL" 2>/dev/null; then
+    echo "    Registry pull failed, importing official 4-bit GGUF from HuggingFace…"
     tmp=$(mktemp -d)
-    curl -fL "$([ -n "${XLAM_GGUF_URL:-}" ] && echo "$XLAM_GGUF_URL" || echo 'https://huggingface.co/MineruRelease/xlam-1b-gguf/resolve/main/xlam-1b-f16.gguf')" -o "$tmp/xlam.gguf"
+    curl -fL "${XLAM_GGUF_URL:-https://huggingface.co/Salesforce/xLAM-1b-fc-r-gguf/resolve/main/xLAM-1b-fc-r.Q4_K_S.gguf}" -o "$tmp/xlam.gguf"
     cat > "$tmp/Modelfile" <<EOF
 FROM $tmp/xlam.gguf
 PARAMETER num_ctx 4096
@@ -54,7 +54,7 @@ else
   python3 -m venv "$LAYA_DIR/venv"
   # shellcheck disable=SC1091
   source "$LAYA_DIR/venv/bin/activate"
-  pip install --quiet "torch>=2.2" transformers fastapi uvicorn
+  pip install --quiet "torch>=2.2" transformers fastapi uvicorn "bitsandbytes>=0.43" accelerate
   if [ ! -f "$LAYA_DIR/server.py" ]; then
     cat > "$LAYA_DIR/server.py" <<'PY'
 """Minimal noul endpoint for convaiinnovations/laya.
@@ -65,6 +65,9 @@ POST /v1/systemone {"state":{"document": "..."}, "questions": {name: {"type":"no
 One forward pass per question: each instruction is scored as yes/no against the
 document, and noul is the yes-probability. Answers are sequential so keep tool
 counts modest (the router caps at maxTools anyway).
+
+Model is loaded in 4-bit (NF4 via bitsandbytes) when bitsandbytes is importable,
+which cuts VRAM/RAM use to roughly a quarter of fp16.
 """
 import os
 from typing import Any, Dict
@@ -80,7 +83,17 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 app = FastAPI()
 tok = AutoTokenizer.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32).to(DEVICE).eval()
+try:
+    from bitsandbytes import __version__ as _bnb  # noqa: F401
+    from transformers import BitsAndBytesConfig
+    if DEVICE == "cuda":
+        bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4")
+        model = AutoModelForCausalLM.from_pretrained(MODEL_ID, device_map="auto", quantization_config=bnb).eval()
+    else:
+        # 4-bit NF4 needs a GPU; on CPU fall back to float32 (small model, still light).
+        model = AutoModelForCausalLM.from_pretrained(MODEL_ID).eval()
+except ImportError:
+    model = AutoModelForCausalLM.from_pretrained(MODEL_ID).to(DEVICE).eval()
 YES_ID = tok.encode("yes", add_special_tokens=False)[0]
 NO_ID = tok.encode("no", add_special_tokens=False)[0]
 

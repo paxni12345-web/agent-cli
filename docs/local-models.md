@@ -16,8 +16,8 @@ bash scripts/start-local-models.sh
 Script จะ:
 
 1. ติดตั้ง + สตาร์ท [Ollama](https://ollama.com) ถ้ายังไม่มี
-2. ดึงโมเดล xLAM (pull จาก registry, ถ้าไม่เจอจะ import GGUF จาก HuggingFace — override URL ได้ด้วย `XLAM_GGUF_URL`)
-3. สร้าง venv ที่ `~/.agent-cli/laya-server` ติดตั้ง torch + transformers แล้วสตาร์ท FastAPI server ที่แปลง Laya เป็น endpoint `/v1/systemone` (คืนค่า `{"answers": {tool: {"noul": 0..1}}}`)
+2. ดึงโมเดล xLAM **รุ่น 4-bit** (official GGUF `Q4_K_S` ~776MB จาก [Salesforce/xLAM-1b-fc-r-gguf](https://huggingface.co/Salesforce/xLAM-1b-fc-r-gguf) — เปลี่ยน quant ได้ด้วย `XLAM_GGUF_URL`)
+3. สร้าง venv ที่ `~/.agent-cli/laya-server` ติดตั้ง torch + transformers + bitsandbytes แล้วสตาร์ท FastAPI server ที่แปลง Laya เป็น endpoint `/v1/systemone` (คืนค่า `{"answers": {tool: {"noul": 0..1}}}`) — โหลด Laya เป็น **4-bit NF4** อัตโนมัติเมื่อมี GPU (ลด RAM/VRAM เหลือ ~1/4 ของ fp16, CPU ใช้ fp32 เพราะ bitsandbytes 4-bit ใช้ได้บน GPU เท่านั้น)
 4. Keep-alive ทั้งสองโมเดลไว้ (ไม่โหลดใหม่ทุก request)
 
 ## เปิดใช้ใน agent
@@ -41,10 +41,10 @@ export AGENT_TOOL_ROUTER=chain     # xLAM เสนอ → Laya ตรวจ →
 
 โมเดล local เป็น **ของแถม ไม่ใช่ข้อบังคับ** — ถ้า endpoint ไหนล่ม/ช้า/ตอบมั่ว ระบบจะ degrade เป็นขั้นถัดไปอัตโนมัติ (xLAM → Laya → keyword) เครื่องผู้ใช้ที่ไม่ได้สตาร์ทโมเดลจะยังใช้งานได้ปกติด้วย keyword fallback
 
-## สเปกเครื่องที่แนะนำ
+## สเปกเครื่องที่แนะนำ (ใช้ quant 4-bit ทั้งคู่แล้ว)
 
-- xLAM 1B (GGUF Q4) ~1GB RAM
-- Laya ~2GB RAM (fp32 CPU) / ~1GB (fp16 GPU)
-- รวมแนะนำ RAM ว่างอย่างน้อย 4GB หรือมี GPU
+- xLAM 1B **Q4_K_S 4-bit** ~776MB ดาวน์โหลด, รันใช้ RAM ~600MB-1GB
+- Laya **4-bit NF4** (ต้องมี GPU) ~0.5-1GB VRAM / ถ้า CPU-only จะใช้ fp32 ~2GB RAM
+- รวมแนะนำ RAM ว่างอย่างน้อย 2.5GB (มี GPU) หรือ 4GB (CPU-only)
 
 > หมายเหตุ: ถ้าเครื่องจำกัด RAM (เช่น < 2GB ว่าง) แนะนำรันเฉพาะ xLAM แล้วปิด verify ด้วย `AGENT_TOOL_ROUTER_VERIFY=off`

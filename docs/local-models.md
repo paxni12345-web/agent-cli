@@ -1,0 +1,50 @@
+# Local Router Models (xLAM + Laya)
+
+`src/agent/ToolRouter.ts` รองรับการเลือก tool ด้วยโมเดล local 2 ตัว (ไม่ต้องใช้ API key ไม่ต้องจ่ายเงิน):
+
+| โมเดล | หน้าที่ | Endpoint เริ่มต้น |
+|---|---|---|
+| [xLAM 1B](https://huggingface.co/Salesforce/xLAM-1B-fc-r) (Salesforce) | เสนอ shortlist ของ tool ที่เกี่ยวข้อง (native tool calling แบบ [OI]) | `http://127.0.0.1:11434/v1/chat/completions` (Ollama) |
+| [Laya](https://huggingface.co/convaiinnovations/laya) (convaiinnovations) | ตรวจว่า tool ที่เลือกมาตรงกับคำถามผู้ใช้จริงไหม (noul scoring) | `http://127.0.0.1:8000/v1/systemone` |
+
+## เริ่มใช้งาน
+
+```bash
+bash scripts/start-local-models.sh
+```
+
+Script จะ:
+
+1. ติดตั้ง + สตาร์ท [Ollama](https://ollama.com) ถ้ายังไม่มี
+2. ดึงโมเดล xLAM (pull จาก registry, ถ้าไม่เจอจะ import GGUF จาก HuggingFace — override URL ได้ด้วย `XLAM_GGUF_URL`)
+3. สร้าง venv ที่ `~/.agent-cli/laya-server` ติดตั้ง torch + transformers แล้วสตาร์ท FastAPI server ที่แปลง Laya เป็น endpoint `/v1/systemone` (คืนค่า `{"answers": {tool: {"noul": 0..1}}}`)
+4. Keep-alive ทั้งสองโมเดลไว้ (ไม่โหลดใหม่ทุก request)
+
+## เปิดใช้ใน agent
+
+```bash
+export AGENT_TOOL_ROUTER=chain     # xLAM เสนอ → Laya ตรวจ → keyword fallback
+# หรือ AGENT_TOOL_ROUTER=laya / xlam / keyword
+```
+
+ตัวแปรเพิ่มเติม:
+
+| ตัวแปร | ค่าเริ่มต้น | ความหมาย |
+|---|---|---|
+| `XLAM_ROUTER_URL` | `http://127.0.0.1:11434/v1/chat/completions` | endpoint xLAM |
+| `XLAM_ROUTER_MODEL` | `xlam` | ชื่อโมเดลใน Ollama |
+| `LAYA_ROUTER_URL` | `http://127.0.0.1:8000/v1/systemone` | endpoint Laya |
+| `AGENT_TOOL_ROUTER_TIMEOUT_MS` | `1500` | timeout ต่อการเรียกโมเดล |
+| `AGENT_TOOL_ROUTER_VERIFY` | `on` | ปิดด้วย `off` เพื่อข้าม Laya |
+
+## Fail-safe
+
+โมเดล local เป็น **ของแถม ไม่ใช่ข้อบังคับ** — ถ้า endpoint ไหนล่ม/ช้า/ตอบมั่ว ระบบจะ degrade เป็นขั้นถัดไปอัตโนมัติ (xLAM → Laya → keyword) เครื่องผู้ใช้ที่ไม่ได้สตาร์ทโมเดลจะยังใช้งานได้ปกติด้วย keyword fallback
+
+## สเปกเครื่องที่แนะนำ
+
+- xLAM 1B (GGUF Q4) ~1GB RAM
+- Laya ~2GB RAM (fp32 CPU) / ~1GB (fp16 GPU)
+- รวมแนะนำ RAM ว่างอย่างน้อย 4GB หรือมี GPU
+
+> หมายเหตุ: ถ้าเครื่องจำกัด RAM (เช่น < 2GB ว่าง) แนะนำรันเฉพาะ xLAM แล้วปิด verify ด้วย `AGENT_TOOL_ROUTER_VERIFY=off`

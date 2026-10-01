@@ -238,7 +238,7 @@ export class Agent extends EventEmitter {
           messages: this.state.conversationMessages, temperature: this.config.temperature, maxTokens: 8192,
           thinkingLevel: this.config.thinkingLevel,
           systemPrompt: this.buildSystemPrompt() + specialtySection,
-          tools: this.toolRouter.select(userMessage, this.toolRegistry.getSchemas()), toolChoice: 'auto',
+          tools: await this.toolRouter.select(userMessage, this.toolRegistry.getSchemas()), toolChoice: 'auto',
         }, providerRetries);
         if (response.usage) {
           const previous = (this.state.metadata.usage as { inputTokens?: number; outputTokens?: number; totalTokens?: number } | undefined) ?? {};

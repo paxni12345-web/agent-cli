@@ -1,16 +1,79 @@
 import { ToolSchema } from '../types/index.js';
 
-/** Small keyword router that keeps irrelevant tools out of provider requests. */
+interface LayaAnswer {
+  noul?: number;
+  choice?: string;
+  confidence?: number;
+}
+
+interface LayaResponse {
+  answers?: Record<string, LayaAnswer>;
+}
+
+/** Routes tools per user message. Prefers a small local decision model
+ *  (laya-serve, Jev-compatible POST /v1/systemone); falls back to a
+ *  keyword heuristic when the model endpoint is unreachable. */
 export class ToolRouter {
   private readonly maxTools: number;
+  private readonly endpoint: string;
+  private readonly timeoutMs: number;
 
-  constructor(maxTools = 20) {
+  constructor(maxTools = 20, endpoint?: string, timeoutMs = 1500) {
     this.maxTools = Math.max(1, maxTools);
+    this.endpoint = endpoint ?? process.env.LAYA_ROUTER_URL ?? 'http://127.0.0.1:8000/v1/systemone';
+    this.timeoutMs = timeoutMs;
   }
 
-  select(userMessage: string, schemas: ToolSchema[]): ToolSchema[] {
+  async select(userMessage: string, schemas: ToolSchema[]): Promise<ToolSchema[]> {
     if (schemas.length <= this.maxTools) return schemas;
 
+    const modelScores = await this.scoreWithModel(userMessage, schemas);
+    if (modelScores) {
+      const ranked = schemas
+        .map((schema, index) => ({ schema, index, score: modelScores.get(schema.name) ?? 0 }))
+        .sort((a, b) => b.score - a.score || a.index - b.index);
+      const selected = ranked.slice(0, this.maxTools).map(item => item.schema);
+      // Keep at least one tool the model actually considered relevant.
+      if (modelScores.size > 0) return selected;
+    }
+    return this.selectByKeywords(userMessage, schemas);
+  }
+
+  /** One laya call, one noul question per tool, all scored in a single forward pass. */
+  private async scoreWithModel(userMessage: string, schemas: ToolSchema[]): Promise<Map<string, number> | null> {
+    const questions: Record<string, unknown> = {};
+    for (const schema of schemas) {
+      questions[schema.name] = {
+        type: 'noul',
+        instructions: `Is the tool "${schema.name}" (${schema.description}) the most relevant tool for the user's request?`,
+      };
+    }
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: { document: userMessage }, questions }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!response.ok) return null;
+      const data = (await response.json()) as LayaResponse;
+      const answers = data.answers;
+      if (!answers) return null;
+      const scores = new Map<string, number>();
+      for (const [name, answer] of Object.entries(answers)) {
+        if (typeof answer?.noul === 'number') scores.set(name, answer.noul);
+      }
+      return scores.size > 0 ? scores : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Legacy keyword fallback, used only when the decision model is unreachable. */
+  private selectByKeywords(userMessage: string, schemas: ToolSchema[]): ToolSchema[] {
     const query = userMessage.toLowerCase();
     const scored = schemas.map((schema, index) => {
       const text = `${schema.name} ${schema.description}`.toLowerCase();
@@ -23,7 +86,6 @@ export class ToolRouter {
       if (/write|edit|change|fix|create|delete|implement/.test(query) &&
           /write|edit|shell|git/.test(schema.name)) score += 4;
       if (/test|build|run|command|npm|yarn|pnpm/.test(query) && schema.name === 'shell') score += 8;
-      // Group boosts: surface the right specialty tools for the job.
       if (/test|coverage|lint|format|typecheck|mutation/.test(query) && /^(run_tests|run_single_test|coverage_report|run_linter|run_typecheck|run_formatter|mutation_test)$/.test(schema.name)) score += 8;
       if (/refactor|rename|move|delete|copy|scaffold|watch/.test(query) && /^(move_file|rename_file|delete_file|copy_file|find_and_replace|create_directory_structure|watch_files)$/.test(schema.name)) score += 8;
       if (/branch|commit|stash|blame|conflict|pull request|pr|bisect|merge/.test(query) && /^(git_branch|git_commit|git_stash|git_blame|git_conflict_resolver|create_pull_request|review_pr|bisect_helper)$/.test(schema.name)) score += 8;
@@ -38,7 +100,6 @@ export class ToolRouter {
       .sort((a, b) => b.score - a.score || a.index - b.index)
       .slice(0, this.maxTools);
 
-    // Never send an empty tool list when the query did not match a keyword.
     return selected.some(item => item.score > 0)
       ? selected.map(item => item.schema)
       : schemas.slice(0, this.maxTools);

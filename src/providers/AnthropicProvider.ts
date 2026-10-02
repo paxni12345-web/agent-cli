@@ -3,6 +3,26 @@ import type { MessageParam, Message, ToolChoice } from '@anthropic-ai/sdk/resour
 import { BaseAIProvider } from './AIProvider.js';
 import { ChatRequest, ChatResponse, ChatChunk, ToolCall, ProviderError, ThinkingLevel } from '../types/index.js';
 
+/**
+ * Accepts any Anthropic-compatible base URL shape and rewrites it to the form
+ * the SDK expects (root URL, no `/v1/messages` suffix):
+ *   https://host            -> https://host            (unchanged)
+ *   https://host/           -> https://host
+ *   https://host/v1         -> https://host
+ *   https://host/v1/        -> https://host
+ *   https://host/v1/messages-> https://host
+ *   https://host/api        -> https://host/api        (unknown path kept as-is)
+ */
+export function normalizeAnthropicBaseUrl(baseUrl?: string): string | undefined {
+  if (!baseUrl) return undefined;
+  let url = baseUrl.trim();
+  if (!url) return undefined;
+  if (!/^https?:\/\//.test(url)) url = `https://${url}`;
+  url = url.replace(/\/+$/, '');
+  if (/\/v1(\/messages)?$/.test(url)) url = url.replace(/\/v1(\/messages)?$/, '');
+  return url;
+}
+
 export class AnthropicProvider extends BaseAIProvider {
   name = 'anthropic';
   private client: Anthropic;
@@ -20,7 +40,7 @@ export class AnthropicProvider extends BaseAIProvider {
       options?.client ??
       new Anthropic({
         apiKey,
-        baseURL: options?.baseUrl,
+        baseURL: normalizeAnthropicBaseUrl(options?.baseUrl),
       });
   }
 

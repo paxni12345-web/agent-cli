@@ -1377,7 +1377,7 @@
         <div class="field-group">
           <label for="setBaseUrl">Base URL <span class="badge" id="baseUrlBadge">—</span></label>
           <input class="input mono" id="setBaseUrl" type="text" placeholder="https://api.anthropic.com" autocomplete="off" spellcheck="false">
-          <span class="hint">Any provider base URL, e.g. https://api.anthropic.com, https://api.openai.com/v1 or a relay/proxy address. Empty uses the SDK default.</span>
+          <span class="hint">Any Anthropic-compatible base URL — with or without /v1 or /v1/messages, e.g. https://api.anthropic.com, https://relay.example.com/v1, https://relay.example.com/v1/messages. It is normalized automatically. Empty uses the SDK default.</span>
         </div>
         <!-- The model field is a single element shared with the header popover;
              it is moved between the two forms so the id stays unique. -->

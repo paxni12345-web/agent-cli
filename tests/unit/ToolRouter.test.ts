@@ -9,38 +9,25 @@ describe('ToolRouter', () => {
   ];
 
   // Endpoints pointing at a closed port so every model stage fails fast
-  // and the router degrades to the keyword fallback.
+  // and the router passes the full tool list through unchanged.
   const dead = { xlam: 'http://127.0.0.1:1/v1/chat/completions', laya: 'http://127.0.0.1:1/v1/systemone' };
 
-  function routerWith(maxTools: number, mode?: 'chain' | 'laya' | 'xlam' | 'keyword', verify?: boolean): ToolRouter {
+  function routerWith(maxTools: number, mode?: 'xlam' | 'chain', verify?: boolean): ToolRouter {
     process.env.LAYA_ROUTER_URL = dead.laya;
     process.env.XLAM_ROUTER_URL = dead.xlam;
     return new ToolRouter(maxTools, { mode, verify });
   }
 
-  it('selects relevant tools and respects the limit (keyword fallback)', async () => {
-    const router = routerWith(1, 'keyword');
-    expect((await router.select('run tests', schemas)).map(tool => tool.name)).toEqual(['shell']);
+  it('xlam mode passes the full list through when the model is unreachable', async () => {
+    expect(await routerWith(1, 'xlam').select('run tests', schemas)).toEqual(schemas);
   });
 
-  it('keeps a fallback tool when there is no keyword match', async () => {
-    expect(await routerWith(2, 'keyword').select('ช่วยหน่อย', schemas)).toHaveLength(2);
+  it('chain mode passes the full list through when both models are unreachable', async () => {
+    expect(await routerWith(1, 'chain').select('run tests', schemas)).toEqual(schemas);
   });
 
-  it('chain mode falls back to keywords when both models are unreachable', async () => {
-    const result = await routerWith(1, 'chain').select('run tests', schemas);
-    expect(result).toHaveLength(1);
-    expect(result.map(tool => tool.name)).toEqual(['shell']);
-  });
-
-  it('xlam mode falls back to keywords when the model is unreachable', async () => {
-    const result = await routerWith(1, 'xlam').select('run tests', schemas);
-    expect(result).toHaveLength(1);
-  });
-
-  it('laya mode falls back to keywords when the model is unreachable', async () => {
-    const result = await routerWith(1, 'laya').select('run tests', schemas);
-    expect(result).toHaveLength(1);
+  it('off mode never calls any model', async () => {
+    expect(await routerWith(1, 'chain').select('anything', schemas)).toBe(schemas);
   });
 
   it('returns all schemas without calling any model when under the limit', async () => {

@@ -23,8 +23,9 @@ Script จะ:
 ## เปิดใช้ใน agent
 
 ```bash
-export AGENT_TOOL_ROUTER=chain     # xLAM เสนอ → Laya ตรวจ → keyword fallback
-# หรือ AGENT_TOOL_ROUTER=laya / xlam / keyword
+export AGENT_TOOL_ROUTER=chain     # xLAM เสนอ → Laya ตรวจ
+# หรือ AGENT_TOOL_ROUTER=xlam (default) / off
+# โมเดลล่ม/หมดเวลา = ส่ง tool ทั้งหมดให้โมเดลหลักเลือกเอง (ไม่มี keyword เดาแล้ว)
 ```
 
 ตัวแปรเพิ่มเติม:
@@ -39,7 +40,7 @@ export AGENT_TOOL_ROUTER=chain     # xLAM เสนอ → Laya ตรวจ →
 
 ## Fail-safe
 
-โมเดล local เป็น **ของแถม ไม่ใช่ข้อบังคับ** — ถ้า endpoint ไหนล่ม/ช้า/ตอบมั่ว ระบบจะ degrade เป็นขั้นถัดไปอัตโนมัติ (xLAM → Laya → keyword) เครื่องผู้ใช้ที่ไม่ได้สตาร์ทโมเดลจะยังใช้งานได้ปกติด้วย keyword fallback
+โมเดล local เป็น **ของแถม ไม่ใช่ข้อบังคับ** — ถ้า endpoint ไหนล่ม/ช้า/ตอบมั่ว router จะส่ง tool ทั้งหมดผ่านไปให้โมเดลหลักเลือกเองตามปกติ (native tool calling) ไม่มีการเดาด้วย keyword อีกต่อไป
 
 ## สเปกเครื่องที่แนะนำ (ใช้ quant 4-bit ทั้งคู่แล้ว)
 

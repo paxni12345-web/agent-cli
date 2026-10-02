@@ -1338,6 +1338,10 @@
     </div>
     <form class="popover-body" id="modelPopoverForm">
       <div class="field-group">
+        <span class="field-label">Saved providers</span>
+        <div class="prof-list" id="popoverProfList"><span class="hint">Loading…</span></div>
+      </div>
+      <div class="field-group">
         <span class="field-label">Provider</span>
         <div class="radio-row" id="pickProvider" role="radiogroup" aria-label="Provider">
           <label class="radio"><input type="radio" name="pickProvider" value="anthropic" checked> <span>Anthropic</span></label>
@@ -3185,7 +3189,10 @@
           .catch(function () { state.profiles = []; return state.profiles; });
       }
       function renderProfiles() {
-        var box = $('profList');
+        renderProfilesInto($('profList'));
+        renderProfilesInto($('popoverProfList'));
+      }
+      function renderProfilesInto(box) {
         if (!box) return;
         box.innerHTML = '';
         var list = state.profiles || [];
@@ -3208,7 +3215,11 @@
           row.appendChild(meta);
           var use = el('button', 'btn', 'Use');
           use.type = 'button';
-          use.onclick = function () { activateProfile(p.name); };
+          use.onclick = function () {
+            var inPopover = box === $('popoverProfList');
+            var done = function () { if (inPopover) closeModelPopover(); };
+            Promise.resolve(activateProfile(p.name)).then(done, done);
+          };
           var del = el('button', 'btn', 'Delete');
           del.type = 'button';
           del.onclick = function () {
@@ -3271,6 +3282,9 @@
             $('profApiKey').value = '';
             renderProfiles();
             toast('Profile saved: ' + name, 'ok');
+            // Drop straight into the new profile so the header provider/model
+            // picker reflects it right away — no second click needed.
+            activateProfile(name);
           })
           .catch(function (err) { toast(err.message, 'bad'); });
       }
@@ -3314,6 +3328,10 @@
         $('modelBtn').setAttribute('aria-expanded', 'true');
         $('popMsg').textContent = '';
         $('popMsg').className = 'modal-msg';
+        // Refresh the saved-provider list so a profile saved in settings (or from
+        // another tab) shows up immediately when the popover opens.
+        if (state.profiles) renderProfilesInto($('popoverProfList'));
+        fetchProfiles().then(function () { renderProfilesInto($('popoverProfList')); });
         try {
           var rect = $('modelBtn').getBoundingClientRect();
           pop.style.left = Math.max(8, Math.round(rect.left)) + 'px';

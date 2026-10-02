@@ -1338,10 +1338,6 @@
     </div>
     <form class="popover-body" id="modelPopoverForm">
       <div class="field-group">
-        <span class="field-label">Saved providers</span>
-        <div class="prof-list" id="popoverProfList"><span class="hint">Loading…</span></div>
-      </div>
-      <div class="field-group">
         <span class="field-label">Provider</span>
         <div class="radio-row" id="pickProvider" role="radiogroup" aria-label="Provider">
           <label class="radio"><input type="radio" name="pickProvider" value="anthropic" checked> <span>Anthropic</span></label>
@@ -3190,7 +3186,32 @@
       }
       function renderProfiles() {
         renderProfilesInto($('profList'));
-        renderProfilesInto($('popoverProfList'));
+        // Saved profiles are radio options inside the popover's Provider group,
+        // not a separate box — pick one and hit Apply like any provider.
+        renderProviderRadios();
+      }
+      function renderProviderRadios() {
+        var box = $('pickProvider');
+        if (!box) return;
+        var existing = box.querySelectorAll('label[data-prof]');
+        for (var i = 0; i < existing.length; i++) existing[i].remove();
+        var list = state.profiles || [];
+        list.forEach(function (p) {
+          var label = document.createElement('label');
+          label.className = 'radio';
+          label.setAttribute('data-prof', '1');
+          label.title = (p.model || 'default model') + ' · ' + (p.baseUrl || 'provider default');
+          var input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'pickProvider';
+          input.value = 'profile:' + p.name;
+          input.checked = p.name === state.settings.activeProfile;
+          var span = document.createElement('span');
+          span.textContent = p.name;
+          label.appendChild(input);
+          label.appendChild(span);
+          box.appendChild(label);
+        });
       }
       function renderProfilesInto(box) {
         if (!box) return;
@@ -3215,11 +3236,7 @@
           row.appendChild(meta);
           var use = el('button', 'btn', 'Use');
           use.type = 'button';
-          use.onclick = function () {
-            var inPopover = box === $('popoverProfList');
-            var done = function () { if (inPopover) closeModelPopover(); };
-            Promise.resolve(activateProfile(p.name)).then(done, done);
-          };
+          use.onclick = function () { activateProfile(p.name); };
           var del = el('button', 'btn', 'Delete');
           del.type = 'button';
           del.onclick = function () {
@@ -3317,7 +3334,15 @@
       function paintProfileFields() {
         var provider = radioGroup('pickProvider');
         var thinking = radioGroup('pickThinking');
-        if (provider) provider.value = state.settings.provider === 'openai' ? 'openai' : 'anthropic';
+        if (provider) {
+          // Active saved profile wins; otherwise fall back to the raw style.
+          if (state.settings.activeProfile) {
+            provider.value = 'profile:' + state.settings.activeProfile;
+            if (!provider.value) provider.value = state.settings.provider === 'openai' ? 'openai' : 'anthropic';
+          } else {
+            provider.value = state.settings.provider === 'openai' ? 'openai' : 'anthropic';
+          }
+        }
         if (thinking) thinking.value = THINKING_LEVELS.indexOf(state.settings.thinkingLevel) >= 0 ? state.settings.thinkingLevel : 'off';
         if (!$('setModel').value) $('setModel').value = state.settings.model || '';
       }
@@ -3328,10 +3353,10 @@
         $('modelBtn').setAttribute('aria-expanded', 'true');
         $('popMsg').textContent = '';
         $('popMsg').className = 'modal-msg';
-        // Refresh the saved-provider list so a profile saved in settings (or from
-        // another tab) shows up immediately when the popover opens.
-        if (state.profiles) renderProfilesInto($('popoverProfList'));
-        fetchProfiles().then(function () { renderProfilesInto($('popoverProfList')); });
+        // Refresh the saved-provider radios so a profile saved in settings (or
+        // from another tab) shows up immediately when the popover opens. No
+        // repaint afterwards — it must not clobber what the user just picked.
+        fetchProfiles().then(function () { renderProviderRadios(); });
         try {
           var rect = $('modelBtn').getBoundingClientRect();
           pop.style.left = Math.max(8, Math.round(rect.left)) + 'px';
@@ -3351,6 +3376,12 @@
         var thinkingBox = $('pickThinking');
         var provider = (providerBox && providerBox.value) || state.settings.provider || 'anthropic';
         var thinking = (thinkingBox && thinkingBox.value) || 'off';
+        // A saved profile radio: activate it wholesale instead of the raw
+        // provider/model fields — the profile carries its own style/URL/key.
+        if (typeof provider === 'string' && provider.indexOf('profile:') === 0) {
+          activateProfile(provider.slice('profile:'.length));
+          return;
+        }
         var model = $('setModel').value.trim();
         var msg = $('popMsg');
         msg.className = 'modal-msg';

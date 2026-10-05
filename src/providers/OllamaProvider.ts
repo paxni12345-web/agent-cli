@@ -3,8 +3,9 @@ import {
   ChatRequest,
   ChatResponse,
   ChatChunk,
-  ChatMessage,
+  ToolCall,
   ProviderError,
+  ChatMessage,
   ThinkingLevel,
 } from '../types/index.js';
 
@@ -203,7 +204,13 @@ export class OllamaProvider extends BaseAIProvider {
         typeof msg.content === 'string'
           ? msg.content
           : msg.content
-              .map((block) => (block.type === 'text' ? (block.text ?? '') : ''))
+              .map((block) => {
+                if (block.type === 'text') {
+                  return block.text ?? '';
+                }
+                // Ollama doesn't support images natively, so we skip them
+                return '';
+              })
               .filter((text) => text.length > 0)
               .join('\n'),
     }));

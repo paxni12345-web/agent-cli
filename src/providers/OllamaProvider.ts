@@ -3,9 +3,8 @@ import {
   ChatRequest,
   ChatResponse,
   ChatChunk,
-  ToolCall,
+  ChatMessage,
   ProviderError,
-  ContentBlock,
   ThinkingLevel,
 } from '../types/index.js';
 
@@ -109,8 +108,7 @@ export class OllamaProvider extends BaseAIProvider {
     } catch (error) {
       throw new ProviderError(
         `Ollama provider error: ${error instanceof Error ? error.message : String(error)}`,
-        'ollama_error',
-        { cause: error }
+        { code: 'ollama_error', cause: error }
       );
     }
   }
@@ -168,23 +166,7 @@ export class OllamaProvider extends BaseAIProvider {
             try {
               const chunk = JSON.parse(line) as OllamaStreamChunk;
               if (chunk.message?.content) {
-                yield {
-                  type: 'text',
-                  text: chunk.message.content,
-                  index: 0,
-                };
-              }
-
-              if (chunk.done) {
-                yield {
-                  type: 'end',
-                  index: 0,
-                  usage: {
-                    inputTokens: chunk.prompt_eval_count || 0,
-                    outputTokens: chunk.eval_count || 0,
-                    totalTokens: (chunk.prompt_eval_count || 0) + (chunk.eval_count || 0),
-                  },
-                };
+                yield { delta: chunk.message.content };
               }
             } catch (e) {
               // Skip malformed JSON lines
@@ -197,22 +179,7 @@ export class OllamaProvider extends BaseAIProvider {
           try {
             const chunk = JSON.parse(buffer) as OllamaStreamChunk;
             if (chunk.message?.content) {
-              yield {
-                type: 'text',
-                text: chunk.message.content,
-                index: 0,
-              };
-            }
-            if (chunk.done) {
-              yield {
-                type: 'end',
-                index: 0,
-                usage: {
-                  inputTokens: chunk.prompt_eval_count || 0,
-                  outputTokens: chunk.eval_count || 0,
-                  totalTokens: (chunk.prompt_eval_count || 0) + (chunk.eval_count || 0),
-                },
-              };
+              yield { delta: chunk.message.content };
             }
           } catch (e) {
             // Skip final buffer if not valid JSON
@@ -224,25 +191,21 @@ export class OllamaProvider extends BaseAIProvider {
     } catch (error) {
       throw new ProviderError(
         `Ollama stream error: ${error instanceof Error ? error.message : String(error)}`,
-        'ollama_stream_error',
-        { cause: error }
+        { code: 'ollama_stream_error', cause: error }
       );
     }
   }
 
-  private formatMessages(messages: Array<{ role: 'user' | 'assistant'; content: ContentBlock[] }>): OllamaMessage[] {
+  private formatMessages(messages: ChatMessage[]): OllamaMessage[] {
     return messages.map((msg) => ({
       role: msg.role,
-      content: msg.content
-        .map((block) => {
-          if (block.type === 'text') {
-            return block.text;
-          }
-          // Ollama doesn't support images natively, so we skip them
-          return '';
-        })
-        .filter((text) => text.length > 0)
-        .join('\n'),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content
+              .map((block) => (block.type === 'text' ? (block.text ?? '') : ''))
+              .filter((text) => text.length > 0)
+              .join('\n'),
     }));
   }
 }

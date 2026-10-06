@@ -2,7 +2,20 @@
 
 ## Unreleased
 
+### Added
+- Web UI wired to the agent server: `/api/agent/run`, `/stop`, `/clear`, live
+  tool activity over `/events`, and provider/model/API-key settings saved to the
+  server
+- Subresource Integrity hashes on every CDN asset; the UI document's CSP now
+  allows cdnjs and Google Fonts (API responses keep the strict policy)
+- `tests/ui/agentUi.test.ts`: jsdom tests for the new page
+
 ### Changed
+- `npm start` now runs the HTTP server; `agent-server` is the only `bin`
+- The web UI no longer keeps an API key in the browser (keys saved by older
+  versions are purged); the key lives on the server
+- README, CONTRIBUTING, SECURITY and `.env.example` describe the server and web
+  UI only
 - Require Node.js 20 or newer, matching the supported CI matrix.
 - Safety modules (backups, secret scanner, shell safety, injection detector,
   security pipeline) moved from `agent/` into `security/`; notes moved into
@@ -17,12 +30,19 @@
   (single implementation, protection tiers kept)
 
 ### Removed
+- The CLI and Ink TUI (`agent chat|run|automate|init|doctor`, `agent-ui`,
+  `irissetting`) and the dependencies only they used (`chalk`, `commander`,
+  `ink`, `ink-text-input`, `react`, `lucide-static`)
+- The previous web UI, the vendored Mitr fonts, its tests and the icon-sprite
+  script
 - Unused modules: `SandboxManager` (rehearsal flow was never wired),
   `MemoryNoteTaker`, `checkpoint/DiffPreview`
 - Leftover scratch files (`tool-exports.tmp`, `tool-context.patch`)
 - Stale internal checklist references in comments and test names
 
 ### Fixed
+- `OllamaProvider` did not match the shared provider types, which broke
+  `npm run build`
 - `watch_files` fails on runtimes without recursive `fs.watch` support
   (Node < 20 on Linux): it now degrades to a top-level watch and reports
   which mode it used

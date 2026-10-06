@@ -3,9 +3,8 @@ import {
   ChatRequest,
   ChatResponse,
   ChatChunk,
-  ToolCall,
-  ProviderError,
   ChatMessage,
+  ProviderError,
   ThinkingLevel,
 } from '../types/index.js';
 
@@ -109,7 +108,7 @@ export class OllamaProvider extends BaseAIProvider {
     } catch (error) {
       throw new ProviderError(
         `Ollama provider error: ${error instanceof Error ? error.message : String(error)}`,
-        { code: 'ollama_error', cause: error }
+        { originalError: error }
       );
     }
   }
@@ -192,7 +191,7 @@ export class OllamaProvider extends BaseAIProvider {
     } catch (error) {
       throw new ProviderError(
         `Ollama stream error: ${error instanceof Error ? error.message : String(error)}`,
-        { code: 'ollama_stream_error', cause: error }
+        { originalError: error }
       );
     }
   }
@@ -204,13 +203,8 @@ export class OllamaProvider extends BaseAIProvider {
         typeof msg.content === 'string'
           ? msg.content
           : msg.content
-              .map((block) => {
-                if (block.type === 'text') {
-                  return block.text ?? '';
-                }
-                // Ollama doesn't support images natively, so we skip them
-                return '';
-              })
+              // Ollama doesn't support images natively, so only text blocks are sent
+              .map((block) => (block.type === 'text' ? block.text ?? '' : ''))
               .filter((text) => text.length > 0)
               .join('\n'),
     }));

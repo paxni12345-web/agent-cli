@@ -7,7 +7,6 @@
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "jsx": "react",
     "outDir": "dist-test",
     "types": ["node", "jest"]
   },

@@ -28,7 +28,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ### Prerequisites
 
-- Node.js 18+ or 20+
+- Node.js 20 or newer
 - npm or yarn
 - Git
 - TypeScript knowledge
@@ -69,11 +69,8 @@ npm run build
 # All tests
 npm test
 
-# Unit tests only
-npm run test:unit
-
-# Integration tests only
-npm run test:integration
+# A single file
+npx jest tests/unit/AgentServer.test.ts
 
 # With coverage
 npm run test:coverage
@@ -105,15 +102,12 @@ npm run format
 npm run dev
 ```
 
-### Run the CLI Locally
+### Run the Server Locally
 
 ```bash
-# After building
-npm start
-
-# Or link globally
-npm link
-agent run
+npm run build
+export ANTHROPIC_API_KEY=your-key-here
+npm start   # then open http://127.0.0.1:3000/
 ```
 
 ---
@@ -129,12 +123,14 @@ agent-cli/
 │   ├── types/           # TypeScript type definitions
 │   ├── config/          # Configuration management
 │   ├── security/        # Permission management
-│   ├── cli/             # CLI interface
+│   ├── agent-server.ts  # HTTP server (API + web UI host)
 │   └── ...              # Other modules
 ├── tests/
 │   ├── unit/            # Unit tests
+│   ├── ui/              # Web UI (jsdom) tests
 │   ├── integration/     # Integration tests
 │   └── security/        # Security tests
+├── public/              # Web UI (agent-ui.html)
 ├── docs/                # Documentation
 └── examples/            # Example code
 ```
@@ -435,7 +431,7 @@ export class YourTool implements Tool {
 
 2. **Add tests**: `tests/unit/YourTool.test.ts`
 
-3. **Register in CLI**: Update `src/cli.ts`
+3. **Register the tool**: add it alongside the existing built-in tools in `src/tools/`
 
 4. **Document**: Add to `docs/API.md`
 

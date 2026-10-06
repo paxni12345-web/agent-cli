@@ -1,6 +1,6 @@
-# ◆ Agent CLI
+# ◆ Agent
 
-Autonomous AI coding agent for your terminal — it plans, edits files, runs commands in a sandbox, and verifies its own work before reporting back.
+Autonomous AI coding agent with a web UI — it plans, edits files, runs commands in a sandbox, and verifies its own work before reporting back. A small HTTP server runs the agent loop and serves the chat page.
 
 ## Features
 
@@ -10,9 +10,8 @@ Autonomous AI coding agent for your terminal — it plans, edits files, runs com
 - **Workflow-aware automation** — maps frontend, backend, data, tests, and deployment before making cross-layer changes
 - **Dependency/API support** — can install required libraries through the project package manager and integrate APIs through environment-based credentials
 - **Three-layer memory** — separates temporary session notes, workspace project knowledge, and user-wide preferences; never stores secrets
-- **Live TUI** — streaming output, tool activity feed, token usage bar, command history
-- **Two interfaces** — classic readline REPL (`agent chat`) or Ink UI (`agent-ui`)
-- **Extensible** — install skills, MCP servers and plugins from a GitHub URL in the web UI
+- **Web UI** — chat page served by the built-in HTTP server: live tool activity, code blocks and math, dark/light theme, file attachments, provider and model settings
+- **Extensible** — install skills, MCP servers and plugins from a GitHub URL through the HTTP API
 
 ## Install
 
@@ -23,84 +22,37 @@ npm install
 npm run build
 ```
 
-Set your API key:
-
-```bash
-export ANTHROPIC_API_KEY=your-key-here
-# or
-export OPENAI_API_KEY=your-key-here
-```
-
 ## Usage
 
-### Interactive chat (readline)
+Start the server and open the UI:
 
 ```bash
-agent chat
-agent chat -p openai -m gpt-4o
-agent chat --permission-mode auto --max-iterations 50
+export ANTHROPIC_API_KEY=your-key-here   # or OPENAI_API_KEY — can also be entered in the UI's settings
+npm start                                # runs node dist/agent-server.js
+# then open http://127.0.0.1:3000/
 ```
 
-### TUI (Ink)
+`npm run server` is the same entry point for development.
 
-```bash
-agent-ui
-agent-ui -m gpt-4o --mode fast
-```
+The server is **read-only by default**: the agent can inspect the workspace and answer, but cannot write files or run commands. Set `AGENT_SERVER_ALLOW_MUTATIONS=true` to allow that.
 
-On first launch, `agent-ui` opens the IRIS quick setup if no API key is configured. To change provider, API key, model, or base URL later, run:
+### HTTP API
 
-```bash
-irissetting
-```
+You can also drive the agent without the UI. Everything under `/api/agent/` requires the token when `AGENT_SERVER_API_KEY` is set.
 
-The wizard saves credentials locally in `~/.agent/config.json` with owner-only file permissions. Alternatively, configure through environment variables such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
-
-### One-shot task
-
-```bash
-agent run "add error handling to src/index.ts"
-agent run --permission-mode safe --max-iterations 20 "review the auth flow"
-```
-
-`agent run` supports the same permission and iteration controls as `agent chat`.
-Use `safe` when you want the agent to inspect without changing files.
-
-### Full-stack automation
-
-Use `automate` when one prompt should drive the complete workflow: map the project,
-plan the affected layers, edit frontend/backend/data/config files, then run tests and
-build checks.
-
-```bash
-agent automate --workspace . \
-  "เพิ่มระบบสมัครสมาชิกให้ครบทั้งหน้าเว็บ API validation database migration และ tests"
-```
-
-The automation mode uses up to 80 iterations by default. Use `--permission-mode normal`
-for approval before changes, or `--permission-mode auto` only in a trusted workspace.
-
-### Utilities
-
-```bash
-agent init     # create .agent/config.json in this project
-agent doctor   # check node, git, workspace, API keys
-```
-
-## Slash commands
-
-| Command | Description |
+| Endpoint | Purpose |
 |---|---|
-| `/help` | Show available commands |
-| `/status` | Agent status, iterations, tool calls |
-| `/stats` | Tool performance report (success rate, latency) |
-| `/tools` | List registered tools (live from the registry) |
-| `/history` | Recent tool executions |
-| `/model <name>` | Switch model |
-| `/config` | Show configuration |
-| `/reset` | Reset agent memory |
-| `/clear` | Clear screen/view |
-| `/exit` | Quit |
+| `POST /api/agent/run` | Run a message (`{ message, attachments? }`) and wait for the reply |
+| `POST /api/agent/stop` | Stop the run in progress |
+| `POST /api/agent/clear` | Forget the conversation (404 before the first run) |
+| `GET /api/agent/status` | Agent status |
+| `GET /api/agent/events` | Server-Sent Events: live tool activity |
+| `GET`/`PUT /api/agent/settings` | Provider, model, base URL, API key, reasoning level |
+| `GET`/`PUT /api/agent/profiles`, `DELETE /api/agent/profiles/:name`, `POST /api/agent/profiles/activate` | Saved provider profiles |
+| `GET /api/agent/report`, `/api/agent/metrics/:toolName`, `/api/agent/export` | Tool metrics and exports |
+| `POST`/`GET`/`DELETE /api/agent/files` | Uploaded files |
+| `/api/agent/extensions/*` | Skills, MCP servers and plugins (see below) |
+| `GET /api/health` | Liveness check (no token needed) |
 
 ## Tools
 
@@ -149,48 +101,36 @@ export AGENT_SANDBOX_LOCAL_ALLOW_OUTSIDE=false # strict workspace paths
 
 ## Configuration
 
-Global: `~/.agent/config.json` · Project: `.agent/config.json`
+The server is configured with environment variables (`.env.example` lists them):
 
-```json
-{
-  "provider": "anthropic",
-  "model": "claude-3-5-sonnet-20241022",
-  "permissionMode": "normal",
-  "maxIterations": 30,
-  "temperature": 0.7
-}
-```
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Provider credential. It can also be set from the UI; it is held in memory only |
+| `AGENT_PROVIDER` | `anthropic` (default) or `openai` |
+| `ANTHROPIC_MODEL` / `OPENAI_MODEL` | Model name |
+| `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` | Custom endpoint |
+| `PORT` | Listen port (default `3000`) |
+| `AGENT_SERVER_HOST` | Bind address (default `127.0.0.1`) |
+| `AGENT_SERVER_API_KEY` | Token required on `/api/agent/*`. **Required when the host is not loopback** — the server answers 503 otherwise |
+| `AGENT_SERVER_ORIGIN` | Comma-separated allowed CORS origins (cross-origin requests are off by default) |
+| `AGENT_SERVER_ALLOW_MUTATIONS` | `true` lets the agent write files and run commands |
+| `AGENT_SERVER_RATE_MAX` / `AGENT_SERVER_RATE_WINDOW_MS` | Per-IP rate limit (default 30 requests per 60 000 ms) |
 
-Environment overrides: `AGENT_MODEL`, `AGENT_PROVIDER`, `AGENT_PERMISSION_MODE`, `AGENT_MAX_ITERATIONS`, `AGENT_DEBUG`.
+Provider, model, base URL and reasoning level can also be changed at runtime from the UI (see below).
 
 ### Server safety
 
-The HTTP server binds to `127.0.0.1` and disables cross-origin requests by default.
-It also runs in read-only permission mode unless mutations are explicitly enabled:
+The HTTP server binds to `127.0.0.1` and disables cross-origin requests by default. It also runs in read-only permission mode unless mutations are explicitly enabled (see the table above).
 
-```bash
-export ANTHROPIC_API_KEY=your-key-here
-export AGENT_SERVER_ALLOW_MUTATIONS=true   # optional; enables write/command tools
-export AGENT_SERVER_HOST=127.0.0.1         # optional
-export AGENT_SERVER_ORIGIN=http://localhost:3000
-npm run server
-```
-
-Do not expose the server directly to the public internet. Put authentication and TLS in
-front of it before using a non-local bind address. The server requires a real
-`ANTHROPIC_API_KEY`; it never falls back to a demo key.
+To bind to any other address you must set `AGENT_SERVER_API_KEY`. Clients send it as `Authorization: Bearer <token>` (or `x-api-key`, or `?token=`). The web UI has a **Server token** field under Settings → API connection for this. Put TLS in front of the server and do not expose it directly to the public internet. The server requires a real provider API key; it never falls back to a demo key.
 
 ### Web UI
 
-The server also serves a single-page chat UI at `http://127.0.0.1:3000/` (open
-`/agent-ui.html` directly if you front the server with your own router). It carries
-a collapsible, resizable sidebar; a dark/light theme; tool activity cards; code
-blocks; chat history in `localStorage`; and a metrics panel fed by
-`/api/agent/report`.
+The server serves a single-page chat UI at `http://127.0.0.1:3000/` (also `/agent-ui.html`). It has a collapsible sidebar with chat history (kept in the browser's `localStorage`), a dark/light theme, markdown with code blocks and math, file attachments, and live tool activity while a run is in flight.
 
-Provider settings can be edited from the gear icon in the sidebar footer — or from
-the channel popover in the header (provider + model + reasoning level) — without
-restarting:
+The agent holds one conversation at a time. When you switch chats, edit a message or regenerate a reply, the UI clears the agent and replays a short transcript (the last 24 messages, up to 12 000 characters) so it keeps the context.
+
+Provider, model, reasoning level, API key and base URL can be changed without restarting — from Settings → **Model** / **API connection**, or the model menu in the header — or directly through the API:
 
 - `GET /api/agent/settings` → `{ model, baseUrl, hasApiKey, provider, thinkingLevel }`
 - `PUT /api/agent/settings` → `{ model?, baseUrl?, apiKey?, clearApiKey?, provider?, thinkingLevel? }`
@@ -233,17 +173,13 @@ emitter: `toolStart`, `toolEnd` (with duration, retries, cache hit), `tokenUsage
 waiting for the reply. The last 50 events are replayed to a stream that connects
 late. Payloads carry no credentials or environment values.
 
-The UI carries its own icon set: Lucide symbols are inlined into the HTML by
-`npm run ui:icons` (from the `lucide-static` dev dependency) so the page works with
-no network access and under a strict `default-src 'none'` policy. The Mitr webfont
-(SIL OFL) is vendored into `public/fonts/` and self-hosted, so Thai text renders
-correctly without contacting a font CDN.
+The page loads a few pinned libraries (marked, DOMPurify, highlight.js, KaTeX) from cdnjs, each with a Subresource Integrity hash, and its fonts from Google Fonts. The UI document's Content-Security-Policy allows only those hosts; API responses keep a strict `default-src 'none'` policy. If the CDN is unreachable the page still works: it falls back to a built-in minimal markdown renderer and system fonts, without syntax highlighting or math.
+
+Opening the HTML file straight from disk (`file://`) runs it in mock mode, with no server. If you use a server token, it is stored in this browser's `localStorage`.
 
 ### Extensions: skills, MCP servers and plugins
 
-The sidebar's **Tools** item opens an extensions hub backed by the workspace's
-`.agent/` directory. Paste a GitHub URL and the server downloads the folder and
-installs whatever it contains — the kind is sniffed from the payload:
+The server can install and run skills, MCP servers and plugins under the workspace's `.agent/` directory. The current web UI has no hub for them yet, so manage them through the endpoints below. `POST /api/agent/extensions/install` takes a GitHub URL, downloads the folder and installs whatever it contains — the kind is sniffed from the payload:
 
 | Payload | Installed as | Where it lands |
 | --- | --- | --- |
@@ -280,7 +216,8 @@ oversized files, with path-traversal checks on every written path. Set
 npm run dev        # typecheck & build in watch mode
 npm test           # run unit tests
 npm run typecheck  # tsc --noEmit
-npm run server     # HTTP API around the agent (POST /api/agent/run)
+npm run server     # HTTP server + web UI
+npm start          # run the built server (after npm run build)
 ```
 
 ## Project structure
@@ -292,14 +229,16 @@ src/
 ├── providers/      # Anthropic + OpenAI (native tool calling, streaming)
 ├── tools/          # File, shell, search, git, quality, build tools + registry
 ├── security/       # Permission modes, command policy, sandbox, scanners, backups
-├── ui/             # Ink TUI (header, chat, input, status bar)
 ├── config/         # Config loader (global + project + env)
 ├── extensions/     # Skills, MCP client/manager, plugin store, GitHub installer
 ├── types/          # Shared types
 ├── createAgent.ts  # Wires provider + tools + permissions into an Agent
-├── cli.ts          # readline entry (agent chat | run | init | doctor)
-├── cli-ui.tsx      # Ink entry (agent-ui)
-└── agent-server.ts # HTTP API entry (agent-server)
+└── agent-server.ts # HTTP server + API (entry point)
+public/
+└── agent-ui.html   # the web UI (single file, no build step)
+tests/
+├── unit/
+└── ui/             # jsdom tests for the web UI
 ```
 
 ## License

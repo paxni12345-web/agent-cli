@@ -72,7 +72,7 @@ Please include the following information in your report:
    # Create isolated workspace
    mkdir /tmp/agent-workspace
    cd /tmp/agent-workspace
-   agent run
+   node /path/to/agent-cli/dist/agent-server.js   # run the server from inside the workspace
    ```
 
 4. **Input Validation**: Validate all user inputs before passing to agent

@@ -28,14 +28,18 @@ app.use(express.json({ limit: '12mb' }));
 
 // Baseline security headers, registered before the static handler so documents
 // (not just API responses) actually receive them. The API keeps a locked-down
-// policy; the web UI is a single self-contained document (inline style/script)
-// served from this origin, so it needs a policy that lets those assets run.
+// policy; the web UI is a single document (inline style/script) served from
+// this origin, so it needs a policy that lets those assets run.
 const STRICT_CSP = "default-src 'none'; frame-ancestors 'none'";
+// The UI pulls a few pinned libraries (marked, DOMPurify, highlight.js, KaTeX)
+// from cdnjs — every tag carries a Subresource Integrity hash — and its fonts
+// from Google Fonts. Those hosts are allowed for the UI document only; the API
+// keeps STRICT_CSP.
 const UI_CSP = [
   "default-src 'none'",
-  "style-src 'unsafe-inline'",
-  "script-src 'unsafe-inline'",
-  "font-src 'self'",
+  "style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+  "script-src 'unsafe-inline' https://cdnjs.cloudflare.com",
+  "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
   "img-src 'self' data:",
   "connect-src 'self'",
   "base-uri 'none'",

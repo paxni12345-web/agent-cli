@@ -23,16 +23,16 @@
 
 <!-- ==================== ไลบรารีจาก CDN (cdnjs) ==================== -->
 <!-- marked: แปลง Markdown -> HTML -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
 <!-- DOMPurify: sanitize HTML ป้องกัน XSS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
 <!-- highlight.js: syntax highlighting สำหรับ code block -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" id="hljsLight">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljsDark" disabled>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" integrity="sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L" crossorigin="anonymous" id="hljsLight">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" integrity="sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH" crossorigin="anonymous" id="hljsDark" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp" crossorigin="anonymous"></script>
 <!-- KaTeX: เรนเดอร์สูตรคณิตศาสตร์ -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
 
 <style>
 /* ============================================================================
@@ -827,6 +827,12 @@ body{letter-spacing:.01em}
 .chat-empty .hands-art{width:96px;margin-bottom:14px;color:var(--text-2);opacity:.85}
 .chat-empty p{margin:0;font-family:var(--font-display);font-size:17px;color:var(--text-2);letter-spacing:.05em}
 .chat-empty small{margin-top:4px;font-size:13px}
+/* ===== ความคืบหน้าของเอเจนต์ (SSE) + ชิปเครื่องมือที่ใช้ ===== */
+.live-activity{display:flex;flex-direction:column;gap:2px;margin-top:6px;font-family:var(--font-mono);font-size:12px;color:var(--text-3)}
+.live-activity:empty{display:none}
+.tool-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.tool-chip{font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
+.tool-chip.fail{color:var(--error);border-color:var(--error-border)}
 </style>
 </head>
 <body>
@@ -977,7 +983,7 @@ setTimeout(hide,6000);
         <textarea id="input" rows="1" placeholder="พิมพ์ข้อความที่นี่…"
           aria-label="ช่องพิมพ์ข้อความ"></textarea>
         <div class="composer-row">
-          <button class="icon-btn" id="attachBtn" aria-label="แนบไฟล์" title="แนบไฟล์ (รูป / ข้อความ / PDF)">
+          <button class="icon-btn" id="attachBtn" aria-label="แนบไฟล์" title="แนบไฟล์ (รูป / ข้อความ)">
             <svg width="18" height="18" aria-hidden="true"><use href="#i-attach"/></svg>
           </button>
           <input type="file" id="fileInput" multiple hidden
@@ -1038,27 +1044,16 @@ const store = (() => {
 })();
 
 /* ==================== 2) CONFIG & STATE ==================== */
-/* รายชื่อโมเดล — แก้ไข/เพิ่มได้ที่นี่ */
-const MODELS = [
-  { id:'gpt-4o-mini',   name:'GPT-4o mini',   desc:'เร็ว ประหยัด เหมาะกับงานทั่วไป' },
-  { id:'gpt-4o',        name:'GPT-4o',        desc:'ฉลาดขึ้น เหมาะกับงานซับซ้อน' },
-  { id:'claude-sonnet', name:'Claude Sonnet', desc:'เขียนและวิเคราะห์ยอดเยี่ยม' },
-  { id:'mock-pro',      name:'Mock Pro',      desc:'โมเดลจำลองสำหรับทดสอบ (ไม่ใช้ API)' },
-];
+/* ข้อมูลเซิร์ฟเวอร์เอเจนต์ (ดึงจาก /api/agent/settings) */
+const server = { online: null, provider: 'anthropic', model: '', baseUrl: '', hasApiKey: false, thinkingLevel: 'off', activeProfile: '', profiles: [] };
 
 const DEFAULT_SETTINGS = {
   theme: 'system',           // light | dark | system
   fontSize: 'medium',        // small | medium | large
   language: 'th',
   enterToSend: true,         // Enter = ส่ง, Shift+Enter = บรรทัดใหม่
-  systemPrompt: 'คุณคือผู้ช่วย AI ที่เป็นมิตร ตอบเป็นภาษาไทย กระชับและถูกต้อง',
-  temperature: 0.7,
-  maxTokens: 2048,
-  streaming: true,
-  apiKey: '',
-  baseUrl: 'https://api.openai.com/v1',
-  model: MODELS[0].id,
-  mockMode: true,            // เปิดโหมดจำลองไว้ก่อน เพื่อทดสอบ UI ทันที
+  mockMode: location.protocol === 'file:',  // เปิดไฟล์ตรง ๆ = ไม่มีเซิร์ฟเวอร์ → โหมดจำลอง
+  serverToken: '',           // ใช้เมื่อเซิร์ฟเวอร์ตั้ง AGENT_SERVER_API_KEY
   userName: 'คุณผู้ใช้',
   sidebarCollapsed: false,
 };
@@ -1076,6 +1071,9 @@ const state = {
 
 const saveChats    = () => store.set('ai-chats', state.chats);
 const saveSettings = () => store.set('ai-settings', state.settings);
+/* รุ่นเก่าเก็บ API key/พารามิเตอร์โมเดลไว้ในเบราว์เซอร์ — ตอนนี้อยู่ที่เซิร์ฟเวอร์ทั้งหมด จึงล้างทิ้ง */
+['apiKey','baseUrl','model','systemPrompt','temperature','maxTokens','streaming'].forEach(k => { delete state.settings[k]; });
+saveSettings();
 const $  = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 
@@ -1430,6 +1428,12 @@ function startRename(chat){
 function lastVersion(m){ return m.versions ? m.versions[m.vi ?? m.versions.length - 1] : null; }
 function msgText(m){ return m.role === 'assistant' ? (lastVersion(m)?.text ?? '') : m.text; }
 function msgTime(m){ return m.role === 'assistant' ? (lastVersion(m)?.time ?? m.time) : m.time; }
+/* ชิปเครื่องมือที่เอเจนต์ใช้ในคำตอบนั้น ๆ */
+function toolChipsHtml(v){
+  if (!v || !Array.isArray(v.tools) || !v.tools.length) return '';
+  return '<div class="tool-chips">' + v.tools.map(t =>
+    `<span class="tool-chip${t.ok ? '' : ' fail'}">${t.ok ? '✓' : '✗'} ${escapeHtml(t.name)}${t.ms != null ? ' · ' + Math.round(t.ms) + ' ms' : ''}</span>`).join('') + '</div>';
+}
 
 /* คำทักทายตามช่วงเวลา */
 function greeting(){
@@ -1510,7 +1514,7 @@ function buildMessageEl(m){
     wrap.innerHTML = `
       <div class="msg-avatar" aria-hidden="true"><svg width="19" height="19"><use href="#i-sprout"/></svg></div>
       <div class="msg-body">
-        <div class="md" data-md></div>
+        <div class="md" data-md></div>${toolChipsHtml(v)}
         <div class="msg-actions ${m.rating ? 'sticky' : ''}" data-actions>
           <button class="msg-action-btn" data-act="copy" title="คัดลอก" aria-label="คัดลอกคำตอบ"><svg width="15" height="15"><use href="#i-copy"/></svg></button>
           <button class="msg-action-btn" data-act="regen" title="สร้างคำตอบใหม่" aria-label="สร้างคำตอบใหม่"><svg width="15" height="15"><use href="#i-refresh"/></svg></button>
@@ -1640,95 +1644,168 @@ $('#scrollBottomBtn').addEventListener('click', () => scrollToBottom(true));
 /* เลื่อนตามข้อความใหม่เฉพาะตอนผู้ใช้อยู่ล่างสุดอยู่แล้ว */
 function maybeAutoScroll(){ if (!userScrolledUp) chatScroll.scrollTop = chatScroll.scrollHeight; }
 
-/* ==================== 8) callChatAPI — จุดเดียวสำหรับเชื่อม API จริง ====================
-   วิธีใช้: เปลี่ยน settings.baseUrl / settings.apiKey ในหน้า Settings
-   และปิด mockMode (หรือใส่ API Key แล้วเลือกโมเดลจริง)
-
-   - ค่าเริ่มต้นรองรับ API แบบ OpenAI-compatible:
-       POST {baseUrl}/chat/completions
-       headers: Authorization: Bearer {apiKey}
-       body: { model, messages:[{role,content}], temperature, max_tokens, stream }
-   - รองรับ streaming แบบ SSE (data: {...}\n\n) และโหมดไม่สตรีม
-
-   *** ถ้าใช้ Anthropic ให้ปรับในฟังก์ชันนี้: ***
-     endpoint : {baseUrl}/messages
-     headers  : { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
-     body     : { model, system, messages:[{role,content}], max_tokens, stream }
-     และอ่าน delta จาก event 'content_block_delta' (chunk.delta.text)
+/* ==================== 8) ติดต่อเซิร์ฟเวอร์เอเจนต์ ====================
+   หน้านี้ให้บริการโดย agent-server จึงเรียก API ของ origin เดียวกัน:
+     POST /api/agent/run (ส่งข้อความ+ไฟล์แนบ base64) · /stop · /clear
+     GET  /api/agent/events (SSE ความคืบหน้าเครื่องมือ)
+     GET/PUT /api/agent/settings · GET /api/agent/profiles
+   API key อยู่ในหน่วยความจำของเซิร์ฟเวอร์เท่านั้น ไม่เคยถูกเก็บในเบราว์เซอร์
    ========================================================================== */
-async function callChatAPI({ messages, signal, onToken }){
-  const s = state.settings;
+let serverCtx = { chatId: null, count: 0 };   // แชทที่เอเจนต์ฝั่งเซิร์ฟเวอร์จำอยู่ + จำนวนข้อความที่เห็นแล้ว
+let runTools = [];                            // เครื่องมือที่ทำงานในรอบนี้ (จาก SSE)
+let evSource = null;
+let activityEl = null;                        // กล่องแสดงความคืบหน้าสดใต้ typing indicator
 
-  /* ---- โหมด Mock: จำลองคำตอบสตรีมทีละตัวอักษร ไม่ต้องมี API ---- */
-  if (s.mockMode || !s.apiKey){
-    return mockStreamReply(messages, signal, onToken);
-  }
-
-  /* ---- โหมด API จริง (OpenAI-compatible) ---- */
-  const url = s.baseUrl.replace(/\/+$/, '') + '/chat/completions';
-  const body = {
-    model: s.model,
-    messages: [
-      ...(s.systemPrompt ? [{ role:'system', content:s.systemPrompt }] : []),
-      ...messages,
-    ],
-    temperature: Number(s.temperature),
-    max_tokens: Number(s.maxTokens),
-    stream: !!s.streaming,
-  };
-
-  let res;
+function apiHeaders(extra){
+  const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  if (state.settings.serverToken) h['Authorization'] = 'Bearer ' + state.settings.serverToken;
+  return h;
+}
+async function apiFetch(path, opts){
   try{
-    res = await fetch(url, {
-      method: 'POST',
-      signal,
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + s.apiKey },
-      body: JSON.stringify(body),
-    });
+    return await fetch(path, Object.assign({}, opts, { headers: apiHeaders(opts && opts.headers) }));
   }catch(err){
-    if (err.name === 'AbortError') throw err;
-    throw { type:'network', message:'เชื่อมต่อเครือข่ายไม่สำเร็จ โปรดตรวจสอบอินเทอร์เน็ตหรือ Base URL' };
+    if (err && err.name === 'AbortError') throw err;
+    throw { type:'network', message:'เชื่อมต่อเซิร์ฟเวอร์เอเจนต์ไม่ได้ โปรดตรวจสอบว่าเซิร์ฟเวอร์ยังทำงานอยู่' };
   }
+}
+function httpError(status, data){
+  const detail = data && data.error ? String(data.error) : '';
+  if (status === 499) return { name:'AbortError' };
+  if (status === 401) return { type:'auth', message:'เซิร์ฟเวอร์ต้องการ token ที่ถูกต้อง — ใส่ใน ตั้งค่า → การเชื่อมต่อ API' };
+  if (status === 503) return { type:'config', message: detail || 'เซิร์ฟเวอร์ยังไม่มี API key — เปิด ตั้งค่า → การเชื่อมต่อ API เพื่อใส่คีย์' };
+  if (status === 409) return { type:'busy', message:'เอเจนต์กำลังทำงานอื่นอยู่ โปรดรอสักครู่แล้วลองใหม่' };
+  if (status === 429) return { type:'rate', message:'ส่งคำขอถี่เกินไป โปรดรอสักครู่แล้วลองใหม่' };
+  if (status === 413) return { type:'api', message:'ข้อความหรือไฟล์แนบใหญ่เกินไป' };
+  return { type:'api', message: detail || ('เซิร์ฟเวอร์ตอบกลับด้วย HTTP ' + status) };
+}
+async function apiJson(path, opts){
+  const res = await apiFetch(path, opts);
+  let data = null;
+  try{ data = await res.json(); }catch(e){ /* ไม่มีเนื้อหา JSON */ }
+  if (!res.ok) throw httpError(res.status, data);
+  return data;
+}
 
-  if (!res.ok){
-    const detail = await res.text().catch(() => '');
-    if (res.status === 401 || res.status === 403)
-      throw { type:'auth', message:'API Key ไม่ถูกต้องหรือหมดอายุ (HTTP ' + res.status + ')' };
-    if (res.status === 429)
-      throw { type:'rate', message:'ถูกจำกัดอัตราการเรียก (Rate limit) โปรดรอสักครู่แล้วลองใหม่' };
-    throw { type:'api', message:'API ตอบกลับด้วยข้อผิดพลาด HTTP ' + res.status + (detail ? ' — ' + detail.slice(0, 200) : '') };
+/* ดึงโมเดล/ผู้ให้บริการ/โปรไฟล์ปัจจุบันจากเซิร์ฟเวอร์ */
+async function loadServerInfo(){
+  if (state.settings.mockMode){ renderModelMenu(); return; }
+  try{
+    const [cfg, profiles] = await Promise.all([
+      apiJson('/api/agent/settings'),
+      apiJson('/api/agent/profiles').catch(() => []),
+    ]);
+    Object.assign(server, {
+      online: true, provider: cfg.provider, model: cfg.model || '', baseUrl: cfg.baseUrl || '',
+      hasApiKey: !!cfg.hasApiKey, thinkingLevel: cfg.thinkingLevel || 'off', activeProfile: cfg.activeProfile || '',
+      profiles: Array.isArray(profiles) ? profiles : (profiles && Array.isArray(profiles.profiles) ? profiles.profiles : []),
+    });
+  }catch(e){
+    server.online = false;
+    if (e && e.message) toast(e.message, 'error');
   }
+  renderModelMenu();
+}
 
-  /* ไม่สตรีม: อ่าน JSON ทีเดียว */
-  if (!s.streaming){
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content ?? '';
-    onToken(text);
-    return text;
+/* ---- SSE: แสดงเครื่องมือที่เอเจนต์กำลังใช้แบบสด ---- */
+function disconnectEvents(){ if (evSource){ evSource.close(); evSource = null; } }
+function connectEvents(){
+  disconnectEvents();
+  if (state.settings.mockMode || !server.online || typeof EventSource === 'undefined') return;
+  const q = state.settings.serverToken ? '?token=' + encodeURIComponent(state.settings.serverToken) : '';
+  evSource = new EventSource('/api/agent/events' + q);
+  evSource.onmessage = e => { let ev; try{ ev = JSON.parse(e.data); }catch(_){ return; } onAgentEvent(ev); };
+  evSource.onerror = () => { if (evSource && evSource.readyState === 2) evSource = null; };
+}
+function onAgentEvent(ev){
+  if (!state.generating) return;
+  if (ev.type === 'toolEnd') runTools.push({ name: ev.tool, ok: ev.success !== false, ms: ev.duration });
+  const line =
+    ev.type === 'toolStart' ? '⚙ ' + ev.tool + ' …' :
+    ev.type === 'toolEnd' ? (ev.success !== false ? '✓ ' : '✗ ') + ev.tool + (ev.duration != null ? ' · ' + Math.round(ev.duration) + ' ms' : '') :
+    ev.type === 'providerRetry' ? '↻ ลองเรียกโมเดลใหม่ (ครั้งที่ ' + ev.attempt + ')' :
+    ev.type === 'contextCompressed' ? '▣ บีบอัดบริบทของบทสนทนา' :
+    ev.type === 'securityAlert' ? '⚠ ตรวจพบเหตุการณ์ด้านความปลอดภัย' : null;
+  if (!line || !activityEl || !activityEl.isConnected) return;
+  const li = document.createElement('div');
+  li.textContent = line;
+  activityEl.appendChild(li);
+  while (activityEl.children.length > 6) activityEl.firstChild.remove();
+  maybeAutoScroll();
+}
+
+/* เอเจนต์ฝั่งเซิร์ฟเวอร์จำบทสนทนาได้ทีละเรื่อง — ส่งบริบทของแชทนี้ให้ครบเมื่อจำเป็น */
+const REPLAY_MAX_MSGS = 24, REPLAY_MAX_CHARS = 12000, REPLAY_PER_MSG = 2000;
+function transcriptOf(list){
+  const parts = [];
+  let total = 0;
+  for (let i = list.length - 1; i >= 0 && parts.length < REPLAY_MAX_MSGS; i--){
+    const m = list[i];
+    let t = String(msgText(m) || '').trim();
+    if (m.attachments && m.attachments.length) t += ' [ไฟล์แนบ: ' + m.attachments.map(a => a.name).join(', ') + ']';
+    if (!t) continue;
+    if (t.length > REPLAY_PER_MSG) t = t.slice(0, REPLAY_PER_MSG) + '…';
+    const line = (m.role === 'user' ? 'ผู้ใช้: ' : 'ผู้ช่วย: ') + t;
+    if (total + line.length > REPLAY_MAX_CHARS) break;
+    total += line.length;
+    parts.unshift(line);
   }
-
-  /* สตรีมแบบ SSE: อ่านทีละ chunk */
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '', full = '';
-  for (;;){
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream:true });
-    const lines = buf.split('\n');
-    buf = lines.pop();
-    for (const line of lines){
-      const t = line.trim();
-      if (!t.startsWith('data:')) continue;
-      const payload = t.slice(5).trim();
-      if (payload === '[DONE]') return full;
-      try{
-        const delta = JSON.parse(payload).choices?.[0]?.delta?.content;
-        if (delta){ full += delta; onToken(delta); }
-      }catch(e){ /* ข้ามบรรทัดที่ parse ไม่ได้ */ }
+  return parts.join('\n\n');
+}
+function b64Utf8(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+/* ไฟล์แนบ → รูปแบบที่ /api/agent/run รับ (สูงสุด 8 ไฟล์ ไฟล์ที่อ่านไม่ได้จะถูกข้ามและแจ้งชื่อในข้อความ) */
+function toServerAttachments(m){
+  return (m.attachments || []).slice(0, 8).map(a => {
+    if (a.dataUrl){ return { name: a.name, mimeType: a.type, data: a.dataUrl.slice(a.dataUrl.indexOf(',') + 1) }; }
+    if (typeof a.text === 'string'){
+      return { name: a.name, mimeType: a.type && a.type !== 'application/octet-stream' ? a.type : 'text/plain', data: b64Utf8(a.text) };
     }
+    return null;
+  }).filter(Boolean);
+}
+/* เตรียมคำขอสำหรับข้อความผู้ใช้ล่าสุดก่อนคำตอบ `msg` (ส่งใหม่ / สร้างคำตอบใหม่ / แก้ไขข้อความ) */
+async function prepareRequest(chat, msg){
+  const upto = chat.messages.findIndex(x => x.id === msg.id);
+  const history = chat.messages.slice(0, upto);
+  let last = history.length - 1;
+  while (last >= 0 && history[last].role !== 'user') last--;
+  const userMsg = history[last];
+  const userText = userMsg ? String(userMsg.text || '') : '';
+  if (state.settings.mockMode || !userMsg) return { userText, message: userText, attachments: [] };
+
+  const prior = history.slice(0, last);
+  let message = userText.trim() || 'โปรดดูไฟล์ที่แนบ';
+  const attachments = toServerAttachments(userMsg);
+  const dropped = (userMsg.attachments || []).filter(a => !a.dataUrl && typeof a.text !== 'string').map(a => a.name);
+  if (dropped.length) message += '\n\n(ไฟล์ที่ระบบยังอ่านไม่ได้: ' + dropped.join(', ') + ')';
+
+  /* ถ้าเอเจนต์ไม่ได้จำแชทนี้อยู่ (สลับแชท/แก้ไข/สร้างใหม่/รีเฟรช) ให้ล้างแล้วส่งบทสนทนาก่อนหน้าแบบย่อไปด้วย */
+  if (serverCtx.chatId !== chat.id || serverCtx.count !== prior.length){
+    try{ await apiJson('/api/agent/clear', { method:'POST' }); }
+    catch(e){ if (e && (e.type === 'network' || e.type === 'auth')) throw e; /* 404 = ยังไม่มีเอเจนต์ */ }
+    const tr = transcriptOf(prior);
+    if (tr) message = '[บริบทของบทสนทนาก่อนหน้า]\n' + tr + '\n[จบบริบท]\n\n' + message;
   }
-  return full;
+  return { userText, message, attachments };
+}
+
+async function callChatAPI({ userText, message, attachments, signal, onToken, onMeta }){
+  if (state.settings.mockMode){
+    return mockStreamReply([{ role:'user', content: userText }], signal, onToken);
+  }
+  runTools = [];
+  const body = { message };
+  if (attachments && attachments.length) body.attachments = attachments;
+  const data = await apiJson('/api/agent/run', { method:'POST', signal, body: JSON.stringify(body) });
+  const text = data && typeof data.response === 'string' ? data.response : '';
+  if (onMeta) onMeta({ tools: runTools.slice(0, 30) });
+  onToken(text || '(เอเจนต์ไม่ได้ส่งข้อความกลับมา)');
+  return text;
 }
 
 /* ---- Mock: เลือกคำตอบตัวอย่างแล้วสตรีมทีละตัวอักษร ---- */
@@ -1887,28 +1964,13 @@ const MOCK_GENERIC = q => `ขอบคุณสำหรับข้อคว�
 
 /* ==================== 8.2) กระบวนการสร้างคำตอบ (ส่ง/สตรีม/หยุด/ลองใหม่) ==================== */
 
-/* แปลงประวัติแชทเป็นรูปแบบ messages ของ API */
-function buildApiMessages(chat){
-  return chat.messages.map(m => {
-    let content = msgText(m);
-    /* แนบเนื้อหาไฟล์ข้อความ/รูปเข้าไปกับข้อความ (โหมดง่าย) */
-    if (m.attachments && m.attachments.length){
-      const desc = m.attachments.map(a =>
-        a.text ? `\n[ไฟล์แนบ: ${a.name}]\n${a.text.slice(0, 4000)}` : `\n[ไฟล์แนบ: ${a.name} (${a.type}, ${fmtBytes(a.size)})]`
-      ).join('');
-      content += desc;
-    }
-    return { role: m.role, content };
-  });
-}
-
 /* สร้าง element ข้อความบอทเปล่าพร้อม typing indicator */
 function appendTyping(){
   const wrap = document.createElement('div');
   wrap.className = 'msg assistant';
   wrap.innerHTML = `
     <div class="msg-avatar" aria-hidden="true"><svg width="19" height="19"><use href="#i-sprout"/></svg></div>
-    <div class="msg-body"><div class="typing" aria-label="กำลังพิมพ์"><span></span><span></span><span></span></div></div>`;
+    <div class="msg-body"><div class="typing" aria-label="กำลังพิมพ์"><span></span><span></span><span></span></div><div class="live-activity"></div></div>`;
   $('#chatContainer').appendChild(wrap);
   maybeAutoScroll();
   return wrap;
@@ -1953,6 +2015,7 @@ async function generateReply(chat, targetMsg){
   }
 
   const typingEl = appendTyping();
+  activityEl = typingEl.querySelector('.live-activity');
   const abort = new AbortController();
   state.abortCtrl = abort;
 
@@ -1960,6 +2023,7 @@ async function generateReply(chat, targetMsg){
   let mdEl = null, actionsEl = null, acc = '';
   const startStreamUI = () => {
     typingEl.querySelector('.typing')?.remove();
+    typingEl.querySelector('.live-activity')?.remove();
     mdEl = document.createElement('div');
     mdEl.className = 'md streaming-cursor';
     typingEl.querySelector('.msg-body').appendChild(mdEl);
@@ -1980,9 +2044,12 @@ async function generateReply(chat, targetMsg){
   };
 
   try{
+    let meta = null;
+    const req = await prepareRequest(chat, msg);
     const reply = await callChatAPI({
-      messages: buildApiMessages(chat).slice(0, targetMsg ? chat.messages.findIndex(x => x.id === msg.id) : undefined),
+      ...req,
       signal: abort.signal,
+      onMeta: m => { meta = m; },
       onToken: chunk => {
         acc += chunk;
         if (!mdEl) startStreamUI();
@@ -1991,12 +2058,14 @@ async function generateReply(chat, targetMsg){
     });
 
     /* สตรีมจบ: บันทึกเวอร์ชันใหม่ */
-    msg.versions.push({ text: reply || acc, time: Date.now() });
+    msg.versions.push({ text: reply || acc, time: Date.now(), tools: meta && meta.tools && meta.tools.length ? meta.tools : undefined });
+    serverCtx = { chatId: chat.id, count: chat.messages.findIndex(x => x.id === msg.id) + 1 };
     msg.vi = msg.versions.length - 1;
     chat.updatedAt = Date.now();
     saveChats();
   }catch(err){
     typingEl.remove();
+    serverCtx.chatId = null;   // ไม่แน่ใจว่าเอเจนต์ฝั่งเซิร์ฟเวอร์จำอะไรไว้ → ส่งบริบทซ้ำครั้งหน้า
     if (err && err.name === 'AbortError'){
       /* ผู้ใช้กดหยุด — เก็บข้อความที่สตรีมมาแล้วไว้ถ้ามี */
       if (acc){
@@ -2021,6 +2090,7 @@ async function generateReply(chat, targetMsg){
 
 function finishGeneration(chat){
   state.generating = false;
+  activityEl = null;
   state.abortCtrl = null;
   updateSendState();
   renderChatList(); renderConversation();
@@ -2030,8 +2100,9 @@ function finishGeneration(chat){
 /* กล่องแสดงข้อผิดพลาด + ปุ่มลองใหม่ */
 function appendErrorBox(err, chat, targetMsg){
   const typeText = {
-    network: 'เครือข่ายมีปัญหา', auth: 'API Key ไม่ถูกต้อง',
-    rate: 'ถูกจำกัดการใช้งาน', api: 'เกิดข้อผิดพลาดจาก API',
+    network: 'เครือข่ายมีปัญหา', auth: 'ต้องใช้ token ของเซิร์ฟเวอร์',
+    rate: 'ถูกจำกัดการใช้งาน', api: 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์',
+    config: 'ยังไม่ได้ตั้งค่า API key', busy: 'เอเจนต์กำลังทำงานอยู่',
   }[err.type] || 'เกิดข้อผิดพลาด';
   const box = document.createElement('div');
   box.className = 'msg assistant';
@@ -2060,7 +2131,9 @@ function regenerate(m){
 /* ปุ่มหยุด (ยกเลิกด้วย AbortController) */
 function stopGeneration(){
   if (state.abortCtrl) state.abortCtrl.abort();
-  if (speechSynthesis.speaking) speechSynthesis.cancel();
+  /* บอกเซิร์ฟเวอร์ให้หยุดงานที่ค้างอยู่ด้วย ไม่ใช่แค่เลิกรอคำตอบ */
+  if (state.generating && !state.settings.mockMode) apiFetch('/api/agent/stop', { method:'POST' }).catch(() => {});
+  if (window.speechSynthesis && speechSynthesis.speaking) speechSynthesis.cancel();
 }
 </script>
 <script>
@@ -2123,7 +2196,7 @@ function addFiles(files){
       const r = new FileReader();
       r.onload = () => { item.dataUrl = r.result; state.attachments.push(item); renderChips(); updateSendState(); };
       r.readAsDataURL(f);
-    } else if (/text|json|csv|markdown|pdf/.test(f.type) || /\.(txt|md|csv|json|log)$/i.test(f.name)){
+    } else if (/text|json|csv|markdown/.test(f.type) || /\.(txt|md|csv|json|log)$/i.test(f.name)){
       const r = new FileReader();
       r.onload = () => { item.text = String(r.result || ''); state.attachments.push(item); renderChips(); updateSendState(); };
       r.readAsText(f);
@@ -2199,19 +2272,38 @@ $('#micBtn').addEventListener('click', () => {
 
 /* ==================== ตัวเลือกโมเดลที่ Header ==================== */
 function renderModelMenu(){
-  $('#modelName').textContent = (MODELS.find(m => m.id === state.settings.model) || MODELS[0]).name;
+  $('#modelName').textContent = state.settings.mockMode ? 'Mock' : (server.model || (server.online === false ? 'ออฟไลน์' : '—'));
+  const items = [];
+  if (state.settings.mockMode){
+    items.push({ id:'__cur', cur:true, name:'โหมดจำลอง (Mock)', desc:'ไม่เรียกโมเดลจริง ใช้ทดสอบหน้าตา' });
+  } else {
+    if (server.model) items.push({ id:'__cur', cur:true, name:server.model,
+      desc: server.provider + (server.activeProfile ? ' · โปรไฟล์ ' + server.activeProfile : '') + (server.hasApiKey ? '' : ' · ยังไม่มี API key') });
+    server.profiles.filter(p => p.name !== server.activeProfile).forEach(p =>
+      items.push({ id:'p:' + p.name, name:p.name, desc:(p.model || '') + (p.apiStyle ? ' · ' + p.apiStyle : '') }));
+  }
+  items.push({ id:'__cfg', name:'ตั้งค่าโมเดล…', desc:'เปลี่ยนผู้ให้บริการ โมเดล และ API key' });
   const menu = $('#modelMenu');
-  menu.innerHTML = MODELS.map(m => `
-    <button role="option" aria-selected="${m.id === state.settings.model}" data-id="${m.id}">
-      <span class="m-name">${escapeHtml(m.name)} ${m.id === state.settings.model ? '<span class="check">✓</span>' : ''}</span>
+  menu.innerHTML = items.map(m => `
+    <button role="option" aria-selected="${!!m.cur}" data-id="${escapeHtml(m.id)}">
+      <span class="m-name">${escapeHtml(m.name)} ${m.cur ? '<span class="check">✓</span>' : ''}</span>
       <span class="m-desc">${escapeHtml(m.desc)}</span>
     </button>`).join('');
-  menu.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    state.settings.model = b.dataset.id;
-    saveSettings(); renderModelMenu();
+  menu.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
     $('#modelMenu').classList.add('hidden');
     $('#modelBtn').setAttribute('aria-expanded', 'false');
-    toast('เปลี่ยนเป็นโมเดล ' + (MODELS.find(m => m.id === b.dataset.id) || {}).name);
+    const id = b.dataset.id;
+    if (id === '__cfg'){
+      openSettings();
+      setTimeout(() => { const r = [...document.querySelectorAll('.sp-row')].find(x => x.textContent.includes('โมเดล')); if (r) r.click(); }, 30);
+    } else if (id.startsWith('p:')){
+      try{
+        await apiJson('/api/agent/profiles/activate', { method:'POST', body: JSON.stringify({ name: id.slice(2) }) });
+        serverCtx.chatId = null;
+        await loadServerInfo();
+        toast('เปลี่ยนเป็นโปรไฟล์ ' + id.slice(2));
+      }catch(e){ toast((e && e.message) || 'เปลี่ยนโปรไฟล์ไม่สำเร็จ', 'error'); }
+    }
   }));
 }
 $('#modelBtn').addEventListener('click', e => {
@@ -2348,50 +2440,52 @@ function openSettings(){
         </div>
       </div>
 
-      <!-- แท็บ: โมเดล -->
+      <!-- แท็บ: โมเดล (ตั้งค่าที่เซิร์ฟเวอร์) -->
       <div class="tab-panel" data-panel="model">
         <div class="field">
-          <label for="sysPrompt">System Prompt</label>
-          <textarea id="sysPrompt" rows="4">${escapeHtml(s.systemPrompt)}</textarea>
-          <div class="hint">ข้อความกำกับพฤติกรรมของ AI ที่ส่งไปพร้อมทุกการสนทนา</div>
+          <label for="srvProvider">ผู้ให้บริการ</label>
+          <select id="srvProvider"><option value="anthropic">Anthropic</option><option value="openai">OpenAI-compatible</option></select>
         </div>
         <div class="field">
-          <label>Temperature (ความสร้างสรรค์)</label>
-          <div class="slider-row">
-            <input type="range" id="tempSlider" min="0" max="2" step="0.1" value="${s.temperature}">
-            <span class="val" id="tempVal">${s.temperature}</span>
-          </div>
-          <div class="hint">0 = ตอบตรงและนิ่ง, 2 = สร้างสรรค์และหลากหลาย</div>
+          <label for="srvModel">โมเดล</label>
+          <input type="text" id="srvModel" maxlength="200" value="${escapeHtml(server.model)}" placeholder="เช่น claude-sonnet-4-5">
         </div>
         <div class="field">
-          <label for="maxTokens">Max tokens</label>
-          <input type="number" id="maxTokens" min="64" max="32000" step="64" value="${s.maxTokens}">
+          <label for="srvThink">ระดับการให้เหตุผล</label>
+          <select id="srvThink"><option value="off">ปิด</option><option value="low">ต่ำ</option><option value="medium">กลาง</option><option value="high">สูง</option></select>
+          <div class="hint">Anthropic ใช้เป็นงบ extended thinking, OpenAI ใช้เป็น reasoning effort</div>
         </div>
-        <div class="switch-row">
-          <div><div class="sw-label">สตรีมคำตอบ (Streaming)</div>
-          <div class="sw-hint">แสดงคำตอบไล่ทีละตัวอักษรแบบเรียลไทม์</div></div>
-          <label class="switch"><input type="checkbox" id="streamSw"><span class="track"></span></label>
-        </div>
+        <button class="btn primary" id="srvSaveModel">บันทึกโมเดล</button>
+        <div class="hint" style="margin:10px 0 14px">การบันทึกจะสร้างเอเจนต์ใหม่ที่เซิร์ฟเวอร์ ความจำของแชทปัจจุบันจะถูกส่งให้ใหม่ในข้อความถัดไป</div>
       </div>
 
-      <!-- แท็บ: API -->
+      <!-- แท็บ: API (คีย์อยู่ที่เซิร์ฟเวอร์เท่านั้น) -->
       <div class="tab-panel" data-panel="api">
         <div class="switch-row">
           <div><div class="sw-label">โหมด Mock (จำลองคำตอบ)</div>
-          <div class="sw-hint">เปิดไว้เพื่อทดสอบ UI โดยไม่ใช้ API จริง</div></div>
+          <div class="sw-hint">เปิดไว้เพื่อทดสอบหน้าตาโดยไม่เรียกโมเดลจริง</div></div>
           <label class="switch"><input type="checkbox" id="mockSw"><span class="track"></span></label>
         </div>
         <div class="field">
-          <label for="apiKey">API Key</label>
+          <label for="apiKey">API Key (เก็บบนเซิร์ฟเวอร์)</label>
           <div class="pw-wrap">
-            <input type="password" id="apiKey" autocomplete="off" placeholder="sk-..." value="${escapeHtml(s.apiKey)}">
+            <input type="password" id="apiKey" autocomplete="off" placeholder="${server.hasApiKey ? '•••••• ตั้งค่าไว้แล้ว (พิมพ์ใหม่เพื่อเปลี่ยน)' : 'sk-...'}" value="">
             <button class="eye" id="eyeBtn" aria-label="แสดง/ซ่อน API Key"><svg width="16" height="16"><use href="#i-eye"/></svg></button>
           </div>
+          <div class="hint">คีย์ถูกส่งไปเก็บในหน่วยความจำของเซิร์ฟเวอร์เท่านั้น ไม่เก็บในเบราว์เซอร์</div>
         </div>
         <div class="field">
           <label for="baseUrl">Base URL</label>
-          <input type="text" id="baseUrl" value="${escapeHtml(s.baseUrl)}" placeholder="https://api.openai.com/v1">
-          <div class="hint">รองรับ endpoint แบบ OpenAI-compatible (ต่อท้าย /chat/completions อัตโนมัติ)</div>
+          <input type="text" id="baseUrl" maxlength="500" value="${escapeHtml(server.baseUrl)}" placeholder="เว้นว่าง = ค่าเริ่มต้นของผู้ให้บริการ">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" id="srvSaveApi">บันทึกการเชื่อมต่อ</button>
+          <button class="btn" id="srvClearKey">ลบ API key</button>
+        </div>
+        <div class="field" style="margin-top:18px">
+          <label for="srvToken">Server token</label>
+          <input type="password" id="srvToken" autocomplete="off" value="${escapeHtml(s.serverToken)}" placeholder="เว้นว่างถ้าเซิร์ฟเวอร์ไม่ได้ตั้งไว้">
+          <div class="hint">ใส่เมื่อเซิร์ฟเวอร์ตั้ง AGENT_SERVER_API_KEY (จำเป็นเมื่อ deploy ออกนอก localhost) เก็บในเบราว์เซอร์เครื่องนี้</div>
         </div>
       </div>
 
@@ -2445,23 +2539,36 @@ function openSettings(){
     saveSettings();
   });
 
-  /* --- แท็บโมเดล --- */
-  q('#sysPrompt').addEventListener('input', e => { state.settings.systemPrompt = e.target.value; saveSettings(); });
-  q('#tempSlider').addEventListener('input', e => {
-    state.settings.temperature = +e.target.value;
-    q('#tempVal').textContent = e.target.value; saveSettings();
+  /* --- แท็บโมเดล / API: บันทึกไปที่เซิร์ฟเวอร์ (คีย์ไม่เก็บในเบราว์เซอร์) --- */
+  q('#srvProvider').value = server.provider;
+  q('#srvThink').value = server.thinkingLevel;
+  const saveServer = async (payload, okMsg) => {
+    try{
+      await apiJson('/api/agent/settings', { method:'PUT', body: JSON.stringify(payload) });
+      serverCtx.chatId = null;                 // เอเจนต์ถูกสร้างใหม่ที่เซิร์ฟเวอร์ → ส่งบริบทแชทซ้ำในข้อความถัดไป
+      await loadServerInfo();
+      toast(okMsg);
+      return true;
+    }catch(e){ toast((e && e.message) || 'บันทึกไม่สำเร็จ', 'error'); return false; }
+  };
+  q('#srvSaveModel').addEventListener('click', () => saveServer(
+    { provider: q('#srvProvider').value, model: q('#srvModel').value.trim(), thinkingLevel: q('#srvThink').value }, 'บันทึกโมเดลแล้ว'));
+  q('#srvSaveApi').addEventListener('click', async () => {
+    const payload = { baseUrl: q('#baseUrl').value.trim() };
+    const key = q('#apiKey').value.trim();
+    if (key) payload.apiKey = key;
+    if (await saveServer(payload, 'บันทึกการเชื่อมต่อแล้ว')) q('#apiKey').value = '';
   });
-  q('#maxTokens').addEventListener('change', e => {
-    state.settings.maxTokens = Math.max(64, Math.min(32000, +e.target.value || 2048)); saveSettings();
-  });
-  q('#streamSw').checked = s.streaming;
-  q('#streamSw').addEventListener('change', e => { state.settings.streaming = e.target.checked; saveSettings(); });
-
-  /* --- แท็บ API --- */
+  q('#srvClearKey').addEventListener('click', () => saveServer({ clearApiKey: true }, 'ลบ API key แล้ว'));
+  q('#srvToken').addEventListener('input', e => { state.settings.serverToken = e.target.value.trim(); saveSettings(); });
+  q('#srvToken').addEventListener('change', () => { loadServerInfo().then(connectEvents); });
   q('#mockSw').checked = s.mockMode;
-  q('#mockSw').addEventListener('change', e => { state.settings.mockMode = e.target.checked; saveSettings(); });
-  q('#apiKey').addEventListener('input', e => { state.settings.apiKey = e.target.value.trim(); saveSettings(); });
-  q('#baseUrl').addEventListener('input', e => { state.settings.baseUrl = e.target.value.trim(); saveSettings(); });
+  q('#mockSw').addEventListener('change', e => {
+    state.settings.mockMode = e.target.checked; saveSettings();
+    serverCtx.chatId = null;
+    if (e.target.checked){ disconnectEvents(); renderModelMenu(); }
+    else loadServerInfo().then(connectEvents);
+  });
   q('#eyeBtn').addEventListener('click', () => {
     const f = q('#apiKey');
     const show = f.type === 'password';
@@ -2590,6 +2697,7 @@ document.addEventListener('click', e => {
 function init(){
   applyTheme(); applyFontSize();
   renderModelMenu();
+  loadServerInfo().then(connectEvents);
   renderChatList();
   renderConversation();
   syncResponsive();
@@ -2636,7 +2744,7 @@ function init(){
     const L={light:'สว่าง',dark:'มืด',system:'ตามระบบ'},F={small:'เล็ก',medium:'กลาง',large:'ใหญ่'};
     /* page: [ไอคอน, ชื่อ, ค่า, panel, ลำดับ child ที่จะแสดง, หัวข้อหน้า] */
     const groups=[
-      [['brain','โมเดลและพรอมต์',S.temperature+'','model',null],['plug','การเชื่อมต่อ API',S.mockMode?'Mock':'API จริง','api',null]],
+      [['brain','โมเดลและการให้เหตุผล',server.model||'','model',null],['plug','การเชื่อมต่อ API',S.mockMode?'Mock':'เซิร์ฟเวอร์','api',null]],
       [['user','บัญชี',S.userName,'general',[4]],['moon','ลักษณะ',L[S.theme]||'','general',[0]],['type','ขนาดตัวอักษร',F[S.fontSize]||'','general',[1]],['globe','ภาษา',S.language==='en'?'English':'ไทย','general',[2]],['enter','การส่งข้อความ',S.enterToSend?'Enter':'Shift+Enter','general',[3]]],
       [['box','ส่งออก / นำเข้าข้อมูล','','data',[0]]],
       [['kbd','ทางลัดคีย์บอร์ด','','kbd',null],['info','เกี่ยวกับ','v1.0','about',null]]];
@@ -2684,7 +2792,7 @@ function init(){
   function openData(){openSettings(); const r=[...document.querySelectorAll('.sp-row')].find(x=>x.textContent.includes('ส่งออก')); r&&r.click();}
   banner.onclick=openData;
   /* ใส่ไอคอนหน้าแต่ละแชทเมื่อรายการถูกเรนเดอร์ใหม่ */
-  const deco=()=>list.querySelectorAll('.chat-item:not(:has(.ci))').forEach(it=>it.insertAdjacentHTML('afterbegin',ic('chat','ci')));
+  const deco=()=>list.querySelectorAll('.chat-item').forEach(it=>{ if(!it.querySelector('.ci')) it.insertAdjacentHTML('afterbegin',ic('chat','ci')); });
   new MutationObserver(deco).observe(list,{childList:true}); deco();
 })();
 
@@ -2711,8 +2819,8 @@ function init(){
       <button class="as-tile" data-a="cam">${ic('cam')}กล้อง</button><button class="as-tile" data-a="img">${ic('img')}รูปภาพ</button>
       <button class="as-tile" data-a="file">${ic('folder')}ไฟล์ในเครื่อง</button><button class="as-tile" data-a="mic">${ic('mic')}พิมพ์ด้วยเสียง</button>
       <button class="as-tile" data-a="pr">${ic('quote')}วลีที่ใช้บ่อย</button></div>
-      <button class="as-row" data-a="model">${ic('sliders')}<span class="tx"><b>โมเดลและพรอมต์</b><small>ปรับ System Prompt อุณหภูมิ และจำนวนโทเค็น</small></span>${ic('go','go')}</button>
-      <button class="as-row" data-a="api">${ic('plug')}<span class="tx"><b>การเชื่อมต่อ API</b><small>ใส่ API Key เพื่อให้บอทตอบจริง</small></span><span class="val">${S.mockMode?'Mock':'API จริง'}</span>${ic('go','go')}</button>
+      <button class="as-row" data-a="model">${ic('sliders')}<span class="tx"><b>โมเดลและการให้เหตุผล</b><small>เลือกผู้ให้บริการ โมเดล และระดับการให้เหตุผล</small></span>${ic('go','go')}</button>
+      <button class="as-row" data-a="api">${ic('plug')}<span class="tx"><b>การเชื่อมต่อ API</b><small>ใส่ API key ที่เซิร์ฟเวอร์เพื่อให้บอทตอบจริง</small></span><span class="val">${S.mockMode?'Mock':'เซิร์ฟเวอร์'}</span>${ic('go','go')}</button>
       <button class="as-row" data-a="theme">${ic('moon')}<span class="tx"><b>ลักษณะ</b></span><span class="val">${th[S.theme]||''}</span>${ic('go','go')}</button>`;
     const act={cam:()=>{close();camIn.click()},img:()=>{close();imgIn.click()},file:()=>{close();$('#fileInput').click()},mic:()=>{close();$('#micBtn').click()},
       pr:()=>prompts(box),model:()=>settingsTo('โมเดล'),api:()=>settingsTo('API'),theme:()=>settingsTo('ลักษณะ')};

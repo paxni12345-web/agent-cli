@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0e3c0">
+<meta name="robots" content="noindex">
+<title>เข้าสู่ระบบ · Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Noto+Serif+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* หน้าเข้าสู่ระบบ (Mock) — ธีม Alphonse Mucha / Art Nouveau
+   โทนกระดาษเก่า เส้นทอง เขียวหยก และแดงดินเผา; ยังไม่เชื่อมระบบล็อกอินจริง */
+:root{
+  --paper:#f0e3c0; --paper-hi:#f8efd3; --paper-lo:#e3d09f;
+  --ink:#3b2a20; --ink-soft:#6b5543;
+  --teal:#2d5a54; --teal-deep:#1f403c;
+  --gold:#b98a2e; --rose:#b85c48;
+  --ring:rgba(45,90,84,.45);
+  --display:'Cinzel Decorative','Cormorant Garamond',Georgia,serif;
+  --serif:'Cormorant Garamond','Noto Serif Thai',Georgia,serif;
+  --thai:'Noto Serif Thai','Cormorant Garamond',Georgia,serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  font-family:var(--thai);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(120% 90% at 50% 36%,var(--paper-hi) 0,var(--paper) 55%,var(--paper-lo) 100%) var(--paper);
+}
+/* เนื้อกระดาษ */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid var(--ring);outline-offset:4px;border-radius:999px}
+
+/* กรอบและมุมลายเถา */
+.frame{position:fixed;inset:10px;border:1px solid rgba(185,138,46,.5);pointer-events:none}
+.corner{position:fixed;width:72px;height:72px;pointer-events:none}
+.corner.tl{top:10px;left:10px}
+.corner.tr{top:10px;right:10px;transform:scaleX(-1)}
+.corner.bl{bottom:10px;left:10px;transform:scaleY(-1)}
+.corner.br{bottom:10px;right:10px;transform:scale(-1,-1)}
+.mock-badge{
+  position:fixed;z-index:5;top:calc(18px + env(safe-area-inset-top));right:26px;
+  font:600 11px var(--serif);letter-spacing:.18em;color:var(--rose);
+  border:1px solid var(--rose);border-radius:999px;padding:1px 10px;background:rgba(248,239,211,.85);
+}
+
+.stage{
+  position:relative;min-height:100dvh;max-width:480px;margin:0 auto;
+  padding:calc(34px + env(safe-area-inset-top)) 28px calc(30px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.stage>*{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.stage>:nth-child(2){animation-delay:.08s}.stage>:nth-child(3){animation-delay:.16s}
+.stage>:nth-child(4){animation-delay:.24s}.stage>:nth-child(5){animation-delay:.32s}
+
+.brand{display:flex;align-items:center;gap:12px;font:700 32px var(--display);letter-spacing:.05em;color:var(--teal-deep)}
+.brand svg{width:34px;height:34px}
+.hero{margin:20px 0 8px;width:min(70vw,320px)}
+.hero svg{display:block;width:100%;height:auto}
+.spin{transform-origin:200px 200px;animation:spin 180s linear infinite}
+.tagline{font:600 27px/1.35 var(--thai);color:var(--teal-deep);margin-top:10px}
+.tagline-en{font:italic 500 22px var(--serif);color:var(--ink-soft);margin-top:2px}
+
+.auth,.done{width:100%;margin-top:auto;padding-top:30px;display:grid;gap:14px}
+.auth[hidden],.done[hidden]{display:none}
+.btn-google{
+  width:100%;min-height:54px;border-radius:999px;border:1.5px solid var(--gold);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  font:600 18px var(--thai);color:var(--ink);background:linear-gradient(#fcf6df,#f4e8c6);
+  box-shadow:0 0 0 4px rgba(248,239,211,.9),0 0 0 5px rgba(185,138,46,.5),0 8px 16px rgba(59,42,32,.12);
+  transition:transform .15s,border-color .15s;
+}
+.btn-google:hover{transform:translateY(-1px);border-color:var(--teal)}
+.btn-google svg{width:22px;height:22px}
+.or{display:flex;align-items:center;gap:14px;color:var(--ink-soft);font:500 16px var(--thai);margin:4px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.or::after{background:linear-gradient(270deg,transparent,var(--gold))}
+.field{position:relative}
+input[type=email]{
+  width:100%;min-height:54px;padding:0 62px 0 22px;border-radius:999px;
+  border:1.5px solid rgba(185,138,46,.75);background:rgba(251,244,220,.6);
+  font:500 18px var(--thai);color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s;
+}
+input[type=email]::placeholder{color:#8d7a62}
+input[type=email]:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(45,90,84,.18);background:#fcf6df}
+input[aria-invalid=true]{border-color:var(--rose)}
+.go{
+  position:absolute;right:6px;top:6px;width:42px;height:42px;border:0;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;background:var(--teal);color:#f6ecd0;transition:background .15s,transform .15s;
+}
+.go:hover{background:var(--teal-deep);transform:scale(1.05)}
+.go svg{width:20px;height:20px}
+.err{min-height:1.4em;margin-top:6px;padding-left:20px;text-align:left;font-size:14px;color:var(--rose)}
+.legal{font-size:13.5px;line-height:1.8;color:var(--ink-soft)}
+.legal a{color:var(--teal-deep);text-underline-offset:3px}
+.done h2{font:600 24px var(--thai);color:var(--teal-deep)}
+.done p{color:var(--ink-soft)}
+.done strong{color:var(--ink);word-break:break-all}
+.btn-solid{
+  display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;text-decoration:none;
+  font:600 18px var(--thai);color:#f6ecd0;background:var(--teal);transition:background .15s;
+}
+.btn-solid:hover{background:var(--teal-deep)}
+.btn-link{border:0;background:none;cursor:pointer;font:500 16px var(--thai);color:var(--teal-deep);text-decoration:underline;text-underline-offset:4px;padding:8px}
+.toast{
+  position:fixed;z-index:10;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));max-width:90vw;
+  transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  background:var(--teal-deep);color:#f6ecd0;padding:10px 20px;border-radius:999px;font-size:15px;
+  transition:opacity .2s,transform .2s;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-height:720px){.hero{width:min(54vw,240px)}.tagline{font-size:23px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="corner" viewBox="0 0 72 72">
+      <path d="M3 69V30C3 14 14 3 30 3H69" fill="none" stroke="#b98a2e" stroke-width="2"/>
+      <path d="M11 69V34C11 20 20 11 34 11H69" fill="none" stroke="#2d5a54" stroke-width="1"/>
+      <path d="M18 40C18 28 28 18 40 18C50 18 52 30 44 32C38 34 34 28 38 25" fill="none" stroke="#b85c48" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="20" cy="43" r="2.4" fill="#b98a2e"/><circle cx="43" cy="20" r="2.4" fill="#b98a2e"/>
+    </symbol>
+  </defs>
+</svg>
+<div class="frame" aria-hidden="true"></div>
+<svg class="corner tl" aria-hidden="true"><use href="#corner"/></svg>
+<svg class="corner tr" aria-hidden="true"><use href="#corner"/></svg>
+<svg class="corner bl" aria-hidden="true"><use href="#corner"/></svg>
+<svg class="corner br" aria-hidden="true"><use href="#corner"/></svg>
+<span class="mock-badge" aria-label="หน้าจำลอง">MOCK</span>
+
+<main class="stage">
+  <header class="brand">
+    <svg viewBox="-20 -20 40 40" aria-hidden="true">
+      <g fill="#b85c48">
+        <ellipse cy="-10" rx="3.6" ry="8"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(45)"/>
+        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(90)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(135)"/>
+        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(180)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(225)"/>
+        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(270)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(315)"/>
+      </g>
+      <circle r="5" fill="#e8c35b"/><circle r="1.8" fill="#7a3b2a"/>
+    </svg>
+    <span>Agent</span>
+  </header>
+
+  <figure class="hero">
+    <svg viewBox="0 0 400 400" role="img" aria-label="ภาพวาดสตรีสวมมงกุฎดอกไม้ในวงกลมลายทอง สไตล์ Art Nouveau">
+      <defs>
+        <radialGradient id="halo" cx="50%" cy="46%" r="56%"><stop offset="0" stop-color="#fbf3d6"/><stop offset=".62" stop-color="#f1e0ae"/><stop offset="1" stop-color="#e2c685"/></radialGradient>
+        <clipPath id="disc"><circle cx="200" cy="200" r="150"/></clipPath>
+        <g id="bloom">
+          <g fill="#c9674f">
+            <ellipse cy="-9" rx="5.5" ry="9"/><ellipse cy="-9" rx="5.5" ry="9" transform="rotate(72)"/>
+            <ellipse cy="-9" rx="5.5" ry="9" transform="rotate(144)"/><ellipse cy="-9" rx="5.5" ry="9" transform="rotate(216)"/>
+            <ellipse cy="-9" rx="5.5" ry="9" transform="rotate(288)"/>
+          </g>
+          <circle r="4.2" fill="#e8c35b"/><circle r="1.6" fill="#7a3b2a"/>
+        </g>
+        <g id="leaf"><path d="M0 0C6-8 18-10 26-4C18 4 6 6 0 0Z" fill="#6f8a63"/><path d="M2-1C10-4 18-5 24-4" stroke="#3f5a3d" stroke-width=".9" fill="none"/></g>
+      </defs>
+      <circle cx="200" cy="200" r="186" fill="none" stroke="#2d5a54" stroke-width="1.4"/>
+      <circle cx="200" cy="200" r="178" fill="url(#halo)" stroke="#b98a2e" stroke-width="3.2"/>
+      <circle class="spin" cx="200" cy="200" r="168" fill="none" stroke="#b85c48" stroke-width="5" stroke-dasharray="1 12.4" stroke-linecap="round"/>
+      <circle cx="200" cy="200" r="158" fill="none" stroke="#2d5a54" stroke-width="1.2"/>
+      <circle cx="200" cy="200" r="150" fill="#f7edcf" stroke="#b98a2e" stroke-width="1.6"/>
+      <g clip-path="url(#disc)">
+        <path d="M216 112C196 88 156 90 138 118C120 146 132 178 118 202C106 222 90 230 94 252C98 272 126 276 142 262C128 256 124 240 138 230C154 218 152 200 160 188C168 176 184 178 194 168L216 146Z" fill="#6e4126"/>
+        <path d="M206 116C186 102 160 106 148 128M198 128C178 118 158 128 152 148M192 142C176 138 164 148 162 164M150 176C142 196 150 212 134 226" stroke="#c28a4c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M108 238a14 14 0 1 1 16 14a8 8 0 1 1-9-9" stroke="#c28a4c" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <path d="M198 200L196 240C204 254 226 254 232 238L226 206Z" fill="#efcdb0"/>
+        <path d="M214 112C226 126 228 140 229 150C230 158 240 166 240 170C240 173 234 174 233 176C235 179 235 182 233 184C235 187 232 190 230 191C231 199 229 207 220 212C214 216 206 216 200 214C190 200 186 150 214 112Z" fill="#f4d9bf"/>
+        <path d="M196 232C196 250 184 262 160 270C120 284 96 312 90 360L330 360C324 318 300 288 262 272C238 262 226 250 226 232Z" fill="#2d5a54"/>
+        <path d="M168 270C186 292 212 296 238 276" stroke="#e1bf6a" stroke-width="2.4" fill="none"/>
+        <path d="M150 284C174 312 216 316 252 290" stroke="#e1bf6a" stroke-width="1.2" fill="none"/>
+        <path d="M214 112C226 126 228 140 229 150C230 158 240 166 240 170C240 173 234 174 233 176C235 179 235 182 233 184C235 187 232 190 230 191C231 199 229 207 220 212" stroke="#4a2f22" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M222 214C216 224 214 232 214 240" stroke="#c9a083" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <path d="M207 144q9-6 18-1" stroke="#4a2f22" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M208 152q6-4 12 0" stroke="#4a2f22" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="231" cy="181" rx="3.4" ry="2" fill="#b85c48"/><circle cx="214" cy="170" r="7" fill="#d98a74" opacity=".28"/>
+        <path d="M148 134C168 100 200 92 218 114" stroke="#b98a2e" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <use href="#bloom" transform="translate(166 108) scale(.9)"/><use href="#bloom" transform="translate(190 98) scale(1.05)"/><use href="#bloom" transform="translate(212 104) scale(.8)"/>
+        <use href="#leaf" transform="translate(150 120) rotate(-140)"/><use href="#leaf" transform="translate(180 94) rotate(-60)"/>
+      </g>
+      <path d="M92 296C112 336 156 352 200 354C244 352 288 336 308 296" fill="none" stroke="#5f7b57" stroke-width="2.4" stroke-linecap="round"/>
+      <use href="#leaf" transform="translate(96 318) rotate(30)"/><use href="#leaf" transform="translate(128 342) rotate(12)"/>
+      <use href="#leaf" transform="translate(304 318) rotate(150) scale(1,-1)"/><use href="#leaf" transform="translate(272 342) rotate(168) scale(1,-1)"/>
+      <use href="#bloom" transform="translate(82 296) scale(1.1)"/><use href="#bloom" transform="translate(118 336) scale(.9)"/>
+      <use href="#bloom" transform="translate(200 354) scale(1.25)"/>
+      <use href="#bloom" transform="translate(282 336) scale(.9)"/><use href="#bloom" transform="translate(318 296) scale(1.1)"/>
+    </svg>
+  </figure>
+
+  <div>
+    <h1 class="tagline">ผู้ช่วย AI สำหรับนักแก้ปัญหา</h1>
+    <p class="tagline-en">The AI for problem solvers</p>
+  </div>
+
+  <section class="auth" id="auth" aria-label="เข้าสู่ระบบ">
+    <button type="button" class="btn-google" id="googleBtn">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+        <path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C1 16.4 0 20.1 0 24s1 7.6 2.6 10.8l7.9-6.1z"/>
+        <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+      </svg>
+      <span>ดำเนินการต่อด้วย Google</span>
+    </button>
+    <div class="or" aria-hidden="true">หรือ</div>
+    <form id="emailForm" novalidate>
+      <div class="field">
+        <label class="sr-only" for="email">อีเมล</label>
+        <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="กรอกอีเมลของคุณ" aria-describedby="err">
+        <button type="submit" class="go" aria-label="ดำเนินการต่อด้วยอีเมล">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <p class="err" id="err" role="alert"></p>
+    </form>
+    <p class="legal">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ <a href="#" data-mock>ข้อกำหนดการใช้งาน</a> และ <a href="#" data-mock>นโยบายการใช้งาน</a> และรับทราบ <a href="#" data-mock>นโยบายความเป็นส่วนตัว</a></p>
+  </section>
+
+  <section class="done" id="done" hidden aria-live="polite">
+    <h2>ตรวจสอบกล่องอีเมลของคุณ</h2>
+    <p>เราส่งลิงก์เข้าสู่ระบบไปที่ <strong id="who"></strong> แล้ว<br><small>(โหมดจำลอง — ยังไม่มีการส่งอีเมลจริง)</small></p>
+    <a class="btn-solid" href="/agent-ui.html">เข้าสู่หน้าแชท (จำลอง)</a>
+    <button type="button" class="btn-link" id="again">ใช้อีเมลอื่น</button>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* Mock: ยังไม่มีการเรียก API หรือเก็บข้อมูลใด ๆ — อีเมลที่กรอกแสดงบนหน้าจอเท่านั้น */
+(function(){
+  var auth=document.getElementById('auth'), done=document.getElementById('done'),
+      form=document.getElementById('emailForm'), input=document.getElementById('email'),
+      err=document.getElementById('err'), who=document.getElementById('who'),
+      toastEl=document.getElementById('toast'), timer=null,
+      EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  function toast(msg){
+    toastEl.textContent=msg; toastEl.classList.add('show');
+    clearTimeout(timer); timer=setTimeout(function(){ toastEl.classList.remove('show'); },2600);
+  }
+  document.getElementById('googleBtn').addEventListener('click',function(){
+    toast('โหมดจำลอง: ยังไม่ได้เชื่อม Google Sign-In');
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('a[data-mock]'),function(a){
+    a.addEventListener('click',function(e){ e.preventDefault(); toast('โหมดจำลอง: ยังไม่มีหน้านี้'); });
+  });
+  input.addEventListener('input',function(){ err.textContent=''; input.removeAttribute('aria-invalid'); });
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=input.value.trim();
+    if(!EMAIL.test(v)){
+      err.textContent='กรุณากรอกอีเมลให้ถูกต้อง เช่น name@example.com';
+      input.setAttribute('aria-invalid','true'); input.focus(); return;
+    }
+    who.textContent=v;
+    auth.hidden=true; done.hidden=false;
+    done.querySelector('a').focus();
+  });
+  document.getElementById('again').addEventListener('click',function(){
+    done.hidden=true; auth.hidden=false; input.value=''; input.focus();
+  });
+})();
+</script>
+</body>
+</html>

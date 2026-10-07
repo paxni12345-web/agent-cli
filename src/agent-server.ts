@@ -9,6 +9,7 @@ import { createProvider } from './createAgent.js';
 import { createDefaultToolRegistry } from './tools/index.js';
 import { Action, PermissionManager, PermissionResult, Config, ContentBlock } from './types/index.js';
 import { ExtensionManager, ExtensionKind, isExtensionError } from './extensions/index.js';
+import { createFirebaseVerifier, isEmailAllowed, parseEmailList, FirebaseUser } from './auth/firebaseAuth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,16 @@ const app = express();
 const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.AGENT_SERVER_HOST || '127.0.0.1';
 const API_KEY = process.env.AGENT_SERVER_API_KEY;
+// Optional Google sign-in through Firebase Auth. When FIREBASE_PROJECT_ID is set the
+// API accepts a Firebase ID token from an allowlisted, verified email (the static
+// API key keeps working as an admin credential). The web config values are public
+// by design and are only served so the pages need no hard-coded project.
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID?.trim() || '';
+const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY?.trim() || '';
+const FIREBASE_APP_ID = process.env.FIREBASE_APP_ID?.trim() || '';
+const FIREBASE_AUTH_DOMAIN = process.env.FIREBASE_AUTH_DOMAIN?.trim() || (FIREBASE_PROJECT_ID ? `${FIREBASE_PROJECT_ID}.firebaseapp.com` : '');
+const ALLOWED_EMAILS = parseEmailList(process.env.AGENT_ALLOWED_EMAILS);
+const verifyFirebaseToken = FIREBASE_PROJECT_ID ? createFirebaseVerifier({ projectId: FIREBASE_PROJECT_ID }) : null;
 const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.AGENT_SERVER_RATE_WINDOW_MS || '60000', 10);
 const RATE_LIMIT_MAX = Number.parseInt(process.env.AGENT_SERVER_RATE_MAX || '30', 10);
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -38,10 +49,12 @@ const STRICT_CSP = "default-src 'none'; frame-ancestors 'none'";
 const UI_CSP = [
   "default-src 'none'",
   "style-src 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
-  "script-src 'unsafe-inline' https://cdnjs.cloudflare.com",
+  // Google sign-in needs the Firebase SDK (gstatic) and Google's helper script; only allowed when it is configured.
+  `script-src 'unsafe-inline' https://cdnjs.cloudflare.com${FIREBASE_PROJECT_ID ? ' https://www.gstatic.com https://apis.google.com' : ''}`,
   "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self'${FIREBASE_PROJECT_ID ? ' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com' : ''}`,
+  ...(FIREBASE_PROJECT_ID ? [`frame-src https://${FIREBASE_AUTH_DOMAIN} https://accounts.google.com https://content.googleapis.com`] : []),
   "base-uri 'none'",
   "form-action 'self'",
   "frame-ancestors 'none'",
@@ -73,18 +86,46 @@ function isLoopback(host: string): boolean {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
 }
 
-function securityMiddleware(req: Request, res: Response, next: NextFunction): void {
+function safeEqual(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+/** Returns true when the request may continue; otherwise it has already been answered. */
+async function authenticate(req: Request, res: Response): Promise<boolean> {
   const supplied = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-key') || (typeof req.query.token === 'string' ? req.query.token : undefined);
-  if (!API_KEY && !isLoopback(HOST)) {
+  if (!API_KEY && !verifyFirebaseToken && !isLoopback(HOST)) {
     res.status(503).json({ error: 'Server authentication is not configured' });
-    return;
+    return false;
   }
-  if (API_KEY && supplied !== API_KEY) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+  if (!API_KEY && !verifyFirebaseToken) return true; // loopback development
+  if (API_KEY && supplied && safeEqual(supplied, API_KEY)) return true;
+  if (verifyFirebaseToken && supplied) {
+    let user: FirebaseUser;
+    try {
+      user = await verifyFirebaseToken(supplied);
+    } catch (error) {
+      console.log(`[agent-server] rejected token: ${error instanceof Error ? error.message : 'invalid'}`);
+      res.status(401).json({ error: 'Unauthorized' });
+      return false;
+    }
+    if (!isEmailAllowed(user, ALLOWED_EMAILS)) {
+      console.log(`[agent-server] account not allowed: ${user.email ?? user.uid}`);
+      res.status(403).json({ error: 'This account is not allowed' });
+      return false;
+    }
+    res.locals.user = user;
+    return true;
   }
+  res.status(401).json({ error: 'Unauthorized' });
+  return false;
+}
+
+async function securityMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!(await authenticate(req, res))) return;
   const now = Date.now();
-  const key = req.ip || req.socket.remoteAddress || 'unknown';
+  const key = (res.locals.user as FirebaseUser | undefined)?.uid || req.ip || req.socket.remoteAddress || 'unknown';
   const bucket = rateBuckets.get(key);
   if (!bucket || now >= bucket.resetAt) {
     rateBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -100,7 +141,7 @@ function securityMiddleware(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
-app.use('/api/agent', securityMiddleware);
+app.use('/api/agent', (req: Request, res: Response, next: NextFunction) => { securityMiddleware(req, res, next).catch(next); });
 
 class ServerPermissionManager implements PermissionManager {
   constructor(private readonly allowMutations: boolean) {}
@@ -539,6 +580,12 @@ app.post('/api/agent/stop', (_req, res) => {
   res.json({ success: true });
 });
 
+// Who is signed in (null for the static API key or loopback development).
+app.get('/api/agent/me', (_req, res) => {
+  const user = res.locals.user as FirebaseUser | undefined;
+  res.json({ user: user ? { uid: user.uid, email: user.email ?? null, name: user.name ?? null } : null });
+});
+
 app.get('/api/agent/status', (_req, res) => {
   const provider = { model: settings.model, provider: settings.provider, thinkingLevel: settings.thinkingLevel };
   if (!agent) { res.json({ status: 'not_initialized', tools: [], ...provider, modelCalls: 0, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }); return; }
@@ -714,6 +761,17 @@ app.get('/api/agent/metrics/:toolName', (req, res) => { if (!agent) { res.json({
 app.get('/api/agent/export', (_req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } res.setHeader('Content-Type', 'application/json'); res.setHeader('Content-Disposition', `attachment; filename=agent-metrics-${Date.now()}.json`); res.send(agent.exportPerformanceData()); });
 app.post('/api/agent/clear', (_req, res) => { if (!agent) { res.status(404).json({ error: 'Agent not initialized' }); return; } agent.reset(); modelCalls = 0; broadcast({ type: 'reset' }); res.json({ success: true }); });
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Public: tells the pages which sign-in mode is active. Firebase web config is not secret.
+app.get('/api/auth/config', (_req, res) => {
+  const firebaseReady = Boolean(verifyFirebaseToken && FIREBASE_WEB_API_KEY && FIREBASE_APP_ID);
+  res.json({
+    mode: firebaseReady ? 'firebase' : API_KEY ? 'token' : 'none',
+    firebase: firebaseReady
+      ? { apiKey: FIREBASE_WEB_API_KEY, authDomain: FIREBASE_AUTH_DOMAIN, projectId: FIREBASE_PROJECT_ID, appId: FIREBASE_APP_ID }
+      : null,
+  });
+});
 
 /* ---------------- extensions: skills, MCP servers, plugins ---------------- */
 

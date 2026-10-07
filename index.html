@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iris - เข้าสู่ระบบ</title>
+<style>
+:root{--or:#ff7a1a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#000;color:#fff;font-family:-apple-system,"Sarabun","Noto Sans Thai",system-ui,sans-serif;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;position:relative;text-align:center;padding:0 20px}
+.logo{position:relative;width:84px;height:84px}
+.mandala{position:absolute;left:50%;top:50%;width:860px;height:860px;margin:-430px;pointer-events:none}
+.ln{fill:none;stroke:var(--or);stroke-width:.9;stroke-linecap:round;stroke-linejoin:round}
+.ln g{animation:spin 120s linear infinite}
+.ln .r1{animation-duration:90s;animation-direction:reverse}
+.ln .r3{animation-duration:80s;animation-direction:reverse}
+.ln .r0,.ln .r4,.ln>g:last-child{animation-duration:150s}
+.ln>g:last-child{animation:none}
+.fly{position:relative;width:84px;height:84px;filter:drop-shadow(0 0 8px rgba(255,122,26,.8));animation:fl 4s ease-in-out infinite}
+h1{position:relative;font-size:28px;font-weight:700;margin:0;text-shadow:0 0 8px #000,0 0 18px #000,0 0 28px #000}
+h1 span{font-family:Georgia,"Times New Roman",serif;font-weight:600;color:var(--or)}
+.actions{position:relative;width:100%;max-width:440px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;gap:12px}
+.btn{display:flex;align-items:center;justify-content:center;position:relative;height:54px;border-radius:18px;background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,122,26,.65);color:#fff;font:inherit;font-size:16px;cursor:pointer;width:100%;transition:transform .1s,opacity .15s}
+.btn:active{transform:scale(.98);opacity:.85}
+.btn svg{position:absolute;left:18px;width:22px;height:22px}
+.or{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.7);font-size:14px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:rgba(255,122,26,.5)}
+.email{display:none;flex-direction:column;gap:10px}
+.email.show{display:flex}
+.email input{height:50px;border-radius:14px;border:1px solid rgba(255,122,26,.65);background:rgba(0,0,0,.62);color:#fff;padding:0 14px;font:inherit;font-size:16px;outline:none}
+.email input::placeholder{color:rgba(255,255,255,.55)}
+.foot{position:relative;text-align:center;color:rgba(255,255,255,.7);font-size:13px;line-height:1.7;padding:18px 20px 14px;text-shadow:0 0 8px #000}
+.foot a{color:inherit;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translate(-50%,20px);background:var(--or);color:#000;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.wings{transform-origin:32px 32px;animation:flap 1.6s ease-in-out infinite}
+@keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.8)}}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="logo"><svg class="mandala" viewBox="-300 -300 600 600" aria-hidden="true">
+<defs>
+<path id="bd" d="M-8 3Q-2-5 8-3Q3-1 1 3M8-3l4-2M-8 3l-4 1"/>
+<path id="fg" d="M0 7V-2M-4 0H4M0 7l-3 4M0 7l3 4M-3-5a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/>
+<path id="dr" d="M-7 5V0H6V5M6 0l3-5M9-5l-1-3M9-5l3-2M-7 0l-2-3"/>
+<path id="lf" d="M0 0l-7-20h14zM0-6l-3-9h6z"/>
+</defs>
+<g class="ln">
+<g class="r0"><circle r="296"/><circle r="293"/><polygon points="0.0,-291.0 7.3,-276.9 15.2,-290.6 21.7,-276.1 30.4,-289.4 36.2,-274.6 45.5,-287.4 50.5,-272.4 60.5,-284.6 64.7,-269.3 75.3,-281.1 78.7,-265.6 89.9,-276.8 92.5,-261.1 104.3,-271.7 106.0,-255.9 118.4,-265.8 119.3,-250.0 132.1,-259.3 132.2,-243.4 145.5,-252.0 144.7,-236.2 158.5,-244.1 156.9,-228.3 171.0,-235.4 168.6,-219.8 183.1,-226.1 179.9,-210.6 194.7,-216.3 190.7,-200.9 205.8,-205.8 200.9,-190.7 216.3,-194.7 210.6,-179.9 226.1,-183.1 219.8,-168.6 235.4,-171.0 228.3,-156.9 244.1,-158.5 236.2,-144.7 252.0,-145.5 243.4,-132.2 259.3,-132.1 250.0,-119.3 265.8,-118.4 255.9,-106.0 271.7,-104.3 261.1,-92.5 276.8,-89.9 265.6,-78.7 281.1,-75.3 269.3,-64.7 284.6,-60.5 272.4,-50.5 287.4,-45.5 274.6,-36.2 289.4,-30.4 276.1,-21.7 290.6,-15.2 276.9,-7.3 291.0,-0.0 276.9,7.3 290.6,15.2 276.1,21.7 289.4,30.4 274.6,36.2 287.4,45.5 272.4,50.5 284.6,60.5 269.3,64.7 281.1,75.3 265.6,78.7 276.8,89.9 261.1,92.5 271.7,104.3 255.9,106.0 265.8,118.4 250.0,119.3 259.3,132.1 243.4,132.2 252.0,145.5 236.2,144.7 244.1,158.5 228.3,156.9 235.4,171.0 219.8,168.6 226.1,183.1 210.6,179.9 216.3,194.7 200.9,190.7 205.8,205.8 190.7,200.9 194.7,216.3 179.9,210.6 183.1,226.1 168.6,219.8 171.0,235.4 156.9,228.3 158.5,244.1 144.7,236.2 145.5,252.0 132.2,243.4 132.1,259.3 119.3,250.0 118.4,265.8 106.0,255.9 104.3,271.7 92.5,261.1 89.9,276.8 78.7,265.6 75.3,281.1 64.7,269.3 60.5,284.6 50.5,272.4 45.5,287.4 36.2,274.6 30.4,289.4 21.7,276.1 15.2,290.6 7.3,276.9 0.0,291.0 -7.3,276.9 -15.2,290.6 -21.7,276.1 -30.4,289.4 -36.2,274.6 -45.5,287.4 -50.5,272.4 -60.5,284.6 -64.7,269.3 -75.3,281.1 -78.7,265.6 -89.9,276.8 -92.5,261.1 -104.3,271.7 -106.0,255.9 -118.4,265.8 -119.3,250.0 -132.1,259.3 -132.2,243.4 -145.5,252.0 -144.7,236.2 -158.5,244.1 -156.9,228.3 -171.0,235.4 -168.6,219.8 -183.1,226.1 -179.9,210.6 -194.7,216.3 -190.7,200.9 -205.8,205.8 -200.9,190.7 -216.3,194.7 -210.6,179.9 -226.1,183.1 -219.8,168.6 -235.4,171.0 -228.3,156.9 -244.1,158.5 -236.2,144.7 -252.0,145.5 -243.4,132.2 -259.3,132.1 -250.0,119.3 -265.8,118.4 -255.9,106.0 -271.7,104.3 -261.1,92.5 -276.8,89.9 -265.6,78.7 -281.1,75.3 -269.3,64.7 -284.6,60.5 -272.4,50.5 -287.4,45.5 -274.6,36.2 -289.4,30.4 -276.1,21.7 -290.6,15.2 -276.9,7.3 -291.0,0.0 -276.9,-7.3 -290.6,-15.2 -276.1,-21.7 -289.4,-30.4 -274.6,-36.2 -287.4,-45.5 -272.4,-50.5 -284.6,-60.5 -269.3,-64.7 -281.1,-75.3 -265.6,-78.7 -276.8,-89.9 -261.1,-92.5 -271.7,-104.3 -255.9,-106.0 -265.8,-118.4 -250.0,-119.3 -259.3,-132.1 -243.4,-132.2 -252.0,-145.5 -236.2,-144.7 -244.1,-158.5 -228.3,-156.9 -235.4,-171.0 -219.8,-168.6 -226.1,-183.1 -210.6,-179.9 -216.3,-194.7 -200.9,-190.7 -205.8,-205.8 -190.7,-200.9 -194.7,-216.3 -179.9,-210.6 -183.1,-226.1 -168.6,-219.8 -171.0,-235.4 -156.9,-228.3 -158.5,-244.1 -144.7,-236.2 -145.5,-252.0 -132.2,-243.4 -132.1,-259.3 -119.3,-250.0 -118.4,-265.8 -106.0,-255.9 -104.3,-271.7 -92.5,-261.1 -89.9,-276.8 -78.7,-265.6 -75.3,-281.1 -64.7,-269.3 -60.5,-284.6 -50.5,-272.4 -45.5,-287.4 -36.2,-274.6 -30.4,-289.4 -21.7,-276.1 -15.2,-290.6 -7.3,-276.9"/><circle r="274"/><circle r="270"/></g>
+<g class="r1"><circle r="258"/><circle r="254"/><circle r="250" stroke-dasharray="1.5 4"/><use href="#bd" transform="rotate(0.00) translate(0 -234)"/><use href="#bd" transform="rotate(12.00) translate(0 -234)"/><use href="#bd" transform="rotate(24.00) translate(0 -234)"/><use href="#bd" transform="rotate(36.00) translate(0 -234)"/><use href="#bd" transform="rotate(48.00) translate(0 -234)"/><use href="#bd" transform="rotate(60.00) translate(0 -234)"/><use href="#bd" transform="rotate(72.00) translate(0 -234)"/><use href="#bd" transform="rotate(84.00) translate(0 -234)"/><use href="#bd" transform="rotate(96.00) translate(0 -234)"/><use href="#bd" transform="rotate(108.00) translate(0 -234)"/><use href="#bd" transform="rotate(120.00) translate(0 -234)"/><use href="#bd" transform="rotate(132.00) translate(0 -234)"/><use href="#bd" transform="rotate(144.00) translate(0 -234)"/><use href="#bd" transform="rotate(156.00) translate(0 -234)"/><use href="#bd" transform="rotate(168.00) translate(0 -234)"/><use href="#bd" transform="rotate(180.00) translate(0 -234)"/><use href="#bd" transform="rotate(192.00) translate(0 -234)"/><use href="#bd" transform="rotate(204.00) translate(0 -234)"/><use href="#bd" transform="rotate(216.00) translate(0 -234)"/><use href="#bd" transform="rotate(228.00) translate(0 -234)"/><use href="#bd" transform="rotate(240.00) translate(0 -234)"/><use href="#bd" transform="rotate(252.00) translate(0 -234)"/><use href="#bd" transform="rotate(264.00) translate(0 -234)"/><use href="#bd" transform="rotate(276.00) translate(0 -234)"/><use href="#bd" transform="rotate(288.00) translate(0 -234)"/><use href="#bd" transform="rotate(300.00) translate(0 -234)"/><use href="#bd" transform="rotate(312.00) translate(0 -234)"/><use href="#bd" transform="rotate(324.00) translate(0 -234)"/><use href="#bd" transform="rotate(336.00) translate(0 -234)"/><use href="#bd" transform="rotate(348.00) translate(0 -234)"/><circle r="216"/><circle r="213"/></g>
+<g class="r2"><polygon points="0.0,-208.0 6.8,-195.9 14.5,-207.5 20.5,-194.9 28.9,-206.0 34.0,-193.0 43.2,-203.5 47.4,-190.2 57.3,-199.9 60.6,-186.4 71.1,-195.5 73.4,-181.7 84.6,-190.0 85.9,-176.2 97.7,-183.7 98.0,-169.7 110.2,-176.4 109.6,-162.5 122.3,-168.3 120.7,-154.5 133.7,-159.3 131.1,-145.7 144.5,-149.6 141.0,-136.2 154.6,-139.2 150.1,-126.0 163.9,-128.1 158.6,-115.2 172.4,-116.3 166.2,-103.9 180.1,-104.0 173.1,-92.0 186.9,-91.2 179.1,-79.7 192.9,-77.9 184.2,-67.0 197.8,-64.3 188.4,-54.0 201.8,-50.3 191.7,-40.8 204.8,-36.1 194.1,-27.3 206.9,-21.7 195.5,-13.7 207.9,-7.3 196.0,-0.0 207.9,7.3 195.5,13.7 206.9,21.7 194.1,27.3 204.8,36.1 191.7,40.8 201.8,50.3 188.4,54.0 197.8,64.3 184.2,67.0 192.9,77.9 179.1,79.7 186.9,91.2 173.1,92.0 180.1,104.0 166.2,103.9 172.4,116.3 158.6,115.2 163.9,128.1 150.1,126.0 154.6,139.2 141.0,136.2 144.5,149.6 131.1,145.7 133.7,159.3 120.7,154.5 122.3,168.3 109.6,162.5 110.2,176.4 98.0,169.7 97.7,183.7 85.9,176.2 84.6,190.0 73.4,181.7 71.1,195.5 60.6,186.4 57.3,199.9 47.4,190.2 43.2,203.5 34.0,193.0 28.9,206.0 20.5,194.9 14.5,207.5 6.8,195.9 0.0,208.0 -6.8,195.9 -14.5,207.5 -20.5,194.9 -28.9,206.0 -34.0,193.0 -43.2,203.5 -47.4,190.2 -57.3,199.9 -60.6,186.4 -71.1,195.5 -73.4,181.7 -84.6,190.0 -85.9,176.2 -97.7,183.7 -98.0,169.7 -110.2,176.4 -109.6,162.5 -122.3,168.3 -120.7,154.5 -133.7,159.3 -131.1,145.7 -144.5,149.6 -141.0,136.2 -154.6,139.2 -150.1,126.0 -163.9,128.1 -158.6,115.2 -172.4,116.3 -166.2,103.9 -180.1,104.0 -173.1,92.0 -186.9,91.2 -179.1,79.7 -192.9,77.9 -184.2,67.0 -197.8,64.3 -188.4,54.0 -201.8,50.3 -191.7,40.8 -204.8,36.1 -194.1,27.3 -206.9,21.7 -195.5,13.7 -207.9,7.3 -196.0,0.0 -207.9,-7.3 -195.5,-13.7 -206.9,-21.7 -194.1,-27.3 -204.8,-36.1 -191.7,-40.8 -201.8,-50.3 -188.4,-54.0 -197.8,-64.3 -184.2,-67.0 -192.9,-77.9 -179.1,-79.7 -186.9,-91.2 -173.1,-92.0 -180.1,-104.0 -166.2,-103.9 -172.4,-116.3 -158.6,-115.2 -163.9,-128.1 -150.1,-126.0 -154.6,-139.2 -141.0,-136.2 -144.5,-149.6 -131.1,-145.7 -133.7,-159.3 -120.7,-154.5 -122.3,-168.3 -109.6,-162.5 -110.2,-176.4 -98.0,-169.7 -97.7,-183.7 -85.9,-176.2 -84.6,-190.0 -73.4,-181.7 -71.1,-195.5 -60.6,-186.4 -57.3,-199.9 -47.4,-190.2 -43.2,-203.5 -34.0,-193.0 -28.9,-206.0 -20.5,-194.9 -14.5,-207.5 -6.8,-195.9"/><circle r="193"/><circle r="190"/><use href="#fg" transform="rotate(0.00) translate(0 -172)"/><use href="#dr" transform="rotate(8.18) translate(0 -172)"/><use href="#fg" transform="rotate(16.36) translate(0 -172)"/><use href="#dr" transform="rotate(24.55) translate(0 -172)"/><use href="#fg" transform="rotate(32.73) translate(0 -172)"/><use href="#dr" transform="rotate(40.91) translate(0 -172)"/><use href="#fg" transform="rotate(49.09) translate(0 -172)"/><use href="#dr" transform="rotate(57.27) translate(0 -172)"/><use href="#fg" transform="rotate(65.45) translate(0 -172)"/><use href="#dr" transform="rotate(73.64) translate(0 -172)"/><use href="#fg" transform="rotate(81.82) translate(0 -172)"/><use href="#dr" transform="rotate(90.00) translate(0 -172)"/><use href="#fg" transform="rotate(98.18) translate(0 -172)"/><use href="#dr" transform="rotate(106.36) translate(0 -172)"/><use href="#fg" transform="rotate(114.55) translate(0 -172)"/><use href="#dr" transform="rotate(122.73) translate(0 -172)"/><use href="#fg" transform="rotate(130.91) translate(0 -172)"/><use href="#dr" transform="rotate(139.09) translate(0 -172)"/><use href="#fg" transform="rotate(147.27) translate(0 -172)"/><use href="#dr" transform="rotate(155.45) translate(0 -172)"/><use href="#fg" transform="rotate(163.64) translate(0 -172)"/><use href="#dr" transform="rotate(171.82) translate(0 -172)"/><use href="#fg" transform="rotate(180.00) translate(0 -172)"/><use href="#dr" transform="rotate(188.18) translate(0 -172)"/><use href="#fg" transform="rotate(196.36) translate(0 -172)"/><use href="#dr" transform="rotate(204.55) translate(0 -172)"/><use href="#fg" transform="rotate(212.73) translate(0 -172)"/><use href="#dr" transform="rotate(220.91) translate(0 -172)"/><use href="#fg" transform="rotate(229.09) translate(0 -172)"/><use href="#dr" transform="rotate(237.27) translate(0 -172)"/><use href="#fg" transform="rotate(245.45) translate(0 -172)"/><use href="#dr" transform="rotate(253.64) translate(0 -172)"/><use href="#fg" transform="rotate(261.82) translate(0 -172)"/><use href="#dr" transform="rotate(270.00) translate(0 -172)"/><use href="#fg" transform="rotate(278.18) translate(0 -172)"/><use href="#dr" transform="rotate(286.36) translate(0 -172)"/><use href="#fg" transform="rotate(294.55) translate(0 -172)"/><use href="#dr" transform="rotate(302.73) translate(0 -172)"/><use href="#fg" transform="rotate(310.91) translate(0 -172)"/><use href="#dr" transform="rotate(319.09) translate(0 -172)"/><use href="#fg" transform="rotate(327.27) translate(0 -172)"/><use href="#dr" transform="rotate(335.45) translate(0 -172)"/><use href="#fg" transform="rotate(343.64) translate(0 -172)"/><use href="#dr" transform="rotate(351.82) translate(0 -172)"/><circle r="152"/><circle r="149"/><circle r="146" stroke-dasharray="1.5 4"/></g>
+<g class="r3"><circle r="140"/><circle r="137"/><use href="#lf" transform="rotate(0.00) translate(0 -160)"/><use href="#lf" transform="rotate(22.50) translate(0 -160)"/><use href="#lf" transform="rotate(45.00) translate(0 -160)"/><use href="#lf" transform="rotate(67.50) translate(0 -160)"/><use href="#lf" transform="rotate(90.00) translate(0 -160)"/><use href="#lf" transform="rotate(112.50) translate(0 -160)"/><use href="#lf" transform="rotate(135.00) translate(0 -160)"/><use href="#lf" transform="rotate(157.50) translate(0 -160)"/><use href="#lf" transform="rotate(180.00) translate(0 -160)"/><use href="#lf" transform="rotate(202.50) translate(0 -160)"/><use href="#lf" transform="rotate(225.00) translate(0 -160)"/><use href="#lf" transform="rotate(247.50) translate(0 -160)"/><use href="#lf" transform="rotate(270.00) translate(0 -160)"/><use href="#lf" transform="rotate(292.50) translate(0 -160)"/><use href="#lf" transform="rotate(315.00) translate(0 -160)"/><use href="#lf" transform="rotate(337.50) translate(0 -160)"/></g>
+<g class="r4"><circle r="126"/><circle r="122"/><polygon points="0.0,-118.0 7.3,-111.8 15.4,-117.0 21.9,-109.8 30.5,-114.0 36.0,-106.1 45.2,-109.0 49.5,-100.4 59.0,-102.2 62.2,-93.1 71.8,-93.6 73.8,-84.2 83.4,-83.4 84.2,-73.8 93.6,-71.8 93.1,-62.2 102.2,-59.0 100.4,-49.5 109.0,-45.2 106.1,-36.0 114.0,-30.5 109.8,-21.9 117.0,-15.4 111.8,-7.3 118.0,-0.0 111.8,7.3 117.0,15.4 109.8,21.9 114.0,30.5 106.1,36.0 109.0,45.2 100.4,49.5 102.2,59.0 93.1,62.2 93.6,71.8 84.2,73.8 83.4,83.4 73.8,84.2 71.8,93.6 62.2,93.1 59.0,102.2 49.5,100.4 45.2,109.0 36.0,106.1 30.5,114.0 21.9,109.8 15.4,117.0 7.3,111.8 0.0,118.0 -7.3,111.8 -15.4,117.0 -21.9,109.8 -30.5,114.0 -36.0,106.1 -45.2,109.0 -49.5,100.4 -59.0,102.2 -62.2,93.1 -71.8,93.6 -73.8,84.2 -83.4,83.4 -84.2,73.8 -93.6,71.8 -93.1,62.2 -102.2,59.0 -100.4,49.5 -109.0,45.2 -106.1,36.0 -114.0,30.5 -109.8,21.9 -117.0,15.4 -111.8,7.3 -118.0,0.0 -111.8,-7.3 -117.0,-15.4 -109.8,-21.9 -114.0,-30.5 -106.1,-36.0 -109.0,-45.2 -100.4,-49.5 -102.2,-59.0 -93.1,-62.2 -93.6,-71.8 -84.2,-73.8 -83.4,-83.4 -73.8,-84.2 -71.8,-93.6 -62.2,-93.1 -59.0,-102.2 -49.5,-100.4 -45.2,-109.0 -36.0,-106.1 -30.5,-114.0 -21.9,-109.8 -15.4,-117.0 -7.3,-111.8"/><polygon points="0.0,-112.0 11.7,-58.8 42.9,-103.5 33.3,-49.9 79.2,-79.2 49.9,-33.3 103.5,-42.9 58.8,-11.7 112.0,-0.0 58.8,11.7 103.5,42.9 49.9,33.3 79.2,79.2 33.3,49.9 42.9,103.5 11.7,58.8 0.0,112.0 -11.7,58.8 -42.9,103.5 -33.3,49.9 -79.2,79.2 -49.9,33.3 -103.5,42.9 -58.8,11.7 -112.0,0.0 -58.8,-11.7 -103.5,-42.9 -49.9,-33.3 -79.2,-79.2 -33.3,-49.9 -42.9,-103.5 -11.7,-58.8"/><use href="#lf" transform="rotate(0.00) translate(0 -60)"/><use href="#lf" transform="rotate(22.50) translate(0 -60)"/><use href="#lf" transform="rotate(45.00) translate(0 -60)"/><use href="#lf" transform="rotate(67.50) translate(0 -60)"/><use href="#lf" transform="rotate(90.00) translate(0 -60)"/><use href="#lf" transform="rotate(112.50) translate(0 -60)"/><use href="#lf" transform="rotate(135.00) translate(0 -60)"/><use href="#lf" transform="rotate(157.50) translate(0 -60)"/><use href="#lf" transform="rotate(180.00) translate(0 -60)"/><use href="#lf" transform="rotate(202.50) translate(0 -60)"/><use href="#lf" transform="rotate(225.00) translate(0 -60)"/><use href="#lf" transform="rotate(247.50) translate(0 -60)"/><use href="#lf" transform="rotate(270.00) translate(0 -60)"/><use href="#lf" transform="rotate(292.50) translate(0 -60)"/><use href="#lf" transform="rotate(315.00) translate(0 -60)"/><use href="#lf" transform="rotate(337.50) translate(0 -60)"/></g>
+<g><circle r="44"/><circle r="41"/></g>
+</g></svg><svg class="fly" viewBox="0 0 64 64"><g fill="none" stroke="#ff7a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><g class="wings"><path d="M32 27C27 11 11 8 8 18c-2 8 8 13 24 14"/><path d="M32 27C37 11 53 8 56 18c2 8-8 13-24 14"/><path d="M32 33C21 33 13 41 17 49c4 6 13 1 15-9"/><path d="M32 33C43 33 51 41 47 49c-4 6-13 1-15-9"/><circle cx="17" cy="19" r="2"/><circle cx="47" cy="19" r="2"/></g><path d="M32 20v28M32 20c-1-5-4-9-8-11M32 20c1-5 4-9 8-11"/></g></svg></div>
+  <h1>ยินดีต้อนรับสู่ <span>Iris</span></h1>
+</div>
+<div class="actions">
+  <button class="btn" id="gbtn"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.800 2.400 30.300 0 24 0 14.600 0 6.500 5.400 2.600 13.200l7.900 6.100C12.400 13.600 17.700 9.500 24 9.500z"/><path fill="#4285F4" d="M46.500 24.500c0-1.600-.1-3.100-.4-4.500H24v9h12.700c-.6 3-2.300 5.500-4.800 7.200l7.500 5.800c4.400-4.100 7.100-10.100 7.100-17.500z"/><path fill="#FBBC05" d="M10.500 28.700A14.500 14.500 0 0 1 9.500 24c0-1.600.3-3.200.8-4.700l-7.900-6.100A24 24 0 0 0 0 24c0 3.900.9 7.500 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.500-5.800c-2.100 1.400-4.800 2.300-8.400 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>เข้าสู่ระบบด้วย Google</button>
+  <div class="or">หรือ</div>
+  <button class="btn" onclick="document.getElementById('em').classList.toggle('show')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>เข้าสู่ระบบด้วยอีเมล</button>
+  <div class="email" id="em">
+    <input type="email" placeholder="กรอกอีเมลของคุณ">
+    <button class="btn" onclick="t('อีเมลยังไม่เปิดใช้งาน',1)">ดำเนินการต่อ</button>
+  </div>
+</div>
+<div class="foot">
+  บัญชีก่อนหน้าของคุณถูกลบไปหรือเปล่า? <a href="#" onclick="return false">กู้คืนบัญชี</a><br><br>
+  โดยการดำเนินต่อ ถือว่าคุณยอมรับ<a href="#" onclick="return false">ข้อกำหนดการให้บริการ</a> และได้อ่าน<a href="#" onclick="return false">นโยบายความเป็นส่วนตัว</a>แล้ว
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function t(m){var e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(window._t);window._t=setTimeout(function(){e.classList.remove('show')},2500)}
+window.t=t;
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ===== ใส่ค่า Firebase web config ของคุณตรงนี้ =====
+const firebaseConfig = {
+  apiKey: "AIzaSyCFAPrGW9Et0JevTB61C_-admbGc7LnHYE",
+  authDomain: "my-awesome-project-76358.firebaseapp.com",
+  projectId: "my-awesome-project-76358",
+  appId: "1:213268817641:web:0e2b1e8a046c34d86eb278"
+};
+// ================================================
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const btn = document.getElementById('gbtn');
+const h1 = document.querySelector('h1');
+const original = h1.innerHTML;
+
+btn.addEventListener('click', async () => {
+  if (auth.currentUser) { signOut(auth); return; }
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { t(e.code === 'auth/popup-closed-by-user' ? 'ยกเลิกการเข้าสู่ระบบ' : 'เข้าสู่ระบบไม่สำเร็จ: ' + e.code); }
+});
+
+onAuthStateChanged(auth, (u) => {
+  if (u) {
+    h1.textContent = 'สวัสดี ' + (u.displayName || u.email);
+    btn.lastChild.textContent = 'ออกจากระบบ';
+    // TODO: window.location.href = '/app';  // ไปหน้าหลักหลังล็อกอิน
+  } else {
+    h1.innerHTML = original;
+    btn.lastChild.textContent = 'เข้าสู่ระบบด้วย Google';
+  }
+});
+</script>
+</body>
+</html>

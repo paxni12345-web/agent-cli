@@ -834,6 +834,16 @@ body{letter-spacing:.01em}
 .tool-chip{font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
 .tool-chip.fail{color:var(--error);border-color:var(--error-border)}
 </style>
+<style id="pubModeCss">
+/* public chat mode: hide what /api/chat cannot do (files, regenerate, edit, ratings, rename, pin) */
+body.pub-mode #attachBtn,
+body.pub-mode .msg-action-btn[data-act="regen"],
+body.pub-mode .msg-action-btn[data-act="edit"],
+body.pub-mode .msg-action-btn[data-act="up"],
+body.pub-mode .msg-action-btn[data-act="down"],
+body.pub-mode .context-menu [data-act="rename"],
+body.pub-mode .context-menu [data-act="pin"]{display:none !important}
+</style>
 </head>
 <body>
 <div id="ld" role="status" aria-label="กำลังโหลด"><div class="ld-glow"></div><div class="ld-in"><svg viewBox="0 0 48 48" width="104" height="104" aria-hidden="true"><circle class="ring" cx="24" cy="24" r="23.200"/><g class="staff"><path d="M5 15H43"/><path d="M5 20H43"/><path d="M5 25H43"/><path d="M5 30H43"/><path d="M5 35H43"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*0)"><ellipse cx="20" cy="35" rx="4.3" ry="3.2" transform="rotate(-20 20 35)" class="f"/><path d="M24.1 34V9"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*1)"><ellipse cx="20" cy="35" rx="4.3" ry="3.2" transform="rotate(-20 20 35)" class="f"/><path d="M24.1 34V9C25 16 33 17 32 26"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*2)"><ellipse cx="13" cy="36" rx="4.3" ry="3.2" transform="rotate(-20 13 36)" class="f"/><ellipse cx="31" cy="32" rx="4.3" ry="3.2" transform="rotate(-20 31 32)" class="f"/><path d="M17.1 35V12M35.1 31V8"/><path class="f" d="M17.1 11.5L35.1 7.5V12L17.1 16Z"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*3)"><ellipse cx="13" cy="36" rx="4.3" ry="3.2" transform="rotate(-20 13 36)" class="f"/><ellipse cx="31" cy="32" rx="4.3" ry="3.2" transform="rotate(-20 31 32)" class="f"/><path d="M17.1 35V10M35.1 31V6"/><path class="f" d="M17.1 9.500L35.1 5.500V9.500L17.1 13.500Z"/><path class="f" d="M17.1 15.500L35.1 11.500V15.500L17.1 19.500Z"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*4)"><ellipse cx="20" cy="35" rx="4.3" ry="3.2" transform="rotate(-20 20 35)" class="o"/><path d="M24.1 34V9"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*5)"><ellipse cx="24" cy="24" rx="10" ry="6.500" class="o"/><ellipse cx="24" cy="24" rx="4.500" ry="7" transform="rotate(35 24 24)" class="o" style="stroke-width:1.2"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*6)"><path d="M6 9v7M2.500 12.500h7" class="sp2"/><ellipse cx="11" cy="36" rx="4.3" ry="3.2" transform="rotate(-20 11 36)" class="f"/><ellipse cx="31" cy="36" rx="4.3" ry="3.2" transform="rotate(-20 31 36)" class="f"/><path d="M15.1 35V12M35.1 35V12M15.1 12H35.1"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*7)"><ellipse cx="9" cy="37" rx="4.3" ry="3.2" transform="rotate(-20 9 37)" class="f"/><ellipse cx="24" cy="33" rx="4.3" ry="3.2" transform="rotate(-20 24 33)" class="f"/><ellipse cx="39" cy="37" rx="4.3" ry="3.2" transform="rotate(-20 39 37)" class="f"/><path d="M13.1 36V15M28.1 32V11M43.1 36V15M13.1 15L43.1 15" style="display:none"/><path d="M13.1 36V14M28.1 32V11M43.1 36V14"/><path class="f" d="M13.1 13.500L43.1 13.500V17.500L13.1 17.500Z"/><path d="M13 8c3-4 6-4 9 0M34 8c3-4 6-4 9 0" style="display:none"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*8)"><path d="M18 8v32M30 8v32M12 18l24-4M12 33l24-4"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*9)"><path d="M17 7V38"/><path d="M17 28C24 21 34 26 30 33C28 36 22 38 17 38"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*10)"><path d="M6 10v6M3 13h6M40 28v6M37 31h6" class="sp2"/><ellipse cx="22" cy="35" rx="4.3" ry="3.2" transform="rotate(-20 22 35)" class="f"/><path d="M26.1 34V10"/></g><g class="nf" style="animation-delay:calc(var(--T)/12*11)"><path d="M16 8V31M32 17V40M16 20L32 25M16 31L32 36"/></g></svg><div class="ld-n"><span style="animation-delay:calc(var(--T)/12*0)">C</span><span style="animation-delay:calc(var(--T)/12*1)">C♯</span><span style="animation-delay:calc(var(--T)/12*2)">D</span><span style="animation-delay:calc(var(--T)/12*3)">D♯</span><span style="animation-delay:calc(var(--T)/12*4)">E</span><span style="animation-delay:calc(var(--T)/12*5)">F</span><span style="animation-delay:calc(var(--T)/12*6)">F♯</span><span style="animation-delay:calc(var(--T)/12*7)">G</span><span style="animation-delay:calc(var(--T)/12*8)">G♯</span><span style="animation-delay:calc(var(--T)/12*9)">A</span><span style="animation-delay:calc(var(--T)/12*10)">A♯</span><span style="animation-delay:calc(var(--T)/12*11)">B</span></div></div></div>
@@ -1046,6 +1056,9 @@ const store = (() => {
 /* ==================== 2) CONFIG & STATE ==================== */
 /* ข้อมูลเซิร์ฟเวอร์เอเจนต์ (ดึงจาก /api/agent/settings) */
 const server = { online: null, provider: 'anthropic', model: '', baseUrl: '', hasApiKey: false, thinkingLevel: 'off', activeProfile: '', profiles: [] };
+/* Public chat mode: a signed-in visitor outside the agent's allow-list uses /api/chat (no tools, history kept on the server). */
+const pub = { active: false, usage: null, modelReady: false };
+const fmtNum = n => Number(n || 0).toLocaleString('en-US');
 
 const DEFAULT_SETTINGS = {
   theme: 'system',           // light | dark | system
@@ -1069,7 +1082,7 @@ const state = {
   recording: false,
 };
 
-const saveChats    = () => store.set('ai-chats', state.chats);
+const saveChats    = () => { if (!pub.active) store.set('ai-chats', state.chats); };
 const saveSettings = () => store.set('ai-settings', state.settings);
 /* รุ่นเก่าเก็บ API key/พารามิเตอร์โมเดลไว้ในเบราว์เซอร์ — ตอนนี้อยู่ที่เซิร์ฟเวอร์ทั้งหมด จึงล้างทิ้ง */
 ['apiKey','baseUrl','model','systemPrompt','temperature','maxTokens','streaming'].forEach(k => { delete state.settings[k]; });
@@ -1258,6 +1271,10 @@ const getChat = id => state.chats.find(c => c.id === id);
 const currentChat = () => getChat(state.currentId);
 
 function createChat(){
+  if (pub.active){
+    const draft = state.chats.find(c => !c.remote && !c.messages.length);
+    if (draft){ state.currentId = draft.id; renderChatList(); renderConversation(); return draft; }
+  }
   const chat = { id: uid(), title: 'แชทใหม่', pinned:false, createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
   state.chats.unshift(chat);
   state.currentId = chat.id;
@@ -1272,10 +1289,19 @@ function selectChat(id){
   store.set('ai-current', id);
   renderChatList(); renderConversation();
   closeMobileDrawer();
+  if (pub.active) loadPublicMessages(getChat(id));
 }
-function deleteChat(id){
-  const idx = state.chats.findIndex(c => c.id === id);
+async function deleteChat(id){
+  let idx = state.chats.findIndex(c => c.id === id);
   if (idx === -1) return;
+  if (pub.active && state.chats[idx].remote){
+    try{
+      const r = await apiFetch('/api/chat/chats/' + encodeURIComponent(id), { method:'DELETE' });
+      if (!r.ok && r.status !== 404){ if (fb) authFailure(r.status); toast('ลบแชทไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); return; }
+    }catch(e){ toast((e && e.message) || 'ลบแชทไม่สำเร็จ', 'error'); return; }
+    idx = state.chats.findIndex(c => c.id === id);
+    if (idx === -1) return;
+  }
   state.chats.splice(idx, 1);
   if (state.currentId === id){
     state.currentId = state.chats[0] ? state.chats[0].id : null;
@@ -1727,14 +1753,136 @@ async function apiJson(path, opts){
   return data;
 }
 
+/* ---- Public chat (/api/chat): plain chat for signed-in visitors, history stored per user on the server ---- */
+const PUBLIC_ERRORS = {
+  'Too many requests': ['rate', 'ส่งถี่เกินไป โปรดรอสักครู่แล้วลองใหม่'],
+  'Chat limit reached; delete an old chat first': ['rate', 'ถึงจำนวนแชทสูงสุดแล้ว โปรดลบแชทเก่าก่อน'],
+  'This chat is full; start a new one': ['rate', 'แชทนี้ยาวเต็มแล้ว โปรดเริ่มแชทใหม่'],
+  'The service has reached its daily limit; try again tomorrow': ['rate', 'บริการถึงขีดจำกัดของวันนี้แล้ว โปรดลองใหม่พรุ่งนี้'],
+  'A reply is already being written': ['busy', 'กำลังตอบข้อความก่อนหน้าอยู่ โปรดรอสักครู่'],
+  'The model is not configured on the server': ['api', 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าโมเดล'],
+  'Chat storage is not configured': ['api', 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าที่เก็บแชท'],
+  'Chat not found': ['api', 'ไม่พบแชทนี้ อาจถูกลบไปแล้ว'],
+  'The model could not answer right now': ['api', 'โมเดลตอบไม่ได้ในขณะนี้ ลองใหม่อีกครั้ง'],
+};
+function publicHttpError(status, data){
+  const detail = data && data.error ? String(data.error) : '';
+  if (PUBLIC_ERRORS[detail]) return { type: PUBLIC_ERRORS[detail][0], message: PUBLIC_ERRORS[detail][1] };
+  if (/^Daily quota/.test(detail)) return { type:'rate', message:'โควตาวันนี้หมดแล้ว จะรีเซ็ตเวลา 00:00 UTC' };
+  const tooLong = /^Message is too long \((\d+)/.exec(detail);
+  if (tooLong) return { type:'api', message:'ข้อความยาวเกินไป (สูงสุด ' + tooLong[1] + ' ตัวอักษร)' };
+  return httpError(status, data);
+}
+function setUsage(u){ if (u){ pub.usage = u; renderModelMenu(); } }
+async function publicFail(res){
+  let data = null;
+  try{ data = await res.json(); }catch(e){ /* no JSON body */ }
+  if (fb) authFailure(res.status);
+  if (data && data.usage) setUsage(data.usage);
+  throw publicHttpError(res.status, data);
+}
+async function publicJson(path, opts){
+  const res = await apiFetch(path, opts);
+  if (!res.ok) await publicFail(res);
+  try{ return await res.json(); }catch(e){ return null; }
+}
+async function loadPublicChats(){
+  const data = await publicJson('/api/chat/chats');
+  state.chats = (data && Array.isArray(data.chats) ? data.chats : []).map(c => ({
+    id: c.id, title: c.title || 'แชทใหม่', pinned: false, remote: true, loaded: false, messages: [],
+    createdAt: Date.parse(c.createdAt) || Date.now(), updatedAt: Date.parse(c.updatedAt) || Date.now(),
+  }));
+}
+function toLocalMessage(m){
+  const time = Date.parse(m.createdAt) || Date.now();
+  return m.role === 'user'
+    ? { id: uid(), role:'user', text: String(m.content || ''), time }
+    : { id: uid(), role:'assistant', versions:[{ text: String(m.content || ''), time }], vi:0, rating:null };
+}
+async function loadPublicMessages(chat){
+  if (!chat || !chat.remote || chat.loaded) return;
+  try{
+    const data = await publicJson('/api/chat/chats/' + encodeURIComponent(chat.id));
+    if (chat.loaded) return;
+    chat.messages = (data && Array.isArray(data.messages) ? data.messages : []).map(toLocalMessage);
+    chat.loaded = true;
+    if (state.currentId === chat.id) renderConversation();
+  }catch(e){ toast((e && e.message) || 'เปิดแชทไม่สำเร็จ', 'error'); }
+}
+/* Returns null once public mode is on, or { status, data } when the server refuses this account. */
+async function enterPublicMode(){
+  const r = await apiFetch('/api/chat/me');
+  let me = null;
+  try{ me = await r.json(); }catch(e){ /* no JSON body */ }
+  if (!r.ok) return { status: r.status, data: me };
+  pub.active = true;
+  pub.usage = (me && me.usage) || null;
+  pub.modelReady = !!(me && me.modelReady);
+  document.body.classList.add('pub-mode');
+  Object.assign(server, { online: true, model: '', hasApiKey: true, profiles: [] });
+  state.chats = []; state.currentId = null;      // never show this browser's agent chats to a public account
+  await loadPublicChats();
+  renderChatList(); renderConversation();
+  return null;
+}
+/* One streamed answer. The chat is created on the server with the first message, so an unused draft costs nothing. */
+async function callPublicChat(chat, text, signal, onToken){
+  if (!chat.remote){
+    const made = await publicJson('/api/chat/chats', { method:'POST', signal, body: '{}' });
+    const wasCurrent = state.currentId === chat.id;
+    chat.id = made.id; chat.remote = true; chat.loaded = true;
+    if (wasCurrent) state.currentId = made.id;
+  }
+  const res = await apiFetch('/api/chat/chats/' + encodeURIComponent(chat.id) + '/messages', { method:'POST', signal, body: JSON.stringify({ content: text }) });
+  if (!res.ok) await publicFail(res);
+  let full = '';
+  const frame = block => {
+    const line = block.split('\n').find(l => l.startsWith('data:'));
+    if (!line) return;
+    let ev; try{ ev = JSON.parse(line.slice(5).trim()); }catch(e){ return; }
+    if (ev.delta){ full += ev.delta; onToken(ev.delta); }
+    if (ev.usage) setUsage(ev.usage);
+    if (ev.error) throw publicHttpError(200, { error: ev.error });
+  };
+  if (res.body && res.body.getReader){
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    try{
+      for (;;){
+        const part = await reader.read();
+        if (part.done) break;
+        buf += dec.decode(part.value, { stream:true });
+        let cut;
+        while ((cut = buf.indexOf('\n\n')) >= 0){ const block = buf.slice(0, cut); buf = buf.slice(cut + 2); frame(block); }
+      }
+      if (buf.trim()) frame(buf);
+    } finally { try{ reader.cancel(); }catch(e){ /* already closed */ } }
+  } else {
+    (await res.text()).split('\n\n').forEach(frame);
+  }
+  if (!full) throw { type:'api', message:'ไม่ได้รับคำตอบจากโมเดล ลองใหม่อีกครั้ง' };
+  return full;
+}
+
 /* ดึงโมเดล/ผู้ให้บริการ/โปรไฟล์ปัจจุบันจากเซิร์ฟเวอร์ */
 async function loadServerInfo(){
   if (state.settings.mockMode){ renderModelMenu(); return; }
   try{
-    const [cfg, profiles] = await Promise.all([
-      apiJson('/api/agent/settings'),
-      apiJson('/api/agent/profiles').catch(() => []),
-    ]);
+    /* settings first and on its own: a 403 here is not a reason to sign out, it may just mean "public chat only" */
+    const res = await apiFetch('/api/agent/settings');
+    let cfg = null;
+    try{ cfg = await res.json(); }catch(e){ /* no JSON body */ }
+    if (!res.ok){
+      if (res.status === 403 && fb){
+        const refused = await enterPublicMode();
+        if (!refused){ renderModelMenu(); return; }
+        authFailure(refused.status);
+        throw publicHttpError(refused.status, refused.data);
+      }
+      authFailure(res.status);
+      throw httpError(res.status, cfg);
+    }
+    const profiles = await apiJson('/api/agent/profiles').catch(() => []);
     Object.assign(server, {
       online: true, provider: cfg.provider, model: cfg.model || '', baseUrl: cfg.baseUrl || '',
       hasApiKey: !!cfg.hasApiKey, thinkingLevel: cfg.thinkingLevel || 'off', activeProfile: cfg.activeProfile || '',
@@ -1752,7 +1900,7 @@ function disconnectEvents(){ if (evSource){ evSource.close(); evSource = null; }
 let evRetries = 0;
 async function connectEvents(){
   disconnectEvents();
-  if (state.settings.mockMode || !server.online || typeof EventSource === 'undefined') return;
+  if (state.settings.mockMode || pub.active || !server.online || typeof EventSource === 'undefined') return;
   const token = await currentToken();
   const q = token ? '?token=' + encodeURIComponent(token) : '';
   const es = new EventSource('/api/agent/events' + q);
@@ -1825,7 +1973,7 @@ async function prepareRequest(chat, msg){
   while (last >= 0 && history[last].role !== 'user') last--;
   const userMsg = history[last];
   const userText = userMsg ? String(userMsg.text || '') : '';
-  if (state.settings.mockMode || !userMsg) return { userText, message: userText, attachments: [] };
+  if (state.settings.mockMode || pub.active || !userMsg) return { userText, message: userText, attachments: [] };
 
   const prior = history.slice(0, last);
   let message = userText.trim() || 'โปรดดูไฟล์ที่แนบ';
@@ -1843,10 +1991,11 @@ async function prepareRequest(chat, msg){
   return { userText, message, attachments };
 }
 
-async function callChatAPI({ userText, message, attachments, signal, onToken, onMeta }){
+async function callChatAPI({ chat, userText, message, attachments, signal, onToken, onMeta }){
   if (state.settings.mockMode){
     return mockStreamReply([{ role:'user', content: userText }], signal, onToken);
   }
+  if (pub.active) return callPublicChat(chat, userText, signal, onToken);
   runTools = [];
   const body = { message };
   if (attachments && attachments.length) body.attachments = attachments;
@@ -2033,6 +2182,7 @@ function sendMessage(){
 
   let chat = currentChat();
   if (!chat) chat = createChat();
+  if (pub.active && chat.remote && !chat.loaded){ toast('กำลังโหลดแชท รอสักครู่…'); return; }
 
   const msg = {
     id: uid(), role: 'user', text, time: Date.now(),
@@ -2097,6 +2247,7 @@ async function generateReply(chat, targetMsg){
     const req = await prepareRequest(chat, msg);
     const reply = await callChatAPI({
       ...req,
+      chat,
       signal: abort.signal,
       onMeta: m => { meta = m; },
       onToken: chunk => {
@@ -2181,7 +2332,7 @@ function regenerate(m){
 function stopGeneration(){
   if (state.abortCtrl) state.abortCtrl.abort();
   /* บอกเซิร์ฟเวอร์ให้หยุดงานที่ค้างอยู่ด้วย ไม่ใช่แค่เลิกรอคำตอบ */
-  if (state.generating && !state.settings.mockMode) apiFetch('/api/agent/stop', { method:'POST' }).catch(() => {});
+  if (state.generating && !state.settings.mockMode && !pub.active) apiFetch('/api/agent/stop', { method:'POST' }).catch(() => {});
   if (window.speechSynthesis && speechSynthesis.speaking) speechSynthesis.cancel();
 }
 </script>
@@ -2238,6 +2389,7 @@ $('#fileInput').addEventListener('change', e => {
 });
 
 function addFiles(files){
+  if (pub.active){ toast('แชทนี้ยังไม่รองรับไฟล์แนบ', 'error'); return; }
   files.forEach(f => {
     if (f.size > 10 * 1048576){ toast(`ไฟล์ "${f.name}" ใหญ่เกิน 10 MB`, 'error'); return; }
     const item = { name: f.name, type: f.type || 'application/octet-stream', size: f.size };
@@ -2321,17 +2473,22 @@ $('#micBtn').addEventListener('click', () => {
 
 /* ==================== ตัวเลือกโมเดลที่ Header ==================== */
 function renderModelMenu(){
-  $('#modelName').textContent = state.settings.mockMode ? 'Mock' : (server.model || (server.online === false ? 'ออฟไลน์' : '—'));
+  $('#modelName').textContent = state.settings.mockMode ? 'Mock' : pub.active ? 'แชท AI' : (server.model || (server.online === false ? 'ออฟไลน์' : '—'));
   const items = [];
   if (state.settings.mockMode){
     items.push({ id:'__cur', cur:true, name:'โหมดจำลอง (Mock)', desc:'ไม่เรียกโมเดลจริง ใช้ทดสอบหน้าตา' });
+  } else if (pub.active){
+    const u = pub.usage;
+    items.push({ id:'__cur', cur:true, name:'แชท AI',
+      desc: !pub.modelReady ? 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าโมเดล'
+        : u ? 'โควตาวันนี้เหลือ ' + fmtNum(u.remaining) + ' จาก ' + fmtNum(u.limit) + ' โทเค็น · รีเซ็ต 00:00 UTC' : 'พร้อมใช้งาน' });
   } else {
     if (server.model) items.push({ id:'__cur', cur:true, name:server.model,
       desc: server.provider + (server.activeProfile ? ' · โปรไฟล์ ' + server.activeProfile : '') + (server.hasApiKey ? '' : ' · ยังไม่มี API key') });
     server.profiles.filter(p => p.name !== server.activeProfile).forEach(p =>
       items.push({ id:'p:' + p.name, name:p.name, desc:(p.model || '') + (p.apiStyle ? ' · ' + p.apiStyle : '') }));
   }
-  items.push({ id:'__cfg', name:'ตั้งค่าโมเดล…', desc:'เปลี่ยนผู้ให้บริการ โมเดล และ API key' });
+  if (!pub.active) items.push({ id:'__cfg', name:'ตั้งค่าโมเดล…', desc:'เปลี่ยนผู้ให้บริการ โมเดล และ API key' });
   if (authUser) items.push({ id:'__out', name:'ออกจากระบบ', desc: authUser.email || '' });
   const menu = $('#modelMenu');
   menu.innerHTML = items.map(m => `
@@ -2792,14 +2949,14 @@ function init(){
     const kb=document.createElement('div'); kb.className='tab-panel sp-kbd'; kb.dataset.panel='kbd';
     kb.innerHTML=[['ค้นหาแชท','Ctrl/⌘ + K'],['แชทใหม่','Ctrl/⌘ + Shift + O'],['พับแถบด้านข้าง','Ctrl/⌘ + B'],['โฟกัสช่องพิมพ์','/'],['หยุดตอบ / ปิดหน้าต่าง','Esc']].map(r=>`<div><span>${r[0]}</span><kbd>${r[1]}</kbd></div>`).join('');
     const about=document.createElement('div'); about.className='tab-panel'; about.dataset.panel='about';
-    about.innerHTML='<div class="field"><label>เวอร์ชัน</label><div class="hint">AI Chat UI 1.0 · ไฟล์ HTML เดียว ข้อมูลทั้งหมดเก็บในเบราว์เซอร์ของคุณ</div></div>';
+    about.innerHTML='<div class="field"><label>เวอร์ชัน</label><div class="hint">AI Chat UI 1.0 · '+(pub.active?'ประวัติแชทเก็บไว้ในบัญชีของคุณบนเซิร์ฟเวอร์':'ไฟล์ HTML เดียว ข้อมูลทั้งหมดเก็บในเบราว์เซอร์ของคุณ')+'</div></div>';
     const sub=document.createElement('div'); sub.className='sp-sub'; sub.append(gen,mdl,api,dat,kb,about);
     const L={light:'สว่าง',dark:'มืด',system:'ตามระบบ'},F={small:'เล็ก',medium:'กลาง',large:'ใหญ่'};
     /* page: [ไอคอน, ชื่อ, ค่า, panel, ลำดับ child ที่จะแสดง, หัวข้อหน้า] */
     const groups=[
-      [['brain','โมเดลและการให้เหตุผล',server.model||'','model',null],['plug','การเชื่อมต่อ API',S.mockMode?'Mock':'เซิร์ฟเวอร์','api',null]],
+      ...(pub.active?[]:[[['brain','โมเดลและการให้เหตุผล',server.model||'','model',null],['plug','การเชื่อมต่อ API',S.mockMode?'Mock':'เซิร์ฟเวอร์','api',null]]]),
       [['user','บัญชี',S.userName,'general',[4]],['moon','ลักษณะ',L[S.theme]||'','general',[0]],['type','ขนาดตัวอักษร',F[S.fontSize]||'','general',[1]],['globe','ภาษา',S.language==='en'?'English':'ไทย','general',[2]],['enter','การส่งข้อความ',S.enterToSend?'Enter':'Shift+Enter','general',[3]]],
-      [['box','ส่งออก / นำเข้าข้อมูล','','data',[0]]],
+      ...(pub.active?[]:[[['box','ส่งออก / นำเข้าข้อมูล','','data',[0]]]]),
       [['kbd','ทางลัดคีย์บอร์ด','','kbd',null],['info','เกี่ยวกับ','v1.0','about',null]]];
     const main=document.createElement('div'); main.className='sp-main';
     groups.forEach(g=>{const d=document.createElement('div'); d.className='sp-group';
@@ -2812,7 +2969,7 @@ function init(){
         d.appendChild(b);}); main.appendChild(d);});
     const dg=document.createElement('div'); dg.className='sp-group';
     dg.innerHTML=`<button class="sp-row danger">${ic('trash')}<span class="lbl">ลบแชททั้งหมด</span></button>`;
-    dg.firstChild.onclick=()=>ov.querySelector('#wipeBtn').click(); main.appendChild(dg);
+    dg.firstChild.onclick=()=>ov.querySelector('#wipeBtn').click(); if(!pub.active) main.appendChild(dg);
     body.prepend(main); body.appendChild(sub);
     /* ปุ่มย้อนกลับ: ถ้าอยู่ในหน้าย่อยให้กลับรายการก่อน แล้วค่อยปิด */
     modal.addEventListener('click',e=>{ if(ov.classList.contains('detail') && e.target.closest('[data-close]')){

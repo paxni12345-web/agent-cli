@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- Plain chat API for signed-in users (`/api/chat/*`): per-user chat history in Supabase
+  (`db/supabase.sql`), streamed replies over SSE, daily per-user token quota, a global
+  daily cost cap, one reply at a time per user. The model is called without tools.
+  `AGENT_PUBLIC_SIGNUP=true` admits any verified Google account to this API only; the
+  agent with tools stays on the allowlist. Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `CHAT_*`, `AGENT_BLOCKED_EMAILS`
 - Optional Google sign-in through Firebase Auth: the server verifies ID tokens
   and only lets allowlisted, verified emails in (`FIREBASE_PROJECT_ID`,
   `AGENT_ALLOWED_EMAILS`); `/login.html` signs in and the chat page redirects

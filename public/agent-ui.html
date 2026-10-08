@@ -1656,14 +1656,54 @@ let runTools = [];                            // เครื่องมือ�
 let evSource = null;
 let activityEl = null;                        // กล่องแสดงความคืบหน้าสดใต้ typing indicator
 
-function apiHeaders(extra){
+let authUser = null;   // signed-in Firebase user (null when the server uses a token or no auth)
+let fb = null;         // { auth, signOut } once Firebase is active
+
+function goLogin(reason){
+  const url = '/login.html?next=' + encodeURIComponent(location.pathname + location.search) + (reason ? '&reason=' + reason : '');
+  (window.__navigate || function(u){ location.replace(u); })(url);
+}
+async function loadFirebaseSdk(){
+  const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const [app, auth] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js')]);
+  return { initializeApp: app.initializeApp, getAuth: auth.getAuth, onAuthStateChanged: auth.onAuthStateChanged, signOut: auth.signOut };
+}
+/* Returns false when the visitor is being sent to the login page. */
+async function authInit(){
+  if (state.settings.mockMode) return true;
+  let cfg = null;
+  try{ const r = await fetch('/api/auth/config'); if (r.ok) cfg = await r.json(); }catch(e){ /* server unreachable: loadServerInfo reports it */ }
+  if (!cfg || cfg.mode !== 'firebase') return true;       // token / no auth: behave as before
+  const sdk = await (window.__firebaseLoader || loadFirebaseSdk)();
+  const auth = sdk.getAuth(sdk.initializeApp(cfg.firebase));
+  let off;
+  const user = await new Promise(function(resolve){ off = sdk.onAuthStateChanged(auth, resolve); });
+  if (typeof off === 'function') off();
+  if (!user){ goLogin(); return false; }
+  fb = { auth: auth, signOut: sdk.signOut };
+  authUser = user;
+  return true;
+}
+async function currentToken(){
+  if (fb && fb.auth.currentUser){
+    try{ return await fb.auth.currentUser.getIdToken(); }catch(e){ goLogin(); }   // refreshes automatically when expired
+  }
+  return state.settings.serverToken || '';
+}
+async function authFailure(status){
+  if (!fb) return;
+  if (status === 403){ try{ await fb.signOut(fb.auth); }catch(e){} goLogin('forbidden'); }
+  else if (status === 401){ goLogin(); }
+}
+function apiHeaders(extra, token){
   const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
-  if (state.settings.serverToken) h['Authorization'] = 'Bearer ' + state.settings.serverToken;
+  if (token) h['Authorization'] = 'Bearer ' + token;
   return h;
 }
 async function apiFetch(path, opts){
+  const token = await currentToken();
   try{
-    return await fetch(path, Object.assign({}, opts, { headers: apiHeaders(opts && opts.headers) }));
+    return await fetch(path, Object.assign({}, opts, { headers: apiHeaders(opts && opts.headers, token) }));
   }catch(err){
     if (err && err.name === 'AbortError') throw err;
     throw { type:'network', message:'เชื่อมต่อเซิร์ฟเวอร์เอเจนต์ไม่ได้ โปรดตรวจสอบว่าเซิร์ฟเวอร์ยังทำงานอยู่' };
@@ -1683,7 +1723,7 @@ async function apiJson(path, opts){
   const res = await apiFetch(path, opts);
   let data = null;
   try{ data = await res.json(); }catch(e){ /* ไม่มีเนื้อหา JSON */ }
-  if (!res.ok) throw httpError(res.status, data);
+  if (!res.ok){ if (fb) authFailure(res.status); throw httpError(res.status, data); }
   return data;
 }
 
@@ -1709,13 +1749,22 @@ async function loadServerInfo(){
 
 /* ---- SSE: แสดงเครื่องมือที่เอเจนต์กำลังใช้แบบสด ---- */
 function disconnectEvents(){ if (evSource){ evSource.close(); evSource = null; } }
-function connectEvents(){
+let evRetries = 0;
+async function connectEvents(){
   disconnectEvents();
   if (state.settings.mockMode || !server.online || typeof EventSource === 'undefined') return;
-  const q = state.settings.serverToken ? '?token=' + encodeURIComponent(state.settings.serverToken) : '';
-  evSource = new EventSource('/api/agent/events' + q);
-  evSource.onmessage = e => { let ev; try{ ev = JSON.parse(e.data); }catch(_){ return; } onAgentEvent(ev); };
-  evSource.onerror = () => { if (evSource && evSource.readyState === 2) evSource = null; };
+  const token = await currentToken();
+  const q = token ? '?token=' + encodeURIComponent(token) : '';
+  const es = new EventSource('/api/agent/events' + q);
+  evSource = es;
+  es.onopen = () => { evRetries = 0; };
+  es.onmessage = e => { let ev; try{ ev = JSON.parse(e.data); }catch(_){ return; } onAgentEvent(ev); };
+  es.onerror = () => {
+    if (es.readyState !== 2) return;                      // the browser is retrying by itself
+    if (evSource === es) evSource = null;
+    /* A closed stream with Firebase usually means the ID token expired — reconnect with a fresh one. */
+    if (fb && evRetries++ < 5) setTimeout(connectEvents, 3000);
+  };
 }
 function onAgentEvent(ev){
   if (!state.generating) return;
@@ -2283,6 +2332,7 @@ function renderModelMenu(){
       items.push({ id:'p:' + p.name, name:p.name, desc:(p.model || '') + (p.apiStyle ? ' · ' + p.apiStyle : '') }));
   }
   items.push({ id:'__cfg', name:'ตั้งค่าโมเดล…', desc:'เปลี่ยนผู้ให้บริการ โมเดล และ API key' });
+  if (authUser) items.push({ id:'__out', name:'ออกจากระบบ', desc: authUser.email || '' });
   const menu = $('#modelMenu');
   menu.innerHTML = items.map(m => `
     <button role="option" aria-selected="${!!m.cur}" data-id="${escapeHtml(m.id)}">
@@ -2293,7 +2343,10 @@ function renderModelMenu(){
     $('#modelMenu').classList.add('hidden');
     $('#modelBtn').setAttribute('aria-expanded', 'false');
     const id = b.dataset.id;
-    if (id === '__cfg'){
+    if (id === '__out'){
+      try{ await fb.signOut(fb.auth); }catch(e){}
+      goLogin();
+    } else if (id === '__cfg'){
       openSettings();
       setTimeout(() => { const r = [...document.querySelectorAll('.sp-row')].find(x => x.textContent.includes('โมเดล')); if (r) r.click(); }, 30);
     } else if (id.startsWith('p:')){
@@ -2847,7 +2900,10 @@ function init(){
   const _os=openSettings; openSettings=function(){ showLoader(600); return _os.apply(this,arguments); };
 })();
 
-init();
+authInit().then(function(ok){ if (ok) init(); }).catch(function(e){
+  console.error(e); init();
+  setTimeout(function(){ toast('โหลดระบบล็อกอินไม่สำเร็จ โปรดรีเฟรชหน้า', 'error'); }, 300);
+});
 </script>
 </body>
 </html>

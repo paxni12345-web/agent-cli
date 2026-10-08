@@ -1,277 +1,127 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f0e3c0">
-<meta name="robots" content="noindex">
-<title>เข้าสู่ระบบ · Agent</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Noto+Serif+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Iris - เข้าสู่ระบบ</title>
 <style>
-/* หน้าเข้าสู่ระบบ (Mock) — ธีม Alphonse Mucha / Art Nouveau
-   โทนกระดาษเก่า เส้นทอง เขียวหยก และแดงดินเผา; ยังไม่เชื่อมระบบล็อกอินจริง */
-:root{
-  --paper:#f0e3c0; --paper-hi:#f8efd3; --paper-lo:#e3d09f;
-  --ink:#3b2a20; --ink-soft:#6b5543;
-  --teal:#2d5a54; --teal-deep:#1f403c;
-  --gold:#b98a2e; --rose:#b85c48;
-  --ring:rgba(45,90,84,.45);
-  --display:'Cinzel Decorative','Cormorant Garamond',Georgia,serif;
-  --serif:'Cormorant Garamond','Noto Serif Thai',Georgia,serif;
-  --thai:'Noto Serif Thai','Cormorant Garamond',Georgia,serif;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%}
-body{
-  font-family:var(--thai);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;
-  background:radial-gradient(120% 90% at 50% 36%,var(--paper-hi) 0,var(--paper) 55%,var(--paper-lo) 100%) var(--paper);
-}
-/* เนื้อกระดาษ */
-body::before{
-  content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-:focus-visible{outline:3px solid var(--ring);outline-offset:4px;border-radius:999px}
-
-/* กรอบและมุมลายเถา */
-.frame{position:fixed;inset:10px;border:1px solid rgba(185,138,46,.5);pointer-events:none}
-.corner{position:fixed;width:72px;height:72px;pointer-events:none}
-.corner.tl{top:10px;left:10px}
-.corner.tr{top:10px;right:10px;transform:scaleX(-1)}
-.corner.bl{bottom:10px;left:10px;transform:scaleY(-1)}
-.corner.br{bottom:10px;right:10px;transform:scale(-1,-1)}
-.mock-badge{
-  position:fixed;z-index:5;top:calc(18px + env(safe-area-inset-top));right:26px;
-  font:600 11px var(--serif);letter-spacing:.18em;color:var(--rose);
-  border:1px solid var(--rose);border-radius:999px;padding:1px 10px;background:rgba(248,239,211,.85);
-}
-
-.stage{
-  position:relative;min-height:100dvh;max-width:480px;margin:0 auto;
-  padding:calc(34px + env(safe-area-inset-top)) 28px calc(30px + env(safe-area-inset-bottom));
-  display:flex;flex-direction:column;align-items:center;text-align:center;
-}
-.stage>*{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
-.stage>:nth-child(2){animation-delay:.08s}.stage>:nth-child(3){animation-delay:.16s}
-.stage>:nth-child(4){animation-delay:.24s}.stage>:nth-child(5){animation-delay:.32s}
-
-.brand{display:flex;align-items:center;gap:12px;font:700 32px var(--display);letter-spacing:.05em;color:var(--teal-deep)}
-.brand svg{width:34px;height:34px}
-.hero{margin:20px 0 8px;width:min(70vw,320px)}
-.hero svg{display:block;width:100%;height:auto}
-.spin{transform-origin:200px 200px;animation:spin 180s linear infinite}
-.tagline{font:600 27px/1.35 var(--thai);color:var(--teal-deep);margin-top:10px}
-.tagline-en{font:italic 500 22px var(--serif);color:var(--ink-soft);margin-top:2px}
-
-.auth,.done{width:100%;margin-top:auto;padding-top:30px;display:grid;gap:14px}
-.auth[hidden],.done[hidden]{display:none}
-.btn-google{
-  width:100%;min-height:54px;border-radius:999px;border:1.5px solid var(--gold);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:12px;
-  font:600 18px var(--thai);color:var(--ink);background:linear-gradient(#fcf6df,#f4e8c6);
-  box-shadow:0 0 0 4px rgba(248,239,211,.9),0 0 0 5px rgba(185,138,46,.5),0 8px 16px rgba(59,42,32,.12);
-  transition:transform .15s,border-color .15s;
-}
-.btn-google:hover{transform:translateY(-1px);border-color:var(--teal)}
-.btn-google svg{width:22px;height:22px}
-.or{display:flex;align-items:center;gap:14px;color:var(--ink-soft);font:500 16px var(--thai);margin:4px 0}
-.or::before,.or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
-.or::after{background:linear-gradient(270deg,transparent,var(--gold))}
-.field{position:relative}
-input[type=email]{
-  width:100%;min-height:54px;padding:0 62px 0 22px;border-radius:999px;
-  border:1.5px solid rgba(185,138,46,.75);background:rgba(251,244,220,.6);
-  font:500 18px var(--thai);color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s;
-}
-input[type=email]::placeholder{color:#8d7a62}
-input[type=email]:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(45,90,84,.18);background:#fcf6df}
-input[aria-invalid=true]{border-color:var(--rose)}
-.go{
-  position:absolute;right:6px;top:6px;width:42px;height:42px;border:0;border-radius:50%;cursor:pointer;
-  display:grid;place-items:center;background:var(--teal);color:#f6ecd0;transition:background .15s,transform .15s;
-}
-.go:hover{background:var(--teal-deep);transform:scale(1.05)}
-.go svg{width:20px;height:20px}
-.err{min-height:1.4em;margin-top:6px;padding-left:20px;text-align:left;font-size:14px;color:var(--rose)}
-.legal{font-size:13.5px;line-height:1.8;color:var(--ink-soft)}
-.legal a{color:var(--teal-deep);text-underline-offset:3px}
-.done h2{font:600 24px var(--thai);color:var(--teal-deep)}
-.done p{color:var(--ink-soft)}
-.done strong{color:var(--ink);word-break:break-all}
-.btn-solid{
-  display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:999px;text-decoration:none;
-  font:600 18px var(--thai);color:#f6ecd0;background:var(--teal);transition:background .15s;
-}
-.btn-solid:hover{background:var(--teal-deep)}
-.btn-link{border:0;background:none;cursor:pointer;font:500 16px var(--thai);color:var(--teal-deep);text-decoration:underline;text-underline-offset:4px;padding:8px}
-.toast{
-  position:fixed;z-index:10;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));max-width:90vw;
-  transform:translate(-50%,16px);opacity:0;pointer-events:none;
-  background:var(--teal-deep);color:#f6ecd0;padding:10px 20px;border-radius:999px;font-size:15px;
-  transition:opacity .2s,transform .2s;
-}
+:root{--or:#ff7a1a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#000;color:#fff;font-family:-apple-system,"Sarabun","Noto Sans Thai",system-ui,sans-serif;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;position:relative;text-align:center;padding:0 20px}
+.logo{position:relative;width:84px;height:84px}
+.mandala{position:absolute;left:50%;top:50%;width:860px;height:860px;margin:-430px;pointer-events:none}
+.ln{fill:none;stroke:var(--or);stroke-width:.9;stroke-linecap:round;stroke-linejoin:round}
+.ln g{animation:spin 120s linear infinite}
+.ln .r1{animation-duration:90s;animation-direction:reverse}
+.ln .r3{animation-duration:80s;animation-direction:reverse}
+.ln .r0,.ln .r4,.ln>g:last-child{animation-duration:150s}
+.ln>g:last-child{animation:none}
+.fly{position:relative;width:84px;height:84px;filter:drop-shadow(0 0 8px rgba(255,122,26,.8));animation:fl 4s ease-in-out infinite}
+h1{position:relative;font-size:28px;font-weight:700;margin:0;text-shadow:0 0 8px #000,0 0 18px #000,0 0 28px #000}
+h1 span{font-family:Georgia,"Times New Roman",serif;font-weight:600;color:var(--or)}
+.actions{position:relative;width:100%;max-width:440px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;gap:12px}
+.btn{display:flex;align-items:center;justify-content:center;position:relative;height:54px;border-radius:18px;background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,122,26,.65);color:#fff;font:inherit;font-size:16px;cursor:pointer;width:100%;transition:transform .1s,opacity .15s}
+.btn:active{transform:scale(.98);opacity:.85}
+.btn svg{position:absolute;left:18px;width:22px;height:22px}
+.or{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.7);font-size:14px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:rgba(255,122,26,.5)}
+.email{display:none;flex-direction:column;gap:10px}
+.email.show{display:flex}
+.email input{height:50px;border-radius:14px;border:1px solid rgba(255,122,26,.65);background:rgba(0,0,0,.62);color:#fff;padding:0 14px;font:inherit;font-size:16px;outline:none}
+.email input::placeholder{color:rgba(255,255,255,.55)}
+.foot{position:relative;text-align:center;color:rgba(255,255,255,.7);font-size:13px;line-height:1.7;padding:18px 20px 14px;text-shadow:0 0 8px #000}
+.foot a{color:inherit;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translate(-50%,20px);background:var(--or);color:#000;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:90%;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.wings{transform-origin:32px 32px;animation:flap 1.6s ease-in-out infinite}
+@keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.8)}}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media (max-height:720px){.hero{width:min(54vw,240px)}.tagline{font-size:23px}}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <symbol id="corner" viewBox="0 0 72 72">
-      <path d="M3 69V30C3 14 14 3 30 3H69" fill="none" stroke="#b98a2e" stroke-width="2"/>
-      <path d="M11 69V34C11 20 20 11 34 11H69" fill="none" stroke="#2d5a54" stroke-width="1"/>
-      <path d="M18 40C18 28 28 18 40 18C50 18 52 30 44 32C38 34 34 28 38 25" fill="none" stroke="#b85c48" stroke-width="1.8" stroke-linecap="round"/>
-      <circle cx="20" cy="43" r="2.4" fill="#b98a2e"/><circle cx="43" cy="20" r="2.4" fill="#b98a2e"/>
-    </symbol>
-  </defs>
-</svg>
-<div class="frame" aria-hidden="true"></div>
-<svg class="corner tl" aria-hidden="true"><use href="#corner"/></svg>
-<svg class="corner tr" aria-hidden="true"><use href="#corner"/></svg>
-<svg class="corner bl" aria-hidden="true"><use href="#corner"/></svg>
-<svg class="corner br" aria-hidden="true"><use href="#corner"/></svg>
-<span class="mock-badge" aria-label="หน้าจำลอง">MOCK</span>
-
-<main class="stage">
-  <header class="brand">
-    <svg viewBox="-20 -20 40 40" aria-hidden="true">
-      <g fill="#b85c48">
-        <ellipse cy="-10" rx="3.6" ry="8"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(45)"/>
-        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(90)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(135)"/>
-        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(180)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(225)"/>
-        <ellipse cy="-10" rx="3.6" ry="8" transform="rotate(270)"/><ellipse cy="-10" rx="3.6" ry="8" transform="rotate(315)"/>
-      </g>
-      <circle r="5" fill="#e8c35b"/><circle r="1.8" fill="#7a3b2a"/>
-    </svg>
-    <span>Agent</span>
-  </header>
-
-  <figure class="hero">
-    <svg viewBox="0 0 400 400" role="img" aria-label="ภาพวาดสตรีสวมมงกุฎดอกไม้ในวงกลมลายทอง สไตล์ Art Nouveau">
-      <defs>
-        <radialGradient id="halo" cx="50%" cy="46%" r="56%"><stop offset="0" stop-color="#fbf3d6"/><stop offset=".62" stop-color="#f1e0ae"/><stop offset="1" stop-color="#e2c685"/></radialGradient>
-        <clipPath id="disc"><circle cx="200" cy="200" r="150"/></clipPath>
-        <g id="bloom">
-          <g fill="#c9674f">
-            <ellipse cy="-9" rx="5.5" ry="9"/><ellipse cy="-9" rx="5.5" ry="9" transform="rotate(72)"/>
-            <ellipse cy="-9" rx="5.5" ry="9" transform="rotate(144)"/><ellipse cy="-9" rx="5.5" ry="9" transform="rotate(216)"/>
-            <ellipse cy="-9" rx="5.5" ry="9" transform="rotate(288)"/>
-          </g>
-          <circle r="4.2" fill="#e8c35b"/><circle r="1.6" fill="#7a3b2a"/>
-        </g>
-        <g id="leaf"><path d="M0 0C6-8 18-10 26-4C18 4 6 6 0 0Z" fill="#6f8a63"/><path d="M2-1C10-4 18-5 24-4" stroke="#3f5a3d" stroke-width=".9" fill="none"/></g>
-      </defs>
-      <circle cx="200" cy="200" r="186" fill="none" stroke="#2d5a54" stroke-width="1.4"/>
-      <circle cx="200" cy="200" r="178" fill="url(#halo)" stroke="#b98a2e" stroke-width="3.2"/>
-      <circle class="spin" cx="200" cy="200" r="168" fill="none" stroke="#b85c48" stroke-width="5" stroke-dasharray="1 12.4" stroke-linecap="round"/>
-      <circle cx="200" cy="200" r="158" fill="none" stroke="#2d5a54" stroke-width="1.2"/>
-      <circle cx="200" cy="200" r="150" fill="#f7edcf" stroke="#b98a2e" stroke-width="1.6"/>
-      <g clip-path="url(#disc)">
-        <path d="M216 112C196 88 156 90 138 118C120 146 132 178 118 202C106 222 90 230 94 252C98 272 126 276 142 262C128 256 124 240 138 230C154 218 152 200 160 188C168 176 184 178 194 168L216 146Z" fill="#6e4126"/>
-        <path d="M206 116C186 102 160 106 148 128M198 128C178 118 158 128 152 148M192 142C176 138 164 148 162 164M150 176C142 196 150 212 134 226" stroke="#c28a4c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <path d="M108 238a14 14 0 1 1 16 14a8 8 0 1 1-9-9" stroke="#c28a4c" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-        <path d="M198 200L196 240C204 254 226 254 232 238L226 206Z" fill="#efcdb0"/>
-        <path d="M214 112C226 126 228 140 229 150C230 158 240 166 240 170C240 173 234 174 233 176C235 179 235 182 233 184C235 187 232 190 230 191C231 199 229 207 220 212C214 216 206 216 200 214C190 200 186 150 214 112Z" fill="#f4d9bf"/>
-        <path d="M196 232C196 250 184 262 160 270C120 284 96 312 90 360L330 360C324 318 300 288 262 272C238 262 226 250 226 232Z" fill="#2d5a54"/>
-        <path d="M168 270C186 292 212 296 238 276" stroke="#e1bf6a" stroke-width="2.4" fill="none"/>
-        <path d="M150 284C174 312 216 316 252 290" stroke="#e1bf6a" stroke-width="1.2" fill="none"/>
-        <path d="M214 112C226 126 228 140 229 150C230 158 240 166 240 170C240 173 234 174 233 176C235 179 235 182 233 184C235 187 232 190 230 191C231 199 229 207 220 212" stroke="#4a2f22" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M222 214C216 224 214 232 214 240" stroke="#c9a083" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <path d="M207 144q9-6 18-1" stroke="#4a2f22" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M208 152q6-4 12 0" stroke="#4a2f22" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <ellipse cx="231" cy="181" rx="3.4" ry="2" fill="#b85c48"/><circle cx="214" cy="170" r="7" fill="#d98a74" opacity=".28"/>
-        <path d="M148 134C168 100 200 92 218 114" stroke="#b98a2e" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-        <use href="#bloom" transform="translate(166 108) scale(.9)"/><use href="#bloom" transform="translate(190 98) scale(1.05)"/><use href="#bloom" transform="translate(212 104) scale(.8)"/>
-        <use href="#leaf" transform="translate(150 120) rotate(-140)"/><use href="#leaf" transform="translate(180 94) rotate(-60)"/>
-      </g>
-      <path d="M92 296C112 336 156 352 200 354C244 352 288 336 308 296" fill="none" stroke="#5f7b57" stroke-width="2.4" stroke-linecap="round"/>
-      <use href="#leaf" transform="translate(96 318) rotate(30)"/><use href="#leaf" transform="translate(128 342) rotate(12)"/>
-      <use href="#leaf" transform="translate(304 318) rotate(150) scale(1,-1)"/><use href="#leaf" transform="translate(272 342) rotate(168) scale(1,-1)"/>
-      <use href="#bloom" transform="translate(82 296) scale(1.1)"/><use href="#bloom" transform="translate(118 336) scale(.9)"/>
-      <use href="#bloom" transform="translate(200 354) scale(1.25)"/>
-      <use href="#bloom" transform="translate(282 336) scale(.9)"/><use href="#bloom" transform="translate(318 296) scale(1.1)"/>
-    </svg>
-  </figure>
-
-  <div>
-    <h1 class="tagline">ผู้ช่วย AI สำหรับนักแก้ปัญหา</h1>
-    <p class="tagline-en">The AI for problem solvers</p>
+<div class="hero">
+  <div class="logo"><svg class="mandala" viewBox="-300 -300 600 600" aria-hidden="true">
+<defs>
+<path id="bd" d="M-8 3Q-2-5 8-3Q3-1 1 3M8-3l4-2M-8 3l-4 1"/>
+<path id="fg" d="M0 7V-2M-4 0H4M0 7l-3 4M0 7l3 4M-3-5a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/>
+<path id="dr" d="M-7 5V0H6V5M6 0l3-5M9-5l-1-3M9-5l3-2M-7 0l-2-3"/>
+<path id="lf" d="M0 0l-7-20h14zM0-6l-3-9h6z"/>
+</defs>
+<g class="ln">
+<g class="r0"><circle r="296"/><circle r="293"/><polygon points="0.0,-291.0 7.3,-276.9 15.2,-290.6 21.7,-276.1 30.4,-289.4 36.2,-274.6 45.5,-287.4 50.5,-272.4 60.5,-284.6 64.7,-269.3 75.3,-281.1 78.7,-265.6 89.9,-276.8 92.5,-261.1 104.3,-271.7 106.0,-255.9 118.4,-265.8 119.3,-250.0 132.1,-259.3 132.2,-243.4 145.5,-252.0 144.7,-236.2 158.5,-244.1 156.9,-228.3 171.0,-235.4 168.6,-219.8 183.1,-226.1 179.9,-210.6 194.7,-216.3 190.7,-200.9 205.8,-205.8 200.9,-190.7 216.3,-194.7 210.6,-179.9 226.1,-183.1 219.8,-168.6 235.4,-171.0 228.3,-156.9 244.1,-158.5 236.2,-144.7 252.0,-145.5 243.4,-132.2 259.3,-132.1 250.0,-119.3 265.8,-118.4 255.9,-106.0 271.7,-104.3 261.1,-92.5 276.8,-89.9 265.6,-78.7 281.1,-75.3 269.3,-64.7 284.6,-60.5 272.4,-50.5 287.4,-45.5 274.6,-36.2 289.4,-30.4 276.1,-21.7 290.6,-15.2 276.9,-7.3 291.0,-0.0 276.9,7.3 290.6,15.2 276.1,21.7 289.4,30.4 274.6,36.2 287.4,45.5 272.4,50.5 284.6,60.5 269.3,64.7 281.1,75.3 265.6,78.7 276.8,89.9 261.1,92.5 271.7,104.3 255.9,106.0 265.8,118.4 250.0,119.3 259.3,132.1 243.4,132.2 252.0,145.5 236.2,144.7 244.1,158.5 228.3,156.9 235.4,171.0 219.8,168.6 226.1,183.1 210.6,179.9 216.3,194.7 200.9,190.7 205.8,205.8 190.7,200.9 194.7,216.3 179.9,210.6 183.1,226.1 168.6,219.8 171.0,235.4 156.9,228.3 158.5,244.1 144.7,236.2 145.5,252.0 132.2,243.4 132.1,259.3 119.3,250.0 118.4,265.8 106.0,255.9 104.3,271.7 92.5,261.1 89.9,276.8 78.7,265.6 75.3,281.1 64.7,269.3 60.5,284.6 50.5,272.4 45.5,287.4 36.2,274.6 30.4,289.4 21.7,276.1 15.2,290.6 7.3,276.9 0.0,291.0 -7.3,276.9 -15.2,290.6 -21.7,276.1 -30.4,289.4 -36.2,274.6 -45.5,287.4 -50.5,272.4 -60.5,284.6 -64.7,269.3 -75.3,281.1 -78.7,265.6 -89.9,276.8 -92.5,261.1 -104.3,271.7 -106.0,255.9 -118.4,265.8 -119.3,250.0 -132.1,259.3 -132.2,243.4 -145.5,252.0 -144.7,236.2 -158.5,244.1 -156.9,228.3 -171.0,235.4 -168.6,219.8 -183.1,226.1 -179.9,210.6 -194.7,216.3 -190.7,200.9 -205.8,205.8 -200.9,190.7 -216.3,194.7 -210.6,179.9 -226.1,183.1 -219.8,168.6 -235.4,171.0 -228.3,156.9 -244.1,158.5 -236.2,144.7 -252.0,145.5 -243.4,132.2 -259.3,132.1 -250.0,119.3 -265.8,118.4 -255.9,106.0 -271.7,104.3 -261.1,92.5 -276.8,89.9 -265.6,78.7 -281.1,75.3 -269.3,64.7 -284.6,60.5 -272.4,50.5 -287.4,45.5 -274.6,36.2 -289.4,30.4 -276.1,21.7 -290.6,15.2 -276.9,7.3 -291.0,0.0 -276.9,-7.3 -290.6,-15.2 -276.1,-21.7 -289.4,-30.4 -274.6,-36.2 -287.4,-45.5 -272.4,-50.5 -284.6,-60.5 -269.3,-64.7 -281.1,-75.3 -265.6,-78.7 -276.8,-89.9 -261.1,-92.5 -271.7,-104.3 -255.9,-106.0 -265.8,-118.4 -250.0,-119.3 -259.3,-132.1 -243.4,-132.2 -252.0,-145.5 -236.2,-144.7 -244.1,-158.5 -228.3,-156.9 -235.4,-171.0 -219.8,-168.6 -226.1,-183.1 -210.6,-179.9 -216.3,-194.7 -200.9,-190.7 -205.8,-205.8 -190.7,-200.9 -194.7,-216.3 -179.9,-210.6 -183.1,-226.1 -168.6,-219.8 -171.0,-235.4 -156.9,-228.3 -158.5,-244.1 -144.7,-236.2 -145.5,-252.0 -132.2,-243.4 -132.1,-259.3 -119.3,-250.0 -118.4,-265.8 -106.0,-255.9 -104.3,-271.7 -92.5,-261.1 -89.9,-276.8 -78.7,-265.6 -75.3,-281.1 -64.7,-269.3 -60.5,-284.6 -50.5,-272.4 -45.5,-287.4 -36.2,-274.6 -30.4,-289.4 -21.7,-276.1 -15.2,-290.6 -7.3,-276.9"/><circle r="274"/><circle r="270"/></g>
+<g class="r1"><circle r="258"/><circle r="254"/><circle r="250" stroke-dasharray="1.5 4"/><use href="#bd" transform="rotate(0.00) translate(0 -234)"/><use href="#bd" transform="rotate(12.00) translate(0 -234)"/><use href="#bd" transform="rotate(24.00) translate(0 -234)"/><use href="#bd" transform="rotate(36.00) translate(0 -234)"/><use href="#bd" transform="rotate(48.00) translate(0 -234)"/><use href="#bd" transform="rotate(60.00) translate(0 -234)"/><use href="#bd" transform="rotate(72.00) translate(0 -234)"/><use href="#bd" transform="rotate(84.00) translate(0 -234)"/><use href="#bd" transform="rotate(96.00) translate(0 -234)"/><use href="#bd" transform="rotate(108.00) translate(0 -234)"/><use href="#bd" transform="rotate(120.00) translate(0 -234)"/><use href="#bd" transform="rotate(132.00) translate(0 -234)"/><use href="#bd" transform="rotate(144.00) translate(0 -234)"/><use href="#bd" transform="rotate(156.00) translate(0 -234)"/><use href="#bd" transform="rotate(168.00) translate(0 -234)"/><use href="#bd" transform="rotate(180.00) translate(0 -234)"/><use href="#bd" transform="rotate(192.00) translate(0 -234)"/><use href="#bd" transform="rotate(204.00) translate(0 -234)"/><use href="#bd" transform="rotate(216.00) translate(0 -234)"/><use href="#bd" transform="rotate(228.00) translate(0 -234)"/><use href="#bd" transform="rotate(240.00) translate(0 -234)"/><use href="#bd" transform="rotate(252.00) translate(0 -234)"/><use href="#bd" transform="rotate(264.00) translate(0 -234)"/><use href="#bd" transform="rotate(276.00) translate(0 -234)"/><use href="#bd" transform="rotate(288.00) translate(0 -234)"/><use href="#bd" transform="rotate(300.00) translate(0 -234)"/><use href="#bd" transform="rotate(312.00) translate(0 -234)"/><use href="#bd" transform="rotate(324.00) translate(0 -234)"/><use href="#bd" transform="rotate(336.00) translate(0 -234)"/><use href="#bd" transform="rotate(348.00) translate(0 -234)"/><circle r="216"/><circle r="213"/></g>
+<g class="r2"><polygon points="0.0,-208.0 6.8,-195.9 14.5,-207.5 20.5,-194.9 28.9,-206.0 34.0,-193.0 43.2,-203.5 47.4,-190.2 57.3,-199.9 60.6,-186.4 71.1,-195.5 73.4,-181.7 84.6,-190.0 85.9,-176.2 97.7,-183.7 98.0,-169.7 110.2,-176.4 109.6,-162.5 122.3,-168.3 120.7,-154.5 133.7,-159.3 131.1,-145.7 144.5,-149.6 141.0,-136.2 154.6,-139.2 150.1,-126.0 163.9,-128.1 158.6,-115.2 172.4,-116.3 166.2,-103.9 180.1,-104.0 173.1,-92.0 186.9,-91.2 179.1,-79.7 192.9,-77.9 184.2,-67.0 197.8,-64.3 188.4,-54.0 201.8,-50.3 191.7,-40.8 204.8,-36.1 194.1,-27.3 206.9,-21.7 195.5,-13.7 207.9,-7.3 196.0,-0.0 207.9,7.3 195.5,13.7 206.9,21.7 194.1,27.3 204.8,36.1 191.7,40.8 201.8,50.3 188.4,54.0 197.8,64.3 184.2,67.0 192.9,77.9 179.1,79.7 186.9,91.2 173.1,92.0 180.1,104.0 166.2,103.9 172.4,116.3 158.6,115.2 163.9,128.1 150.1,126.0 154.6,139.2 141.0,136.2 144.5,149.6 131.1,145.7 133.7,159.3 120.7,154.5 122.3,168.3 109.6,162.5 110.2,176.4 98.0,169.7 97.7,183.7 85.9,176.2 84.6,190.0 73.4,181.7 71.1,195.5 60.6,186.4 57.3,199.9 47.4,190.2 43.2,203.5 34.0,193.0 28.9,206.0 20.5,194.9 14.5,207.5 6.8,195.9 0.0,208.0 -6.8,195.9 -14.5,207.5 -20.5,194.9 -28.9,206.0 -34.0,193.0 -43.2,203.5 -47.4,190.2 -57.3,199.9 -60.6,186.4 -71.1,195.5 -73.4,181.7 -84.6,190.0 -85.9,176.2 -97.7,183.7 -98.0,169.7 -110.2,176.4 -109.6,162.5 -122.3,168.3 -120.7,154.5 -133.7,159.3 -131.1,145.7 -144.5,149.6 -141.0,136.2 -154.6,139.2 -150.1,126.0 -163.9,128.1 -158.6,115.2 -172.4,116.3 -166.2,103.9 -180.1,104.0 -173.1,92.0 -186.9,91.2 -179.1,79.7 -192.9,77.9 -184.2,67.0 -197.8,64.3 -188.4,54.0 -201.8,50.3 -191.7,40.8 -204.8,36.1 -194.1,27.3 -206.9,21.7 -195.5,13.7 -207.9,7.3 -196.0,0.0 -207.9,-7.3 -195.5,-13.7 -206.9,-21.7 -194.1,-27.3 -204.8,-36.1 -191.7,-40.8 -201.8,-50.3 -188.4,-54.0 -197.8,-64.3 -184.2,-67.0 -192.9,-77.9 -179.1,-79.7 -186.9,-91.2 -173.1,-92.0 -180.1,-104.0 -166.2,-103.9 -172.4,-116.3 -158.6,-115.2 -163.9,-128.1 -150.1,-126.0 -154.6,-139.2 -141.0,-136.2 -144.5,-149.6 -131.1,-145.7 -133.7,-159.3 -120.7,-154.5 -122.3,-168.3 -109.6,-162.5 -110.2,-176.4 -98.0,-169.7 -97.7,-183.7 -85.9,-176.2 -84.6,-190.0 -73.4,-181.7 -71.1,-195.5 -60.6,-186.4 -57.3,-199.9 -47.4,-190.2 -43.2,-203.5 -34.0,-193.0 -28.9,-206.0 -20.5,-194.9 -14.5,-207.5 -6.8,-195.9"/><circle r="193"/><circle r="190"/><use href="#fg" transform="rotate(0.00) translate(0 -172)"/><use href="#dr" transform="rotate(8.18) translate(0 -172)"/><use href="#fg" transform="rotate(16.36) translate(0 -172)"/><use href="#dr" transform="rotate(24.55) translate(0 -172)"/><use href="#fg" transform="rotate(32.73) translate(0 -172)"/><use href="#dr" transform="rotate(40.91) translate(0 -172)"/><use href="#fg" transform="rotate(49.09) translate(0 -172)"/><use href="#dr" transform="rotate(57.27) translate(0 -172)"/><use href="#fg" transform="rotate(65.45) translate(0 -172)"/><use href="#dr" transform="rotate(73.64) translate(0 -172)"/><use href="#fg" transform="rotate(81.82) translate(0 -172)"/><use href="#dr" transform="rotate(90.00) translate(0 -172)"/><use href="#fg" transform="rotate(98.18) translate(0 -172)"/><use href="#dr" transform="rotate(106.36) translate(0 -172)"/><use href="#fg" transform="rotate(114.55) translate(0 -172)"/><use href="#dr" transform="rotate(122.73) translate(0 -172)"/><use href="#fg" transform="rotate(130.91) translate(0 -172)"/><use href="#dr" transform="rotate(139.09) translate(0 -172)"/><use href="#fg" transform="rotate(147.27) translate(0 -172)"/><use href="#dr" transform="rotate(155.45) translate(0 -172)"/><use href="#fg" transform="rotate(163.64) translate(0 -172)"/><use href="#dr" transform="rotate(171.82) translate(0 -172)"/><use href="#fg" transform="rotate(180.00) translate(0 -172)"/><use href="#dr" transform="rotate(188.18) translate(0 -172)"/><use href="#fg" transform="rotate(196.36) translate(0 -172)"/><use href="#dr" transform="rotate(204.55) translate(0 -172)"/><use href="#fg" transform="rotate(212.73) translate(0 -172)"/><use href="#dr" transform="rotate(220.91) translate(0 -172)"/><use href="#fg" transform="rotate(229.09) translate(0 -172)"/><use href="#dr" transform="rotate(237.27) translate(0 -172)"/><use href="#fg" transform="rotate(245.45) translate(0 -172)"/><use href="#dr" transform="rotate(253.64) translate(0 -172)"/><use href="#fg" transform="rotate(261.82) translate(0 -172)"/><use href="#dr" transform="rotate(270.00) translate(0 -172)"/><use href="#fg" transform="rotate(278.18) translate(0 -172)"/><use href="#dr" transform="rotate(286.36) translate(0 -172)"/><use href="#fg" transform="rotate(294.55) translate(0 -172)"/><use href="#dr" transform="rotate(302.73) translate(0 -172)"/><use href="#fg" transform="rotate(310.91) translate(0 -172)"/><use href="#dr" transform="rotate(319.09) translate(0 -172)"/><use href="#fg" transform="rotate(327.27) translate(0 -172)"/><use href="#dr" transform="rotate(335.45) translate(0 -172)"/><use href="#fg" transform="rotate(343.64) translate(0 -172)"/><use href="#dr" transform="rotate(351.82) translate(0 -172)"/><circle r="152"/><circle r="149"/><circle r="146" stroke-dasharray="1.5 4"/></g>
+<g class="r3"><circle r="140"/><circle r="137"/><use href="#lf" transform="rotate(0.00) translate(0 -160)"/><use href="#lf" transform="rotate(22.50) translate(0 -160)"/><use href="#lf" transform="rotate(45.00) translate(0 -160)"/><use href="#lf" transform="rotate(67.50) translate(0 -160)"/><use href="#lf" transform="rotate(90.00) translate(0 -160)"/><use href="#lf" transform="rotate(112.50) translate(0 -160)"/><use href="#lf" transform="rotate(135.00) translate(0 -160)"/><use href="#lf" transform="rotate(157.50) translate(0 -160)"/><use href="#lf" transform="rotate(180.00) translate(0 -160)"/><use href="#lf" transform="rotate(202.50) translate(0 -160)"/><use href="#lf" transform="rotate(225.00) translate(0 -160)"/><use href="#lf" transform="rotate(247.50) translate(0 -160)"/><use href="#lf" transform="rotate(270.00) translate(0 -160)"/><use href="#lf" transform="rotate(292.50) translate(0 -160)"/><use href="#lf" transform="rotate(315.00) translate(0 -160)"/><use href="#lf" transform="rotate(337.50) translate(0 -160)"/></g>
+<g class="r4"><circle r="126"/><circle r="122"/><polygon points="0.0,-118.0 7.3,-111.8 15.4,-117.0 21.9,-109.8 30.5,-114.0 36.0,-106.1 45.2,-109.0 49.5,-100.4 59.0,-102.2 62.2,-93.1 71.8,-93.6 73.8,-84.2 83.4,-83.4 84.2,-73.8 93.6,-71.8 93.1,-62.2 102.2,-59.0 100.4,-49.5 109.0,-45.2 106.1,-36.0 114.0,-30.5 109.8,-21.9 117.0,-15.4 111.8,-7.3 118.0,-0.0 111.8,7.3 117.0,15.4 109.8,21.9 114.0,30.5 106.1,36.0 109.0,45.2 100.4,49.5 102.2,59.0 93.1,62.2 93.6,71.8 84.2,73.8 83.4,83.4 73.8,84.2 71.8,93.6 62.2,93.1 59.0,102.2 49.5,100.4 45.2,109.0 36.0,106.1 30.5,114.0 21.9,109.8 15.4,117.0 7.3,111.8 0.0,118.0 -7.3,111.8 -15.4,117.0 -21.9,109.8 -30.5,114.0 -36.0,106.1 -45.2,109.0 -49.5,100.4 -59.0,102.2 -62.2,93.1 -71.8,93.6 -73.8,84.2 -83.4,83.4 -84.2,73.8 -93.6,71.8 -93.1,62.2 -102.2,59.0 -100.4,49.5 -109.0,45.2 -106.1,36.0 -114.0,30.5 -109.8,21.9 -117.0,15.4 -111.8,7.3 -118.0,0.0 -111.8,-7.3 -117.0,-15.4 -109.8,-21.9 -114.0,-30.5 -106.1,-36.0 -109.0,-45.2 -100.4,-49.5 -102.2,-59.0 -93.1,-62.2 -93.6,-71.8 -84.2,-73.8 -83.4,-83.4 -73.8,-84.2 -71.8,-93.6 -62.2,-93.1 -59.0,-102.2 -49.5,-100.4 -45.2,-109.0 -36.0,-106.1 -30.5,-114.0 -21.9,-109.8 -15.4,-117.0 -7.3,-111.8"/><polygon points="0.0,-112.0 11.7,-58.8 42.9,-103.5 33.3,-49.9 79.2,-79.2 49.9,-33.3 103.5,-42.9 58.8,-11.7 112.0,-0.0 58.8,11.7 103.5,42.9 49.9,33.3 79.2,79.2 33.3,49.9 42.9,103.5 11.7,58.8 0.0,112.0 -11.7,58.8 -42.9,103.5 -33.3,49.9 -79.2,79.2 -49.9,33.3 -103.5,42.9 -58.8,11.7 -112.0,0.0 -58.8,-11.7 -103.5,-42.9 -49.9,-33.3 -79.2,-79.2 -33.3,-49.9 -42.9,-103.5 -11.7,-58.8"/><use href="#lf" transform="rotate(0.00) translate(0 -60)"/><use href="#lf" transform="rotate(22.50) translate(0 -60)"/><use href="#lf" transform="rotate(45.00) translate(0 -60)"/><use href="#lf" transform="rotate(67.50) translate(0 -60)"/><use href="#lf" transform="rotate(90.00) translate(0 -60)"/><use href="#lf" transform="rotate(112.50) translate(0 -60)"/><use href="#lf" transform="rotate(135.00) translate(0 -60)"/><use href="#lf" transform="rotate(157.50) translate(0 -60)"/><use href="#lf" transform="rotate(180.00) translate(0 -60)"/><use href="#lf" transform="rotate(202.50) translate(0 -60)"/><use href="#lf" transform="rotate(225.00) translate(0 -60)"/><use href="#lf" transform="rotate(247.50) translate(0 -60)"/><use href="#lf" transform="rotate(270.00) translate(0 -60)"/><use href="#lf" transform="rotate(292.50) translate(0 -60)"/><use href="#lf" transform="rotate(315.00) translate(0 -60)"/><use href="#lf" transform="rotate(337.50) translate(0 -60)"/></g>
+<g><circle r="44"/><circle r="41"/></g>
+</g></svg><svg class="fly" viewBox="0 0 64 64"><g fill="none" stroke="#ff7a1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><g class="wings"><path d="M32 27C27 11 11 8 8 18c-2 8 8 13 24 14"/><path d="M32 27C37 11 53 8 56 18c2 8-8 13-24 14"/><path d="M32 33C21 33 13 41 17 49c4 6 13 1 15-9"/><path d="M32 33C43 33 51 41 47 49c-4 6-13 1-15-9"/><circle cx="17" cy="19" r="2"/><circle cx="47" cy="19" r="2"/></g><path d="M32 20v28M32 20c-1-5-4-9-8-11M32 20c1-5 4-9 8-11"/></g></svg></div>
+  <h1>ยินดีต้อนรับสู่ <span>Iris</span></h1>
+</div>
+<div class="actions">
+  <button class="btn" id="gbtn"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.800 2.400 30.300 0 24 0 14.600 0 6.500 5.400 2.600 13.200l7.900 6.100C12.400 13.600 17.700 9.500 24 9.500z"/><path fill="#4285F4" d="M46.500 24.500c0-1.600-.1-3.100-.4-4.500H24v9h12.700c-.6 3-2.300 5.500-4.800 7.200l7.500 5.800c4.400-4.100 7.100-10.100 7.100-17.500z"/><path fill="#FBBC05" d="M10.500 28.700A14.500 14.500 0 0 1 9.500 24c0-1.600.3-3.200.8-4.700l-7.900-6.100A24 24 0 0 0 0 24c0 3.900.9 7.500 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.500-5.800c-2.100 1.400-4.800 2.300-8.400 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>เข้าสู่ระบบด้วย Google</button>
+  <div class="or">หรือ</div>
+  <button class="btn" onclick="document.getElementById('em').classList.toggle('show')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>เข้าสู่ระบบด้วยอีเมล</button>
+  <div class="email" id="em">
+    <input type="email" placeholder="กรอกอีเมลของคุณ">
+    <button class="btn" onclick="t('อีเมลยังไม่เปิดใช้งาน',1)">ดำเนินการต่อ</button>
   </div>
-
-  <section class="auth" id="auth" aria-label="เข้าสู่ระบบ">
-    <button type="button" class="btn-google" id="googleBtn">
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
-        <path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C1 16.4 0 20.1 0 24s1 7.6 2.6 10.8l7.9-6.1z"/>
-        <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
-      </svg>
-      <span>ดำเนินการต่อด้วย Google</span>
-    </button>
-    <div class="or" aria-hidden="true">หรือ</div>
-    <form id="emailForm" novalidate>
-      <div class="field">
-        <label class="sr-only" for="email">อีเมล</label>
-        <input type="email" id="email" name="email" inputmode="email" autocomplete="email" placeholder="กรอกอีเมลของคุณ" aria-describedby="err">
-        <button type="submit" class="go" aria-label="ดำเนินการต่อด้วยอีเมล">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </button>
-      </div>
-      <p class="err" id="err" role="alert"></p>
-    </form>
-    <p class="legal">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ <a href="#" data-mock>ข้อกำหนดการใช้งาน</a> และ <a href="#" data-mock>นโยบายการใช้งาน</a> และรับทราบ <a href="#" data-mock>นโยบายความเป็นส่วนตัว</a></p>
-  </section>
-
-  <section class="done" id="done" hidden aria-live="polite">
-    <h2>ตรวจสอบกล่องอีเมลของคุณ</h2>
-    <p>เราส่งลิงก์เข้าสู่ระบบไปที่ <strong id="who"></strong> แล้ว<br><small>(โหมดจำลอง — ยังไม่มีการส่งอีเมลจริง)</small></p>
-    <a class="btn-solid" href="/agent-ui.html">เข้าสู่หน้าแชท (จำลอง)</a>
-    <button type="button" class="btn-link" id="again">ใช้อีเมลอื่น</button>
-  </section>
-</main>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
+</div>
+<div class="foot">
+  บัญชีก่อนหน้าของคุณถูกลบไปหรือเปล่า? <a href="#" onclick="return false">กู้คืนบัญชี</a><br><br>
+  โดยการดำเนินต่อ ถือว่าคุณยอมรับ<a href="#" onclick="return false">ข้อกำหนดการให้บริการ</a> และได้อ่าน<a href="#" onclick="return false">นโยบายความเป็นส่วนตัว</a>แล้ว
+</div>
+<div class="toast" id="toast"></div>
 <script>
-/* Mock: ยังไม่มีการเรียก API หรือเก็บข้อมูลใด ๆ — อีเมลที่กรอกแสดงบนหน้าจอเท่านั้น */
-(function(){
-  var auth=document.getElementById('auth'), done=document.getElementById('done'),
-      form=document.getElementById('emailForm'), input=document.getElementById('email'),
-      err=document.getElementById('err'), who=document.getElementById('who'),
-      toastEl=document.getElementById('toast'), timer=null,
-      EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function t(m){var e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(window._t);window._t=setTimeout(function(){e.classList.remove('show')},2500)}
+window.t=t;
+/* Only same-origin paths are followed after sign-in (no open redirect). */
+function safeNext(raw){ return typeof raw==='string' && /^\/(?!\/)[\w\-./?=&%]*$/.test(raw) ? raw : '/agent-ui.html'; }
+window.safeNext=safeNext;
+</script>
+<script type="module">
+const toast = window.t;
+const btn = document.getElementById('gbtn');
+const params = new URLSearchParams(location.search);
+const next = window.safeNext(params.get('next'));
+if (params.get('reason') === 'forbidden') toast('บัญชีนี้ไม่ได้รับอนุญาตให้ใช้งาน');
 
-  function toast(msg){
-    toastEl.textContent=msg; toastEl.classList.add('show');
-    clearTimeout(timer); timer=setTimeout(function(){ toastEl.classList.remove('show'); },2600);
-  }
-  document.getElementById('googleBtn').addEventListener('click',function(){
-    toast('โหมดจำลอง: ยังไม่ได้เชื่อม Google Sign-In');
+// Which sign-in mode is active (and the Firebase web config) comes from the server.
+let cfg = { mode: 'none' };
+try { const r = await fetch('/api/auth/config'); if (r.ok) cfg = await r.json(); } catch (e) { /* offline */ }
+
+if (cfg.mode !== 'firebase') {
+  btn.disabled = true; btn.style.opacity = '.5';
+  toast('เซิร์ฟเวอร์ยังไม่ได้เปิดการเข้าสู่ระบบด้วย Google');
+} else {
+  const BASE = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const [{ initializeApp }, { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }] =
+    await Promise.all([import(BASE + 'firebase-app.js'), import(BASE + 'firebase-auth.js')]);
+  const auth = getAuth(initializeApp(cfg.firebase));
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch (e) { toast(e.code === 'auth/popup-closed-by-user' ? 'ยกเลิกการเข้าสู่ระบบ' : 'เข้าสู่ระบบไม่สำเร็จ: ' + e.code); }
+    finally { btn.disabled = false; }
   });
-  Array.prototype.forEach.call(document.querySelectorAll('a[data-mock]'),function(a){
-    a.addEventListener('click',function(e){ e.preventDefault(); toast('โหมดจำลอง: ยังไม่มีหน้านี้'); });
-  });
-  input.addEventListener('input',function(){ err.textContent=''; input.removeAttribute('aria-invalid'); });
-  form.addEventListener('submit',function(e){
-    e.preventDefault();
-    var v=input.value.trim();
-    if(!EMAIL.test(v)){
-      err.textContent='กรุณากรอกอีเมลให้ถูกต้อง เช่น name@example.com';
-      input.setAttribute('aria-invalid','true'); input.focus(); return;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    // The server decides who is allowed in, not the browser.
+    try {
+      const res = await fetch('/api/agent/me', { headers: { Authorization: 'Bearer ' + await user.getIdToken() } });
+      if (res.ok) { location.replace(next); return; }
+      await signOut(auth);
+      toast(res.status === 403 ? 'บัญชีนี้ไม่ได้รับอนุญาตให้ใช้งาน' : 'เข้าสู่ระบบไม่สำเร็จ (' + res.status + ')');
+    } catch (e) {
+      await signOut(auth);
+      toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
     }
-    who.textContent=v;
-    auth.hidden=true; done.hidden=false;
-    done.querySelector('a').focus();
   });
-  document.getElementById('again').addEventListener('click',function(){
-    done.hidden=true; auth.hidden=false; input.value=''; input.focus();
-  });
-})();
+}
 </script>
 </body>
 </html>

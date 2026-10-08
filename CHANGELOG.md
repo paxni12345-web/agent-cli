@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Optional Google sign-in through Firebase Auth: the server verifies ID tokens
+  and only lets allowlisted, verified emails in (`FIREBASE_PROJECT_ID`,
+  `AGENT_ALLOWED_EMAILS`); `/login.html` signs in and the chat page redirects
+  there when signed out
+- `GET /api/auth/config` and `GET /api/agent/me`
 - Web UI wired to the agent server: `/api/agent/run`, `/stop`, `/clear`, live
   tool activity over `/events`, and provider/model/API-key settings saved to the
   server

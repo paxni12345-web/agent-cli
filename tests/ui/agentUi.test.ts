@@ -15,10 +15,11 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 const html = readFileSync(join(process.cwd(), 'public', 'agent-ui.html'), 'utf8');
 
 type Call = { url: string; method: string; body?: any; headers: Record<string, string> };
-interface BootOptions { stored?: Record<string, string>; reply?: string; runStatus?: number }
+interface BootOptions { stored?: Record<string, string>; reply?: string; runStatus?: number; authConfig?: unknown; sdk?: unknown }
 
 function boot(opts: BootOptions = {}) {
   const calls: Call[] = [];
+  const navs: string[] = [];
   const dom = new JSDOM(html, {
     url: 'http://localhost:3000/agent-ui.html',
     runScripts: 'dangerously',
@@ -29,11 +30,14 @@ function boot(opts: BootOptions = {}) {
       win.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
       win.HTMLElement.prototype.scrollTo = function () {};
       win.TextEncoder = TextEncoder;
+      win.__navigate = (target: string) => { navs.push(target); };
+      if (opts.sdk) win.__firebaseLoader = async () => opts.sdk;
       win.fetch = async (url: string, init: any = {}) => {
         const method = (init.method ?? 'GET').toUpperCase();
         const body = init.body ? JSON.parse(init.body) : undefined;
         calls.push({ url, method, body, headers: init.headers ?? {} });
         const send = (status: number, data: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
+        if (url === '/api/auth/config') return opts.authConfig ? send(200, opts.authConfig) : send(404, { error: 'not found' });
         if (url === '/api/agent/settings' && method === 'GET') {
           return send(200, { provider: 'anthropic', model: 'test-model', baseUrl: '', hasApiKey: true, thinkingLevel: 'off', activeProfile: '' });
         }
@@ -49,7 +53,7 @@ function boot(opts: BootOptions = {}) {
       };
     },
   });
-  return { dom, win: dom.window as any, doc: dom.window.document, calls };
+  return { dom, win: dom.window as any, doc: dom.window.document, calls, navs };
 }
 
 async function until(check: () => boolean, ms = 3000): Promise<void> {
@@ -159,5 +163,50 @@ describe('public/agent-ui.html', () => {
     await until(() => ui.doc.querySelector('.error-box') !== null);
     expect(ui.doc.querySelector('.error-box')!.textContent).toContain('No API key configured');
     await done(ui);
+  });
+});
+
+describe('public/agent-ui.html with Firebase sign-in', () => {
+  const config = { mode: 'firebase', firebase: { apiKey: 'k', authDomain: 'd', projectId: 'p', appId: 'a' } };
+  const owner = { email: 'owner@example.com', getIdToken: async () => 'ID-TOKEN' };
+  function fakeSdk(user: unknown, signedOut: string[]) {
+    const auth: any = { currentUser: user };
+    return {
+      initializeApp: () => ({}),
+      getAuth: () => auth,
+      // like the real SDK this may call back immediately or later; the page must cope with both
+      onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => { cb(auth.currentUser); return () => {}; },
+      signOut: async () => { signedOut.push('out'); auth.currentUser = null; },
+    };
+  }
+
+  it('sends the Firebase ID token and shows who is signed in', async () => {
+    const ui = boot({ authConfig: config, sdk: fakeSdk(owner, []) });
+    await until(() => ui.doc.querySelector('#modelName')?.textContent === 'test-model');
+    const settings = ui.calls.find((c) => c.url === '/api/agent/settings')!;
+    expect(settings.headers['Authorization']).toBe('Bearer ID-TOKEN');
+    const menu = ui.doc.querySelector('#modelMenu')!.textContent ?? '';
+    expect(menu).toContain('owner@example.com');
+    expect(menu).toContain('ออกจากระบบ');
+    await done(ui);
+  });
+
+  it('sends signed-out visitors to the login page without calling the API', async () => {
+    const ui = boot({ authConfig: config, sdk: fakeSdk(null, []) });
+    await until(() => ui.navs.length > 0);
+    expect(ui.navs[0]).toMatch(/^\/login\.html\?next=/);
+    expect(ui.calls.filter((c) => c.url.startsWith('/api/agent/')).length).toBe(0);
+    ui.win.close();
+  });
+
+  it('signs out and returns to the login page when the server refuses the account', async () => {
+    const signedOut: string[] = [];
+    const ui = boot({ authConfig: config, sdk: fakeSdk(owner, signedOut), runStatus: 403 });
+    await until(() => ui.doc.querySelector('#modelName')?.textContent === 'test-model');
+    await send(ui, 'hello');
+    await until(() => ui.navs.some((n) => n.includes('reason=forbidden')));
+    expect(signedOut.length).toBe(1);
+    await new Promise((r) => setTimeout(r, 50));
+    ui.win.close();
   });
 });

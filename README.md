@@ -53,6 +53,8 @@ You can also drive the agent without the UI. Everything under `/api/agent/` requ
 | `POST`/`GET`/`DELETE /api/agent/files` | Uploaded files |
 | `/api/agent/extensions/*` | Skills, MCP servers and plugins (see below) |
 | `GET /api/health` | Liveness check (no token needed) |
+| `GET /api/auth/config` | Public: which sign-in mode is active and the Firebase web config |
+| `GET /api/agent/me` | The signed-in account (`null` for the static key) |
 
 ## Tools
 
@@ -112,6 +114,9 @@ The server is configured with environment variables (`.env.example` lists them):
 | `PORT` | Listen port (default `3000`) |
 | `AGENT_SERVER_HOST` | Bind address (default `127.0.0.1`) |
 | `AGENT_SERVER_API_KEY` | Token required on `/api/agent/*`. **Required when the host is not loopback** — the server answers 503 otherwise |
+| `FIREBASE_PROJECT_ID` | Turns on Google sign-in through Firebase Auth (see below) |
+| `FIREBASE_WEB_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_AUTH_DOMAIN` | Firebase web config served to the pages (public values; the auth domain defaults to `<project>.firebaseapp.com`) |
+| `AGENT_ALLOWED_EMAILS` | Comma-separated emails allowed to sign in; an empty list admits nobody |
 | `AGENT_SERVER_ORIGIN` | Comma-separated allowed CORS origins (cross-origin requests are off by default) |
 | `AGENT_SERVER_ALLOW_MUTATIONS` | `true` lets the agent write files and run commands |
 | `AGENT_SERVER_RATE_MAX` / `AGENT_SERVER_RATE_WINDOW_MS` | Per-IP rate limit (default 30 requests per 60 000 ms) |
@@ -123,6 +128,16 @@ Provider, model, base URL and reasoning level can also be changed at runtime fro
 The HTTP server binds to `127.0.0.1` and disables cross-origin requests by default. It also runs in read-only permission mode unless mutations are explicitly enabled (see the table above).
 
 To bind to any other address you must set `AGENT_SERVER_API_KEY`. Clients send it as `Authorization: Bearer <token>` (or `x-api-key`, or `?token=`). The web UI has a **Server token** field under Settings → API connection for this. Put TLS in front of the server and do not expose it directly to the public internet. The server requires a real provider API key; it never falls back to a demo key.
+
+### Sign in with Google (Firebase)
+
+Instead of sharing one token you can gate the server with Google sign-in:
+
+1. In the Firebase console open **Authentication → Get started → Sign-in method** and enable **Google**. Under **Settings → Authorized domains** add the domain you serve the app from.
+2. Set `FIREBASE_PROJECT_ID`, `FIREBASE_WEB_API_KEY`, `FIREBASE_APP_ID` and `AGENT_ALLOWED_EMAILS` on the server.
+3. Open `/login.html`. After signing in you are sent to the chat; every API call carries your Firebase ID token and the server verifies it (signature, audience, issuer, expiry) before checking your email against the allowlist. Only verified emails on the list get in; everyone else receives 403. The chat page redirects to the login page when you are signed out.
+
+`AGENT_SERVER_API_KEY` keeps working as an admin credential for scripts. The UI's Content-Security-Policy only allows Google/Firebase hosts when Firebase is configured.
 
 ### Web UI
 

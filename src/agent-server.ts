@@ -6,6 +6,9 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { Agent } from './agent/Agent.js';
 import { createProvider } from './createAgent.js';
+import { createChatRouter, ChatIdentity } from './chat/chatRouter.js';
+import { createChatStoreFromEnv } from './chat/store.js';
+import { quotaFromEnv } from './chat/quota.js';
 import { createDefaultToolRegistry } from './tools/index.js';
 import { Action, PermissionManager, PermissionResult, Config, ContentBlock } from './types/index.js';
 import { ExtensionManager, ExtensionKind, isExtensionError } from './extensions/index.js';
@@ -26,6 +29,10 @@ const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY?.trim() || '';
 const FIREBASE_APP_ID = process.env.FIREBASE_APP_ID?.trim() || '';
 const FIREBASE_AUTH_DOMAIN = process.env.FIREBASE_AUTH_DOMAIN?.trim() || (FIREBASE_PROJECT_ID ? `${FIREBASE_PROJECT_ID}.firebaseapp.com` : '');
 const ALLOWED_EMAILS = parseEmailList(process.env.AGENT_ALLOWED_EMAILS);
+// Public mode: any Firebase user with a verified email may use the plain chat (/api/chat).
+// The agent with tools (/api/agent) stays limited to AGENT_ALLOWED_EMAILS.
+const PUBLIC_SIGNUP = process.env.AGENT_PUBLIC_SIGNUP === 'true';
+const BLOCKED_EMAILS = parseEmailList(process.env.AGENT_BLOCKED_EMAILS);
 const verifyFirebaseToken = FIREBASE_PROJECT_ID ? createFirebaseVerifier({ projectId: FIREBASE_PROJECT_ID }) : null;
 const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.AGENT_SERVER_RATE_WINDOW_MS || '60000', 10);
 const RATE_LIMIT_MAX = Number.parseInt(process.env.AGENT_SERVER_RATE_MAX || '30', 10);
@@ -760,6 +767,53 @@ app.get('/api/agent/report', (_req, res) => { if (!agent) { res.json({ error: 'A
 app.get('/api/agent/metrics/:toolName', (req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } const metrics = agent.getPerformanceMonitor().getToolMetrics(req.params.toolName); if (!metrics) { res.status(404).json({ error: 'Tool not found' }); return; } res.json({ ...metrics, errorTypes: Array.from(metrics.errorTypes.entries()) }); });
 app.get('/api/agent/export', (_req, res) => { if (!agent) { res.json({ error: 'Agent not initialized' }); return; } res.setHeader('Content-Type', 'application/json'); res.setHeader('Content-Disposition', `attachment; filename=agent-metrics-${Date.now()}.json`); res.send(agent.exportPerformanceData()); });
 app.post('/api/agent/clear', (_req, res) => { if (!agent) { res.status(404).json({ error: 'Agent not initialized' }); return; } agent.reset(); modelCalls = 0; broadcast({ type: 'reset' }); res.json({ success: true }); });
+/* ---------------- plain chat for signed-in users (no tools) ---------------- */
+
+async function authenticateChat(req: Request, res: Response): Promise<ChatIdentity | null> {
+  const supplied = req.header('authorization')?.replace(/^Bearer\s+/i, '') || req.header('x-api-key') || undefined;
+  if (!API_KEY && !verifyFirebaseToken) {
+    if (isLoopback(HOST)) return { uid: 'local' }; // development only
+    res.status(503).json({ error: 'Server authentication is not configured' });
+    return null;
+  }
+  if (API_KEY && supplied && safeEqual(supplied, API_KEY)) return { uid: 'admin' };
+  if (verifyFirebaseToken && supplied) {
+    let user: FirebaseUser;
+    try {
+      user = await verifyFirebaseToken(supplied);
+    } catch (error) {
+      console.log(`[chat] rejected token: ${error instanceof Error ? error.message : 'invalid'}`);
+      res.status(401).json({ error: 'Unauthorized' });
+      return null;
+    }
+    const email = user.email?.toLowerCase();
+    const admitted = PUBLIC_SIGNUP ? user.emailVerified : isEmailAllowed(user, ALLOWED_EMAILS);
+    if (!admitted || (email && BLOCKED_EMAILS.includes(email))) {
+      res.status(403).json({ error: 'This account is not allowed' });
+      return null;
+    }
+    return { uid: user.uid, email: user.email, name: user.name };
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+  return null;
+}
+
+function chatModel(): { provider: ReturnType<typeof createProvider>; name: string } | null {
+  if (!settings.apiKey || !settings.model) return null;
+  const activeProfile = settings.activeProfile ? profiles.find(p => p.name === settings.activeProfile) : undefined;
+  const provider = activeProfile ? activeProfile.apiStyle : settings.provider;
+  const cfg = { provider, model: settings.model, apiKey: settings.apiKey, baseUrl: settings.baseUrl || undefined, thinkingLevel: 'off' } as Config;
+  return { provider: createProvider(cfg, settings.apiKey), name: settings.model };
+}
+
+app.use('/api/chat', createChatRouter({
+  authenticate: authenticateChat,
+  store: createChatStoreFromEnv(),
+  getModel: chatModel,
+  quota: quotaFromEnv(),
+  systemPrompt: process.env.CHAT_SYSTEM_PROMPT || 'You are a helpful assistant. Answer in the same language the user writes in.',
+}));
+
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Public: tells the pages which sign-in mode is active. Firebase web config is not secret.

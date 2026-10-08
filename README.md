@@ -139,6 +139,16 @@ Instead of sharing one token you can gate the server with Google sign-in:
 
 `AGENT_SERVER_API_KEY` keeps working as an admin credential for scripts. The UI's Content-Security-Policy only allows Google/Firebase hosts when Firebase is configured.
 
+### Public chat (no tools)
+
+For opening the site to anyone, the server has a separate chat API that calls the model **without tools**, so visitors cannot touch the server's files or shell. The agent (`/api/agent/*`) keeps working only for `AGENT_ALLOWED_EMAILS` and the admin key.
+
+1. Create a Supabase project and run `db/supabase.sql` in its SQL editor (tables are private: row level security is on and only the server's service-role key reads them).
+2. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server only) and `AGENT_PUBLIC_SIGNUP=true`. Without Supabase the chat API answers 503 in production.
+3. Pick the limits: `CHAT_DAILY_TOKENS` per user per UTC day, `CHAT_GLOBAL_DAILY_TOKENS` (or `CHAT_DAILY_BUDGET_USD` with `CHAT_PRICE_PER_MTOKENS_USD`) for everyone together. Tokens are estimates, deliberately pessimistic.
+
+Endpoints (all need a Firebase ID token): `GET /api/chat/me`, `GET|POST /api/chat/chats`, `GET|DELETE /api/chat/chats/:id`, `POST /api/chat/chats/:id/messages` (server-sent events: `{delta}` ... `{done, usage}`).
+
 ### Web UI
 
 The server serves a single-page chat UI at `http://127.0.0.1:3000/` (also `/agent-ui.html`). It has a collapsible sidebar with chat history (kept in the browser's `localStorage`), a dark/light theme, markdown with code blocks and math, file attachments, and live tool activity while a run is in flight.

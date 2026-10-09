@@ -37,12 +37,12 @@
     "@anthropic-ai/sdk": "0.32.1",
     "cors": "2.8.6",
     "e2b": "^2.53.1",
-    "express": "4.22.2",
+    "express": "5.2.1",
     "openai": "4.104.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^6.19.0",

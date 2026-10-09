@@ -9,6 +9,8 @@ import { createProvider } from './createAgent.js';
 import { createChatRouter, ChatIdentity } from './chat/chatRouter.js';
 import { createChatStoreFromEnv } from './chat/store.js';
 import { quotaFromEnv } from './chat/quota.js';
+import { createSandboxProxy } from './sandbox/proxy.js';
+import { E2BSandboxRuntime } from './sandbox/e2bRuntime.js';
 import { createDefaultToolRegistry } from './tools/index.js';
 import { Action, PermissionManager, PermissionResult, Config, ContentBlock } from './types/index.js';
 import { ExtensionManager, ExtensionKind, isExtensionError } from './extensions/index.js';
@@ -149,6 +151,25 @@ async function securityMiddleware(req: Request, res: Response, next: NextFunctio
 }
 
 app.use('/api/agent', (req: Request, res: Response, next: NextFunction) => { securityMiddleware(req, res, next).catch(next); });
+
+// Sandbox mode (AGENT_SANDBOX=e2b): signed-in users run the agent inside their own E2B sandbox.
+// Fail closed: asking for sandboxes without an E2B key stops the server instead of running tools locally.
+if (process.env.AGENT_SANDBOX === 'e2b') {
+  const runtime = new E2BSandboxRuntime({
+    apiKey: process.env.E2B_API_KEY ?? '',
+    template: process.env.E2B_TEMPLATE || undefined,
+    repoUrl: process.env.AGENT_SANDBOX_REPO || 'https://github.com/paxni12345-web/agent-cli.git',
+    ref: process.env.AGENT_SANDBOX_REF || 'main',
+    idleMs: Number.parseInt(process.env.AGENT_SANDBOX_IDLE_MINUTES ?? '', 10) * 60_000 || 30 * 60_000,
+    bootTimeoutMs: 10 * 60_000,
+    maxSandboxes: Number.parseInt(process.env.AGENT_SANDBOX_MAX ?? '', 10) || 3,
+    model: () => (settings.apiKey && settings.model
+      ? { provider: settings.provider, model: settings.model, apiKey: settings.apiKey, baseUrl: settings.baseUrl || undefined, thinkingLevel: settings.thinkingLevel }
+      : null),
+  });
+  app.use('/api/agent', createSandboxProxy({ runtime }));
+  console.log('[agent-server] sandbox mode: signed-in users run the agent in their own E2B sandbox');
+}
 
 class ServerPermissionManager implements PermissionManager {
   constructor(private readonly allowMutations: boolean) {}

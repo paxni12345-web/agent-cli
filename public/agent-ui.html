@@ -1739,6 +1739,9 @@ function httpError(status, data){
   const detail = data && data.error ? String(data.error) : '';
   if (status === 499) return { name:'AbortError' };
   if (status === 401) return { type:'auth', message:'เซิร์ฟเวอร์ต้องการ token ที่ถูกต้อง — ใส่ใน ตั้งค่า → การเชื่อมต่อ API' };
+  if (detail === 'sandbox_starting') return { type:'busy', message:'กำลังเตรียมพื้นที่ทำงานส่วนตัวของคุณ (ครั้งแรกใช้เวลาราว 1–3 นาที) โปรดรอสักครู่แล้วกดลองใหม่' };
+  if (detail === 'sandbox_busy') return { type:'busy', message:'พื้นที่ทำงานเต็มชั่วคราว โปรดลองใหม่ภายหลัง' };
+  if (detail === 'sandbox_failed') return { type:'api', message: (data && data.message ? String(data.message) : 'พื้นที่ทำงานเริ่มไม่สำเร็จ') };
   if (status === 503) return { type:'config', message: detail || 'เซิร์ฟเวอร์ยังไม่มี API key — เปิด ตั้งค่า → การเชื่อมต่อ API เพื่อใส่คีย์' };
   if (status === 409) return { type:'busy', message:'เอเจนต์กำลังทำงานอื่นอยู่ โปรดรอสักครู่แล้วลองใหม่' };
   if (status === 429) return { type:'rate', message:'ส่งคำขอถี่เกินไป โปรดรอสักครู่แล้วลองใหม่' };

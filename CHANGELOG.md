@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- Per-user sandboxes for the code agent (`AGENT_SANDBOX=e2b`): each signed-in agent user gets
+  a private E2B sandbox that runs its own copy of the agent; the main server only proxies
+  `/api/agent/run|stop|events|status|clear|files`. Everything else under `/api/agent` is refused
+  for signed-in users; the admin key keeps the local agent. Fails closed without `E2B_API_KEY`.
+  New env: `AGENT_SANDBOX`, `E2B_API_KEY`, `E2B_TEMPLATE`, `AGENT_SANDBOX_REPO`, `AGENT_SANDBOX_REF`,
+  `AGENT_SANDBOX_IDLE_MINUTES`, `AGENT_SANDBOX_MAX`
 - Plain chat API for signed-in users (`/api/chat/*`): per-user chat history in Supabase
   (`db/supabase.sql`), streamed replies over SSE, daily per-user token quota, a global
   daily cost cap, one reply at a time per user. The model is called without tools.

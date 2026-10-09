@@ -159,6 +159,16 @@ Endpoints (all need a Firebase ID token): `GET /api/chat/me`, `GET|POST /api/cha
 6. Keep `AGENT_ALLOWED_EMAILS` to people you trust, and use `AGENT_SANDBOX=e2b` if they should not share the server.
 7. To refuse a person, add their email to `AGENT_BLOCKED_EMAILS`.
 
+### Per-user sandboxes (code agent)
+
+The agent's shell and file tools run on the machine that hosts it. With `AGENT_SANDBOX=e2b` every signed-in agent user (`AGENT_ALLOWED_EMAILS`) gets a private [E2B](https://e2b.dev) sandbox with its own copy of the agent; the main server only forwards `run`, `stop`, `events`, `status`, `clear` and `files` calls. Settings, profiles, extensions and metrics are refused for those users. The admin API key still uses the local agent, so keep it to yourself.
+
+- Set `E2B_API_KEY` (server only). Without it the server refuses to start in this mode.
+- The first request of a user starts the sandbox (about 1 to 3 minutes while it installs and builds the app) and the UI asks them to retry. Use `E2B_TEMPLATE` with the app prebuilt at `/home/user/agent` to make it start in seconds. The default E2B image must have Node 20 or newer; if it does not, the start fails with a message saying so.
+- A sandbox is deleted `AGENT_SANDBOX_IDLE_MINUTES` after the last request, and its files go with it. Persistent workspaces are not built yet.
+- The model key is copied into the user's sandbox so the agent can call the model, which means code running there can read it. Only put people you trust on `AGENT_ALLOWED_EMAILS`.
+- Public sign-up users never get the agent, only the tool-free chat.
+
 ### Web UI
 
 The server serves a single-page chat UI at `http://127.0.0.1:3000/` (also `/agent-ui.html`). It has a collapsible sidebar with chat history (kept in the browser's `localStorage`), a dark/light theme, markdown with code blocks and math, file attachments, and live tool activity while a run is in flight.

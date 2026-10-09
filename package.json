@@ -36,6 +36,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "0.32.1",
     "cors": "2.8.6",
+    "e2b": "^2.53.1",
     "express": "4.22.2",
     "openai": "4.104.0"
   },

@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- Per-user sandboxes for the code agent (`AGENT_SANDBOX=e2b`): each signed-in agent user gets
+  a private E2B sandbox that runs its own copy of the agent; the main server only proxies
+  `/api/agent/run|stop|events|status|clear|files`. Everything else under `/api/agent` is refused
+  for signed-in users; the admin key keeps the local agent. Fails closed without `E2B_API_KEY`.
+  New env: `AGENT_SANDBOX`, `E2B_API_KEY`, `E2B_TEMPLATE`, `AGENT_SANDBOX_REPO`, `AGENT_SANDBOX_REF`,
+  `AGENT_SANDBOX_IDLE_MINUTES`, `AGENT_SANDBOX_MAX`
 - `/terms.html` and `/privacy.html` (Thai) served with the operator's name and contact filled in from
   `PUBLIC_SERVICE_NAME` and `PUBLIC_CONTACT_EMAIL`; the login page links to them and no longer shows the
   dead "recover account" link. A warning is logged when public sign-up is on without a contact address.

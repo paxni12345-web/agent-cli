@@ -149,6 +149,16 @@ For opening the site to anyone, the server has a separate chat API that calls th
 
 Endpoints (all need a Firebase ID token): `GET /api/chat/me`, `GET|POST /api/chat/chats`, `GET|DELETE /api/chat/chats/:id`, `POST /api/chat/chats/:id/messages` (server-sent events: `{delta}` ... `{done, usage}`).
 
+### Going public: checklist
+
+1. Firebase: Google provider enabled, your domain under Authorized domains.
+2. Render env: `AGENT_PUBLIC_SIGNUP=true`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, the model API key, and a contact address in `PUBLIC_CONTACT_EMAIL` (shown on the terms and privacy pages).
+3. Limits you can afford: `CHAT_DAILY_TOKENS`, `CHAT_GLOBAL_DAILY_TOKENS` (or `CHAT_DAILY_BUDGET_USD` with `CHAT_PRICE_PER_MTOKENS_USD`). Also set a spending limit with the model provider itself, since the token counts here are estimates.
+4. Read `/terms.html` and `/privacy.html` and adjust them to how you actually run the service; they describe what this code stores, and are not legal advice.
+5. Test with two Google accounts that are not on the allowlist: each sees only its own chats, `/api/agent/*` answers 403, and the second account hits the quota you set.
+6. Keep `AGENT_ALLOWED_EMAILS` to people you trust, and use `AGENT_SANDBOX=e2b` if they should not share the server.
+7. To refuse a person, add their email to `AGENT_BLOCKED_EMAILS`.
+
 ### Web UI
 
 The server serves a single-page chat UI at `http://127.0.0.1:3000/` (also `/agent-ui.html`). It has a collapsible sidebar with chat history (kept in the browser's `localStorage`), a dark/light theme, markdown with code blocks and math, file attachments, and live tool activity while a run is in flight.

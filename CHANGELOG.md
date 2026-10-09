@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- `/terms.html` and `/privacy.html` (Thai) served with the operator's name and contact filled in from
+  `PUBLIC_SERVICE_NAME` and `PUBLIC_CONTACT_EMAIL`; the login page links to them and no longer shows the
+  dead "recover account" link. A warning is logged when public sign-up is on without a contact address.
 - Plain chat API for signed-in users (`/api/chat/*`): per-user chat history in Supabase
   (`db/supabase.sql`), streamed replies over SSE, daily per-user token quota, a global
   daily cost cap, one reply at a time per user. The model is called without tools.

@@ -77,6 +77,23 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Serve the web UI from <repo root>/public. Compiled output lives in dist/ and
 // the sources in src/, so exactly one level up is the project root in both cases.
+// Terms and privacy pages: filled in with the operator's name and contact at request time.
+const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+const legalCache = new Map<string, string>();
+app.get(['/terms.html', '/privacy.html'], (req: Request, res: Response) => {
+  const file = req.path.slice(1);
+  let template = legalCache.get(file);
+  if (template === undefined) {
+    template = fs.readFileSync(path.join(__dirname, '..', 'public', file), 'utf8');
+    legalCache.set(file, template);
+  }
+  const name = escapeHtml((process.env.PUBLIC_SERVICE_NAME || 'Iris').trim());
+  const contact = escapeHtml((process.env.PUBLIC_CONTACT_EMAIL || '').trim()) || 'ผู้ดูแลระบบ (ยังไม่ได้ตั้งอีเมลติดต่อ)';
+  res.type('html').send(template.replace(/\{\{SERVICE_NAME\}\}/g, name).replace(/\{\{CONTACT_EMAIL\}\}/g, contact));
+});
+if (process.env.AGENT_PUBLIC_SIGNUP === 'true' && !process.env.PUBLIC_CONTACT_EMAIL) {
+  console.warn('[agent-server] AGENT_PUBLIC_SIGNUP is on but PUBLIC_CONTACT_EMAIL is not set: the terms and privacy pages have no contact address');
+}
 app.use(express.static(path.join(__dirname, '..', 'public')));
 // Bare root opens the UI instead of 404.
 app.get('/', (_req: Request, res: Response) => { res.redirect('/agent-ui.html'); });

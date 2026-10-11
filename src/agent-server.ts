@@ -10,6 +10,7 @@ import { createChatRouter, ChatIdentity } from './chat/chatRouter.js';
 import { createChatStoreFromEnv } from './chat/store.js';
 import { quotaFromEnv } from './chat/quota.js';
 import { createSandboxProxy } from './sandbox/proxy.js';
+import { createGatewayFromEnv } from './gateway/mount.js';
 import { E2BSandboxRuntime } from './sandbox/e2bRuntime.js';
 import { createDefaultToolRegistry } from './tools/index.js';
 import { Action, PermissionManager, PermissionResult, Config, ContentBlock } from './types/index.js';
@@ -851,6 +852,13 @@ app.use('/api/chat', createChatRouter({
   quota: quotaFromEnv(),
   systemPrompt: process.env.CHAT_SYSTEM_PROMPT || 'You are a helpful assistant. Answer in the same language the user writes in.',
 }));
+
+// Gateway v2 (opt-in, GATEWAY_V2=1): chat/code/work/agent sessions through per-user sandboxes. Throws on missing config.
+const gatewayV2 = createGatewayFromEnv({ authenticate: authenticateChat });
+if (gatewayV2) {
+  app.use('/api/v2', gatewayV2);
+  console.log('[agent-server] gateway v2 enabled at /api/v2');
+}
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

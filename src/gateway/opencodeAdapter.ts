@@ -14,7 +14,7 @@ export interface OpenCodeAdapterOptions {
 }
 
 function headers(ep: SandboxEndpoint, json = false): Record<string, string> {
-  const h: Record<string, string> = { authorization: `Basic ${Buffer.from(`opencode:${ep.secret}`).toString('base64')}` };
+  const h: Record<string, string> = { ...ep.headers, authorization: `Basic ${Buffer.from(`opencode:${ep.secret}`).toString('base64')}` };
   if (json) h['content-type'] = 'application/json';
   return h;
 }

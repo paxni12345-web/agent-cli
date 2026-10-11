@@ -152,6 +152,15 @@ describe('v2 sessions', () => {
     expect(adapter.sent).toEqual(['hello']);
   });
 
+  it('refuses the /yolo command that would switch approvals off', async () => {
+    const id = await create();
+    for (const text of ['/yolo', ' /YOLO on', 'please /yolo now']) {
+      expect((await post('a', `/sessions/${id}/messages`, { text })).status).toBe(400);
+    }
+    expect(adapter.sent).toEqual([]);
+    expect((await post('a', `/sessions/${id}/messages`, { text: 'what is yolo?' })).status).toBe(202);
+  });
+
   it('a message is refused once the budget is exhausted', async () => {
     const id = await create();
     budget.record('user-a', 's', { inputTokens: 0, outputTokens: 0, totalTokens: 100 }, false);

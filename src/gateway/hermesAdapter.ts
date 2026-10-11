@@ -22,6 +22,7 @@ interface SessionState {
 }
 
 const bearer = (ep: SandboxEndpoint, json = false): Record<string, string> => ({
+  ...ep.headers,
   authorization: `Bearer ${ep.secret}`,
   ...(json ? { 'content-type': 'application/json' } : {}),
 });

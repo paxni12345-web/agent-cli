@@ -69,6 +69,32 @@ export function hermesLaunch(template: string): ModeLaunch {
   };
 }
 
+/**
+ * OpenClaw gateway. VERIFIED in a run of 2026.9.9: port 18789, open /health, OPENCLAW_CONFIG_PATH + OPENCLAW_STATE_DIR,
+ * token auth, `tools.exec.mode:"ask"`, `update.checkOnStart` / `update.auto.enabled`, `gateway.controlUi.enabled`.
+ * NOT verified (config schema is strict, so a wrong key makes the gateway refuse to start and boot fails visibly):
+ * the `gateway run` command line, `gateway.auth.token`, `gateway.bind`, and the custom-provider block under `models`.
+ */
+export function openclawLaunch(template: string): ModeLaunch {
+  const cfgPath = '/home/user/openclaw.json';
+  return {
+    template, port: 18789, healthPath: '/health', cwd: WORKSPACE,
+    authorization: (secret) => `Bearer ${secret}`,
+    command: 'openclaw gateway run',
+    files: ({ llm, secret }) => ({
+      [cfgPath]: JSON.stringify({
+        gateway: { bind: 'lan', auth: { mode: 'token', token: secret }, controlUi: { enabled: false } },
+        tools: { exec: { mode: 'ask' } },
+        update: { checkOnStart: false, auto: { enabled: false } },
+        plugins: { allow: [] },
+        models: { providers: { gateway: { baseUrl: llm.baseUrl, apiKey: llm.apiKey, api: 'openai-completions', models: [{ id: llm.model, name: llm.model }] } } },
+        agents: { defaults: { model: { primary: `gateway/${llm.model}` }, workspace: WORKSPACE } },
+      }, null, 2),
+    }),
+    envs: () => ({ OPENCLAW_CONFIG_PATH: cfgPath, OPENCLAW_STATE_DIR: '/home/user/oc-state', HOME: '/home/user' }),
+  };
+}
+
 export interface E2BModeProviderOptions {
   apiKey: string;
   /** Modes without an entry are reported as not configured. */

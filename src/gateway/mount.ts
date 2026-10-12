@@ -3,9 +3,10 @@ import { InMemoryApprovalStore } from './approvalStore.js';
 import { InMemoryBudgetService } from './budget.js';
 import { InMemoryEventBus } from './eventBus.js';
 import { DirectLlmAdapter } from './directLlmAdapter.js';
-import { E2BModeSandboxProvider, hermesLaunch, opencodeLaunch, type ModeLaunch } from './e2bModeProvider.js';
+import { E2BModeSandboxProvider, hermesLaunch, opencodeLaunch, openclawLaunch, type ModeLaunch } from './e2bModeProvider.js';
 import { HermesAdapter } from './hermesAdapter.js';
 import { OpenCodeAdapter } from './opencodeAdapter.js';
+import { OpenClawAdapter } from './openclawAdapter.js';
 import { SessionService } from './sessionService.js';
 import type { Mode } from './types.js';
 import { createV2Router, type V2Identity } from './v2Router.js';
@@ -34,7 +35,7 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
 
   const launches: Partial<Record<Mode, ModeLaunch>> = {};
   if (env.GATEWAY_TEMPLATE_CODE) launches.code = opencodeLaunch(env.GATEWAY_TEMPLATE_CODE);
-  if (env.GATEWAY_TEMPLATE_WORK) launches.work = hermesLaunch(env.GATEWAY_TEMPLATE_WORK);
+  if (env.GATEWAY_TEMPLATE_WORK) launches.work = openclawLaunch(env.GATEWAY_TEMPLATE_WORK);
   if (env.GATEWAY_TEMPLATE_AGENT) launches.agent = hermesLaunch(env.GATEWAY_TEMPLATE_AGENT);
   if (!Object.keys(launches).length) throw new Error('GATEWAY_V2=1 needs at least one of GATEWAY_TEMPLATE_CODE / _WORK / _AGENT');
 
@@ -56,7 +57,7 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
   });
   const service = new SessionService({
     adapters: {
-      opencode: new OpenCodeAdapter(), hermes: new HermesAdapter(),
+      opencode: new OpenCodeAdapter(), hermes: new HermesAdapter(), openclaw: new OpenClawAdapter(),
       // Chat runs in the gateway process, so this key never enters a sandbox and may be a real provider key.
       'direct-llm': new DirectLlmAdapter({
         baseUrl: env.GATEWAY_CHAT_BASE_URL || llmBase, apiKey: env.GATEWAY_CHAT_API_KEY || env.GATEWAY_LLM_API_KEY || '',

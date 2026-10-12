@@ -18,7 +18,7 @@ export interface SandboxProvider {
 }
 
 export const DEFAULT_MODE_BACKEND: Record<Mode, Backend> = {
-  chat: 'direct-llm', code: 'opencode', work: 'hermes', agent: 'hermes',
+  chat: 'direct-llm', code: 'opencode', work: 'openclaw', agent: 'hermes',
 };
 
 export interface SessionServiceDeps {

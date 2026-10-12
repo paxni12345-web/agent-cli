@@ -19,7 +19,7 @@ export const NO_SANDBOX: SandboxEndpoint = { baseUrl: '', secret: '', sandboxId:
 interface Msg { role: 'system' | 'user' | 'assistant'; content: string }
 
 /** Tiny single-consumer async queue; `end()` lets the reader finish. */
-class Channel<T> {
+export class Channel<T> {
   private items: T[] = [];
   private waiter?: () => void;
   private ended = false;

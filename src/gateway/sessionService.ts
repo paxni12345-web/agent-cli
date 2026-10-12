@@ -4,6 +4,7 @@ import type {
   SandboxEndpoint, SessionRef,
 } from './types.js';
 import type { BudgetService } from './budget.js';
+import { NO_SANDBOX } from './directLlmAdapter.js';
 
 export type SandboxAcquire =
   | { kind: 'ready'; endpoint: SandboxEndpoint }
@@ -61,7 +62,8 @@ export class SessionService {
     const adapter = this.d.adapters[backend];
     if (!adapter) return { kind: 'unavailable', message: `backend "${backend}" is not available for mode "${mode}"` };
     if (this.d.budget.check(userId).exceeded) return { kind: 'budget' };
-    const sb = await this.d.sandboxes.acquire(userId, mode);
+    // Chat talks to the LLM directly: no sandbox is booted for it.
+    const sb: SandboxAcquire = backend === 'direct-llm' ? { kind: 'ready', endpoint: NO_SANDBOX } : await this.d.sandboxes.acquire(userId, mode);
     if (sb.kind !== 'ready') return sb.kind === 'failed' ? { kind: 'failed', message: sb.message } : { kind: sb.kind };
     const ref: SessionRef = { id: randomUUID(), userId, mode, backend, createdAt: this.now() };
     try {

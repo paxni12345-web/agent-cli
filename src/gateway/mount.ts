@@ -2,6 +2,7 @@ import type { Request, Response, Router } from 'express';
 import { InMemoryApprovalStore } from './approvalStore.js';
 import { InMemoryBudgetService } from './budget.js';
 import { InMemoryEventBus } from './eventBus.js';
+import { DirectLlmAdapter } from './directLlmAdapter.js';
 import { E2BModeSandboxProvider, hermesLaunch, opencodeLaunch, type ModeLaunch } from './e2bModeProvider.js';
 import { HermesAdapter } from './hermesAdapter.js';
 import { OpenCodeAdapter } from './opencodeAdapter.js';
@@ -54,7 +55,14 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
     maxSandboxes: int(env.GATEWAY_MAX_SANDBOXES, 3),
   });
   const service = new SessionService({
-    adapters: { opencode: new OpenCodeAdapter(), hermes: new HermesAdapter() },
+    adapters: {
+      opencode: new OpenCodeAdapter(), hermes: new HermesAdapter(),
+      // Chat runs in the gateway process, so this key never enters a sandbox and may be a real provider key.
+      'direct-llm': new DirectLlmAdapter({
+        baseUrl: env.GATEWAY_CHAT_BASE_URL || llmBase, apiKey: env.GATEWAY_CHAT_API_KEY || env.GATEWAY_LLM_API_KEY || '',
+        model: env.GATEWAY_CHAT_MODEL || llmModel,
+      }),
+    },
     sandboxes, bus, approvals, budget,
   });
   return createV2Router({ authenticate: deps.authenticate, service, bus, approvals, budget, ratePerMinute: int(env.GATEWAY_RATE_PER_MINUTE, 120) });

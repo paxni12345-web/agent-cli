@@ -90,6 +90,7 @@ export function createV2Router(deps: V2Deps): Router {
     if (text.length > maxChars) { res.status(413).json({ error: `Message is too long (${maxChars} characters maximum)` }); return; }
     const model = typeof req.body?.model === 'string' ? req.body.model : undefined;
     const r = await deps.service.send(l, text, model);
+    if (r === 'blocked') { res.status(400).json({ error: 'That command is not allowed' }); return; }
     if (r === 'budget') { res.status(429).json({ error: 'Daily budget used up', budget: deps.budget.summary(user.uid) }); return; }
     res.status(202).json({ accepted: true });
   }));

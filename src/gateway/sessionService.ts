@@ -39,6 +39,9 @@ export type CreateResult =
   | { kind: 'unavailable'; message: string }
   | { kind: 'failed'; message: string };
 
+/** Hermes' `/yolo` switches approvals off for the session; users must not be able to type it. */
+const BLOCKED_COMMAND = /(^|\s)\/yolo\b/i;
+
 interface Live { ref: SessionRef; ep: SandboxEndpoint; abort: AbortController }
 
 export class SessionService {
@@ -80,7 +83,8 @@ export class SessionService {
 
   adapterFor(l: Live): AgentAdapter { return this.d.adapters[l.ref.backend]!; }
 
-  async send(l: Live, text: string, model?: string): Promise<'ok' | 'budget'> {
+  async send(l: Live, text: string, model?: string): Promise<'ok' | 'budget' | 'blocked'> {
+    if (BLOCKED_COMMAND.test(text)) return 'blocked';
     if (this.d.budget.check(l.ref.userId).exceeded) return 'budget';
     await this.adapterFor(l).send(l.ep, l.ref, { text, model });
     return 'ok';

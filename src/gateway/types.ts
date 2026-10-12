@@ -76,6 +76,8 @@ export interface SandboxEndpoint {
   baseUrl: string; // internal network address, never exposed to clients
   secret: string; // OPENCODE_SERVER_PASSWORD / API_SERVER_KEY (>=16 chars for Hermes)
   sandboxId: string;
+  /** Extra headers every upstream request must carry (e.g. the E2B traffic access token). */
+  headers?: Record<string, string>;
 }
 
 export interface AgentAdapter {

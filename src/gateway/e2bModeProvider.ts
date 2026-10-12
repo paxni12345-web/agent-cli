@@ -95,6 +95,8 @@ export function openclawLaunch(template: string): ModeLaunch {
   };
 }
 
+export interface CreateOpts { template: string; apiKey: string; timeoutMs: number; metadata: Record<string, string>; allowOutHosts?: string[] }
+
 export interface E2BModeProviderOptions {
   apiKey: string;
   /** Modes without an entry are reported as not configured. */
@@ -103,7 +105,9 @@ export interface E2BModeProviderOptions {
   idleMs: number;
   bootTimeoutMs: number;
   maxSandboxes: number;
-  create?: (opts: { template: string; apiKey: string; timeoutMs: number; metadata: Record<string, string> }) => Promise<E2BModeLike>;
+  /** When set, sandboxes may only reach these hosts (the gateway's LLM proxy). Unset = open internet. */
+  egressAllowHosts?: string[];
+  create?: (opts: CreateOpts) => Promise<E2BModeLike>;
   fetchImpl?: typeof fetch;
   now?: () => number;
   healthPollMs?: number;
@@ -183,7 +187,7 @@ export class E2BModeSandboxProvider implements SandboxProvider {
     let sandbox: E2BModeLike | undefined;
     try {
       const metadata = { app: 'agent-cli-gateway', mode, user: crypto.createHash('sha256').update(userId).digest('hex').slice(0, 16) };
-      sandbox = await (this.o.create ?? defaultCreate)({ template: launch.template, apiKey: this.o.apiKey, timeoutMs: this.o.idleMs, metadata });
+      sandbox = await (this.o.create ?? defaultCreate)({ template: launch.template, apiKey: this.o.apiKey, timeoutMs: this.o.idleMs, metadata, allowOutHosts: this.o.egressAllowHosts });
       entry.sandbox = sandbox;
       const secret = crypto.randomBytes(32).toString('hex'); // a fresh secret per sandbox; only the gateway knows it
       const ctx: LaunchContext = { secret, llm, port: launch.port };
@@ -224,8 +228,13 @@ export class E2BModeSandboxProvider implements SandboxProvider {
   }
 }
 
-async function defaultCreate(opts: { template: string; apiKey: string; timeoutMs: number; metadata: Record<string, string> }): Promise<E2BModeLike> {
+async function defaultCreate(opts: CreateOpts): Promise<E2BModeLike> {
   const { Sandbox } = await import('e2b'); // loaded only when the gateway is enabled
-  // TODO(egress): allowInternetAccess stays true until an allow-list to the LLM proxy is set up; see ARCHITECTURE §5.
-  return (await Sandbox.create(opts.template, { apiKey: opts.apiKey, timeoutMs: opts.timeoutMs, metadata: opts.metadata, allowInternetAccess: true })) as unknown as E2BModeLike;
+  // Egress: allow-list only the proxy host and deny everything else. The option shape is from the SDK typings
+  // (SandboxNetworkOpts); it has not been exercised against a real E2B account.
+  const network = opts.allowOutHosts?.length ? { allowOut: opts.allowOutHosts, denyOut: ['0.0.0.0/0'] } : undefined;
+  return (await Sandbox.create(opts.template, {
+    apiKey: opts.apiKey, timeoutMs: opts.timeoutMs, metadata: opts.metadata,
+    ...(network ? { network } : { allowInternetAccess: true }),
+  })) as unknown as E2BModeLike;
 }

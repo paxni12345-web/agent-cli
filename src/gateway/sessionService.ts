@@ -28,6 +28,11 @@ export interface SessionServiceDeps {
   bus: EventBus;
   approvals: ApprovalStore;
   budget: BudgetService;
+  /**
+   * Backends whose model calls already go through the LLM proxy, which books the usage itself. Their usage events are
+   * still published to the client but not booked again; they only trigger the budget-stop check.
+   */
+  proxiedBackends?: Backend[];
   /** Approval choices the gateway is willing to offer. Default: once and deny only. */
   allowedChoices?: ApprovalChoice[];
   now?: () => number;
@@ -129,7 +134,9 @@ export class SessionService {
         if (e.type === 'approval.requested') this.d.approvals.put(ref.id, ref.userId, e.approval);
         publish(e);
         if (e.type === 'usage') {
-          const s = this.d.budget.record(ref.userId, ref.id, e.usage, e.cumulative);
+          const s = this.d.proxiedBackends?.includes(ref.backend)
+            ? this.d.budget.check(ref.userId)
+            : this.d.budget.record(ref.userId, ref.id, e.usage, e.cumulative);
           if (s.exceeded) {
             publish({ type: 'error', code: 'budget_exceeded', message: 'Daily budget reached; the running task was stopped', retryable: false });
             try { await adapter.stop(l.ep, ref); } catch { /* best effort */ }

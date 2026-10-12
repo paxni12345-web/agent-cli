@@ -122,17 +122,24 @@ describe('E2BModeSandboxProvider', () => {
 
 describe('createGatewayFromEnv', () => {
   const auth = async () => ({ uid: 'u' });
-  const base = { GATEWAY_V2: '1', E2B_API_KEY: 'k', GATEWAY_LLM_BASE_URL: 'https://p/v1', GATEWAY_LLM_MODEL: 'm', GATEWAY_TEMPLATE_CODE: 't' } as NodeJS.ProcessEnv;
+  const chatOnly = { GATEWAY_V2: '1', GATEWAY_LLM_BASE_URL: 'https://p/v1', GATEWAY_LLM_MODEL: 'm' } as NodeJS.ProcessEnv;
+  const sandboxed = { ...chatOnly, E2B_API_KEY: 'k', GATEWAY_PUBLIC_URL: 'https://gw.example.com', GATEWAY_LLM_API_KEY: 'real', GATEWAY_TEMPLATE_CODE: 't' } as NodeJS.ProcessEnv;
 
   it('is off unless GATEWAY_V2=1', () => {
     expect(createGatewayFromEnv({ authenticate: auth, env: {} as NodeJS.ProcessEnv })).toBeNull();
   });
-  it('fails closed on missing settings', () => {
-    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...base, E2B_API_KEY: '' } })).toThrow(/E2B_API_KEY/);
-    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...base, GATEWAY_LLM_MODEL: '' } })).toThrow(/GATEWAY_LLM/);
-    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...base, GATEWAY_TEMPLATE_CODE: '' } })).toThrow(/GATEWAY_TEMPLATE/);
+  it('runs chat-only without E2B', () => {
+    expect(typeof createGatewayFromEnv({ authenticate: auth, env: chatOnly })).toBe('function');
   });
-  it('returns a router when configured', () => {
-    expect(typeof createGatewayFromEnv({ authenticate: auth, env: base })).toBe('function');
+  it('fails closed on missing settings', () => {
+    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...chatOnly, GATEWAY_LLM_MODEL: '' } })).toThrow(/GATEWAY_LLM/);
+    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...sandboxed, E2B_API_KEY: '' } })).toThrow(/E2B_API_KEY/);
+    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...sandboxed, GATEWAY_PUBLIC_URL: '' } })).toThrow(/GATEWAY_PUBLIC_URL/);
+    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...sandboxed, GATEWAY_PUBLIC_URL: 'http://gw' } })).toThrow(/GATEWAY_PUBLIC_URL/);
+    expect(() => createGatewayFromEnv({ authenticate: auth, env: { ...sandboxed, GATEWAY_LLM_API_KEY: '' } })).toThrow(/GATEWAY_LLM_API_KEY/);
+  });
+  it('returns a router when sandbox modes are configured', () => {
+    expect(typeof createGatewayFromEnv({ authenticate: auth, env: sandboxed })).toBe('function');
+    expect(typeof createGatewayFromEnv({ authenticate: auth, env: { ...sandboxed, GATEWAY_SANDBOX_EGRESS: 'proxy-only' } })).toBe('function');
   });
 });

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ทดสอบแชท</title>
+<style>
+  :root {
+    --bg: #101214; --panel: #181b1f; --line: #2a2f35; --text: #e8eaed; --muted: #8b939c;
+    --accent: #7cc4a4; --me: #22303a; --bot: #1c2024; --err: #ff8a80;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f7; --panel: #fff; --line: #dde1e5; --text: #1b1e22; --muted: #66707a; --accent: #1f8a64; --me: #e3f0ec; --bot: #fff; --err: #c62828; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, "Noto Sans Thai", sans-serif; display: flex; flex-direction: column; }
+  header { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: grid; gap: 8px; }
+  h1 { font-size: 16px; margin: 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input, select, textarea, button { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  input#key { flex: 1 1 220px; min-width: 0; }
+  select { flex: 1 1 180px; min-width: 0; }
+  button { cursor: pointer; background: var(--panel); }
+  button.primary { background: var(--accent); color: #07140f; border-color: transparent; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  #log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: min(760px, 92%); padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); }
+  .msg.me { align-self: flex-end; background: var(--me); }
+  .msg.bot { align-self: flex-start; background: var(--bot); }
+  .msg.err { align-self: center; color: var(--err); border-color: var(--err); background: transparent; }
+  .note { color: var(--muted); font-size: 13px; }
+  footer { padding: 12px 16px; border-top: 1px solid var(--line); background: var(--panel); display: grid; gap: 6px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  textarea { flex: 1 1 auto; min-width: 0; resize: none; height: 52px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ทดสอบแชท (ระบบใหม่ /api/v2)</h1>
+  <div class="row">
+    <input id="key" type="password" placeholder="วางคีย์เข้าใช้งาน (Bearer token)" autocomplete="off">
+    <button id="load">โหลดโมเดล</button>
+  </div>
+  <div class="row">
+    <select id="model" aria-label="โมเดล"><option value="">(ยังไม่โหลด)</option></select>
+    <button id="new">แชทใหม่</button>
+  </div>
+  <div class="note" id="info">ใส่คีย์ แล้วกด "โหลดโมเดล"</div>
+</header>
+<main id="log" aria-live="polite"></main>
+<footer>
+  <div class="row">
+    <textarea id="text" placeholder="พิมพ์ข้อความ" disabled></textarea>
+    <button id="send" class="primary" disabled>ส่ง</button>
+    <button id="stop" disabled>หยุด</button>
+  </div>
+</footer>
+<script>
+(function () {
+  var API = '/api/v2';
+  var $ = function (id) { return document.getElementById(id); };
+  var keyEl = $('key'), modelEl = $('model'), logEl = $('log'), textEl = $('text'), infoEl = $('info');
+  var sendEl = $('send'), stopEl = $('stop'), newEl = $('new'), loadEl = $('load');
+  var sessionId = null, streamAbort = null, bubbles = {}, busy = false;
+
+  try { keyEl.value = localStorage.getItem('chatTestKey') || ''; } catch (e) {}
+
+  function headers() { return { 'authorization': 'Bearer ' + keyEl.value.trim(), 'content-type': 'application/json' }; }
+  function info(t) { infoEl.textContent = t; }
+  function add(cls, text) {
+    var d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text;
+    logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; return d;
+  }
+  function setBusy(b) {
+    busy = b; var ready = !!sessionId;
+    textEl.disabled = !ready || b; sendEl.disabled = !ready || b; stopEl.disabled = !b;
+  }
+  async function api(path, init) {
+    var r = await fetch(API + path, Object.assign({ headers: headers() }, init || {}));
+    var body = null; try { body = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error((body && body.error) || ('HTTP ' + r.status));
+    return body;
+  }
+
+  async function loadModels() {
+    if (!keyEl.value.trim()) { info('ใส่คีย์ก่อน'); return; }
+    try { localStorage.setItem('chatTestKey', keyEl.value.trim()); } catch (e) {}
+    try {
+      var m = await api('/models');
+      modelEl.innerHTML = '';
+      m.models.forEach(function (name) {
+        var o = document.createElement('option'); o.value = name; o.textContent = name;
+        if (name === m.default) o.selected = true; modelEl.appendChild(o);
+      });
+      info('โหลดโมเดลแล้ว (' + m.models.length + ' ตัว) กด "แชทใหม่" เพื่อเริ่ม');
+      await newChat();
+    } catch (e) { info('โหลดไม่ได้: ' + e.message); }
+  }
+
+  async function newChat() {
+    if (streamAbort) streamAbort.abort();
+    logEl.innerHTML = ''; bubbles = {}; sessionId = null; setBusy(false);
+    try {
+      var s = await api('/sessions', { method: 'POST', body: JSON.stringify({ mode: 'chat' }) });
+      sessionId = s.id; setBusy(false); info('พร้อมแล้ว พิมพ์ข้อความได้เลย');
+      listen();
+    } catch (e) { info('เริ่มแชทไม่ได้: ' + e.message); }
+  }
+
+  async function listen() {
+    var ac = new AbortController(); streamAbort = ac; var id = sessionId;
+    try {
+      var r = await fetch(API + '/sessions/' + id + '/events', { headers: headers(), signal: ac.signal });
+      if (!r.ok || !r.body) throw new Error('เชื่อมต่อสตรีมไม่ได้ (HTTP ' + r.status + ')');
+      var reader = r.body.getReader(), dec = new TextDecoder(), buf = '';
+      for (;;) {
+        var chunk = await reader.read(); if (chunk.done) break;
+        buf += dec.decode(chunk.value, { stream: true });
+        var parts = buf.split('\n\n'); buf = parts.pop();
+        parts.forEach(function (frame) {
+          var data = frame.split('\n').filter(function (l) { return l.indexOf('data: ') === 0; }).map(function (l) { return l.slice(6); }).join('\n');
+          if (data) { try { handle(JSON.parse(data)); } catch (e) {} }
+        });
+      }
+    } catch (e) { if (!ac.signal.aborted) add('err', e.message); }
+  }
+
+  function handle(e) {
+    if (e.type === 'message.delta') {
+      var b = bubbles[e.messageId] || (bubbles[e.messageId] = add('bot', ''));
+      b.textContent += e.text; logEl.scrollTop = logEl.scrollHeight;
+    } else if (e.type === 'message.done') {
+      var d = bubbles[e.messageId] || (bubbles[e.messageId] = add('bot', ''));
+      if (e.text) d.textContent = e.text;
+    } else if (e.type === 'status') {
+      if (e.status === 'running') setBusy(true);
+      if (e.status === 'completed' || e.status === 'failed') setBusy(false);
+    } else if (e.type === 'error') {
+      add('err', e.message || 'เกิดข้อผิดพลาด'); setBusy(false);
+    } else if (e.type === 'usage' && e.usage) {
+      info('ใช้ไป: ' + (e.usage.inputTokens || 0) + ' เข้า / ' + (e.usage.outputTokens || 0) + ' ออก token');
+    }
+  }
+
+  async function send() {
+    var t = textEl.value.trim(); if (!t || !sessionId || busy) return;
+    textEl.value = ''; add('me', t); setBusy(true);
+    try { await api('/sessions/' + sessionId + '/messages', { method: 'POST', body: JSON.stringify({ text: t, model: modelEl.value || undefined }) }); }
+    catch (e) { add('err', e.message); setBusy(false); }
+  }
+
+  loadEl.onclick = loadModels; newEl.onclick = function () { if (keyEl.value.trim()) newChat(); };
+  sendEl.onclick = send;
+  stopEl.onclick = function () { if (sessionId) api('/sessions/' + sessionId + '/stop', { method: 'POST', body: '{}' }).catch(function () {}); };
+  textEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); send(); } });
+  if (keyEl.value) loadModels();
+})();
+</script>
+</body>
+</html>

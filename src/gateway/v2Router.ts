@@ -18,6 +18,8 @@ export interface V2Deps {
   approvals: ApprovalStore;
   budget: BudgetService;
   ratePerMinute?: number;
+  /** Models clients may pick per message. When set, any other `model` is refused (the server's key pays for them). */
+  models?: { default: string; allowed: string[] };
   maxInputChars?: number;
   heartbeatMs?: number;
   now?: () => number;
@@ -82,13 +84,21 @@ export function createV2Router(deps: V2Deps): Router {
     }
   }));
 
+  router.get('/models', wrap(async (req, res) => {
+    const user = await gate(req, res); if (!user) return;
+    res.json({ default: deps.models?.default ?? null, models: deps.models?.allowed ?? [] });
+  }));
+
   router.post('/sessions/:id/messages', wrap(async (req, res) => {
     const user = await gate(req, res); if (!user) return;
     const l = session(req, res, user.uid); if (!l) return;
     const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     if (!text) { res.status(400).json({ error: 'text is required' }); return; }
     if (text.length > maxChars) { res.status(413).json({ error: `Message is too long (${maxChars} characters maximum)` }); return; }
-    const model = typeof req.body?.model === 'string' ? req.body.model : undefined;
+    const model = typeof req.body?.model === 'string' && req.body.model ? req.body.model : undefined;
+    if (model && deps.models && !deps.models.allowed.includes(model)) {
+      res.status(400).json({ error: 'Model not available', models: deps.models.allowed }); return;
+    }
     const r = await deps.service.send(l, text, model);
     if (r === 'blocked') { res.status(400).json({ error: 'That command is not allowed' }); return; }
     if (r === 'budget') { res.status(429).json({ error: 'Daily budget used up', budget: deps.budget.summary(user.uid) }); return; }

@@ -39,6 +39,8 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
   const llmKey = env.GATEWAY_LLM_API_KEY ?? '';
   if (!llmBase || !llmModel) throw new Error('GATEWAY_V2=1 needs GATEWAY_LLM_BASE_URL and GATEWAY_LLM_MODEL');
 
+  const models = [llmModel, env.GATEWAY_CHAT_MODEL ?? '', ...(env.GATEWAY_LLM_EXTRA_MODELS ?? '').split(',').map((m) => m.trim())]
+    .filter(Boolean).filter((m, i, all) => all.indexOf(m) === i);
   const launches: Partial<Record<Mode, ModeLaunch>> = {};
   if (env.GATEWAY_TEMPLATE_CODE) launches.code = opencodeLaunch(env.GATEWAY_TEMPLATE_CODE);
   if (env.GATEWAY_TEMPLATE_WORK) launches.work = openclawLaunch(env.GATEWAY_TEMPLATE_WORK);
@@ -73,7 +75,6 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
     if (!/^https:\/\/[^/]+/.test(publicUrl)) throw new Error('GATEWAY_TEMPLATE_* needs GATEWAY_PUBLIC_URL (https URL sandboxes use to reach this server)');
     if (!llmKey) throw new Error('GATEWAY_TEMPLATE_* needs GATEWAY_LLM_API_KEY (the real provider key; it stays on the server)');
 
-    const models = [llmModel, ...(env.GATEWAY_LLM_EXTRA_MODELS ?? '').split(',').map((m) => m.trim()).filter(Boolean)];
     const tokens = new LlmTokenStore();
     // Public (token-authenticated) route for sandboxes. Mounted before the user-authenticated v2 routes.
     root.use('/llm', createLlmProxyRouter({
@@ -98,6 +99,7 @@ export function createGatewayFromEnv(deps: GatewayMountDeps): Router | null {
   }
 
   const service = new SessionService({ adapters, sandboxes, bus, approvals, budget, proxiedBackends });
-  root.use('/', createV2Router({ authenticate: deps.authenticate, service, bus, approvals, budget, ratePerMinute: int(env.GATEWAY_RATE_PER_MINUTE, 120) }));
+  root.use('/', createV2Router({ authenticate: deps.authenticate, service, bus, approvals, budget, ratePerMinute: int(env.GATEWAY_RATE_PER_MINUTE, 120),
+    models: { default: env.GATEWAY_CHAT_MODEL || llmModel, allowed: models } }));
   return root;
 }

@@ -63,6 +63,7 @@ beforeEach(async () => {
       return who;
     },
     service, bus, approvals, budget, maxInputChars: 50, heartbeatMs: 60_000,
+    models: { default: 'iris-parallel', allowed: ['iris-parallel', 'iris-dream'] },
   }));
   await new Promise<void>((resolve) => { server = app.listen(0, '127.0.0.1', () => resolve()); });
   const addr = server.address();
@@ -263,5 +264,16 @@ describe('v2 files and lifecycle', () => {
     expect(adapter.stopped).toBe(1);
     expect((await call('a', `/sessions/${id}`, { method: 'DELETE' })).status).toBe(200);
     expect((await post('a', `/sessions/${id}/messages`, { text: 'hi' })).status).toBe(404);
+  });
+
+  it('lists allowed models and refuses any other model', async () => {
+    const m = (await (await call('a', '/models')).json()) as { default: string; models: string[] };
+    expect(m).toEqual({ default: 'iris-parallel', models: ['iris-parallel', 'iris-dream'] });
+    expect((await call('nobody', '/models')).status).toBe(401);
+    const id = await create();
+    const bad = await post('a', `/sessions/${id}/messages`, { text: 'hi', model: 'some-expensive-model' });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as { models: string[] }).models).toContain('iris-dream');
+    expect((await post('a', `/sessions/${id}/messages`, { text: 'hi', model: 'iris-dream' })).status).toBe(202);
   });
 });

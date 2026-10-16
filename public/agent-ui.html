@@ -1057,7 +1057,7 @@ const store = (() => {
 /* ข้อมูลเซิร์ฟเวอร์เอเจนต์ (ดึงจาก /api/agent/settings) */
 const server = { online: null, provider: 'anthropic', model: '', baseUrl: '', hasApiKey: false, thinkingLevel: 'off', activeProfile: '', profiles: [] };
 /* Public chat mode: a signed-in visitor outside the agent's allow-list uses /api/chat (no tools, history kept on the server). */
-const pub = { active: false, usage: null, modelReady: false };
+const pub = { active: false, usage: null, modelReady: false, models: [], model: '' };
 const fmtNum = n => Number(n || 0).toLocaleString('en-US');
 
 const DEFAULT_SETTINGS = {
@@ -1821,6 +1821,15 @@ async function enterPublicMode(){
   pub.active = true;
   pub.usage = (me && me.usage) || null;
   pub.modelReady = !!(me && me.modelReady);
+  try{
+    const mr = await apiFetch('/api/chat/models');
+    if (mr.ok){
+      const md = await mr.json();
+      pub.models = Array.isArray(md.models) ? md.models : [];
+      let saved = ''; try{ saved = localStorage.getItem('pubModel') || ''; }catch(e){ /* storage blocked */ }
+      pub.model = pub.models.includes(saved) ? saved : (md.default || pub.models[0] || '');
+    }
+  }catch(e){ /* model list is optional */ }
   document.body.classList.add('pub-mode');
   Object.assign(server, { online: true, model: '', hasApiKey: true, profiles: [] });
   state.chats = []; state.currentId = null;      // never show this browser's agent chats to a public account
@@ -1836,7 +1845,7 @@ async function callPublicChat(chat, text, signal, onToken){
     chat.id = made.id; chat.remote = true; chat.loaded = true;
     if (wasCurrent) state.currentId = made.id;
   }
-  const res = await apiFetch('/api/chat/chats/' + encodeURIComponent(chat.id) + '/messages', { method:'POST', signal, body: JSON.stringify({ content: text }) });
+  const res = await apiFetch('/api/chat/chats/' + encodeURIComponent(chat.id) + '/messages', { method:'POST', signal, body: JSON.stringify({ content: text, model: pub.model || undefined }) });
   if (!res.ok) await publicFail(res);
   let full = '';
   const frame = block => {
@@ -2476,15 +2485,19 @@ $('#micBtn').addEventListener('click', () => {
 
 /* ==================== ตัวเลือกโมเดลที่ Header ==================== */
 function renderModelMenu(){
-  $('#modelName').textContent = state.settings.mockMode ? 'Mock' : pub.active ? 'แชท AI' : (server.model || (server.online === false ? 'ออฟไลน์' : '—'));
+  $('#modelName').textContent = state.settings.mockMode ? 'Mock' : pub.active ? (pub.model || 'แชท AI') : (server.model || (server.online === false ? 'ออฟไลน์' : '—'));
   const items = [];
   if (state.settings.mockMode){
     items.push({ id:'__cur', cur:true, name:'โหมดจำลอง (Mock)', desc:'ไม่เรียกโมเดลจริง ใช้ทดสอบหน้าตา' });
   } else if (pub.active){
     const u = pub.usage;
-    items.push({ id:'__cur', cur:true, name:'แชท AI',
-      desc: !pub.modelReady ? 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าโมเดล'
-        : u ? 'โควตาวันนี้เหลือ ' + fmtNum(u.remaining) + ' จาก ' + fmtNum(u.limit) + ' โทเค็น · รีเซ็ต 00:00 UTC' : 'พร้อมใช้งาน' });
+    const info = !pub.modelReady ? 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าโมเดล'
+      : u ? 'โควตาวันนี้เหลือ ' + fmtNum(u.remaining) + ' จาก ' + fmtNum(u.limit) + ' โทเค็น · รีเซ็ต 00:00 UTC' : 'พร้อมใช้งาน';
+    if (pub.models.length){
+      pub.models.forEach(m => items.push({ id:'m:' + m, cur: m === pub.model, name:m, desc: m === pub.model ? info : 'แตะเพื่อใช้โมเดลนี้' }));
+    } else {
+      items.push({ id:'__cur', cur:true, name:'แชท AI', desc: info });
+    }
   } else {
     if (server.model) items.push({ id:'__cur', cur:true, name:server.model,
       desc: server.provider + (server.activeProfile ? ' · โปรไฟล์ ' + server.activeProfile : '') + (server.hasApiKey ? '' : ' · ยังไม่มี API key') });
@@ -2509,6 +2522,11 @@ function renderModelMenu(){
     } else if (id === '__cfg'){
       openSettings();
       setTimeout(() => { const r = [...document.querySelectorAll('.sp-row')].find(x => x.textContent.includes('โมเดล')); if (r) r.click(); }, 30);
+    } else if (id.startsWith('m:')){
+      pub.model = id.slice(2);
+      try{ localStorage.setItem('pubModel', pub.model); }catch(e){ /* storage blocked */ }
+      renderModelMenu();
+      toast('ใช้โมเดล ' + pub.model);
     } else if (id.startsWith('p:')){
       try{
         await apiJson('/api/agent/profiles/activate', { method:'POST', body: JSON.stringify({ name: id.slice(2) }) });

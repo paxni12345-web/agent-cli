@@ -16,7 +16,9 @@ export interface ChatDeps {
   /** Answers the request itself (401/403/503) and returns null when the caller may not continue. */
   authenticate(req: Request, res: Response): Promise<ChatIdentity | null>;
   store: ChatStore | null;
-  getModel(): { provider: AIProvider; name: string } | null;
+  getModel(model?: string): { provider: AIProvider; name: string } | null;
+  /** Models users may pick per message. Any other `model` is refused (the server's key pays for them). */
+  listModels?(): { default: string; models: string[] };
   quota: QuotaPolicy;
   systemPrompt?: string;
   now?: () => Date;
@@ -71,6 +73,12 @@ export function createChatRouter(deps: ChatDeps): Router {
     res.json({ uid: g.user.uid, email: g.user.email ?? null, name: g.user.name ?? null, usage: await usageSummary(g.store, g.user.uid), modelReady: Boolean(deps.getModel()) });
   }));
 
+  router.get('/models', wrap(async (req, res) => {
+    const g = await gate(req, res); if (!g) return;
+    const m = deps.listModels?.();
+    res.json({ default: m?.default || null, models: m?.models ?? [] });
+  }));
+
   router.get('/chats', wrap(async (req, res) => {
     const g = await gate(req, res); if (!g) return;
     res.json({ chats: await g.store.listChats(g.user.uid, 100) });
@@ -104,7 +112,12 @@ export function createChatRouter(deps: ChatDeps): Router {
     const content = typeof req.body?.content === 'string' ? req.body.content.trim() : '';
     if (!content) { res.status(400).json({ error: 'content is required' }); return; }
     if (content.length > deps.quota.maxInputChars) { res.status(413).json({ error: `Message is too long (${deps.quota.maxInputChars} characters maximum)` }); return; }
-    const model = deps.getModel();
+    const wanted = typeof req.body?.model === 'string' && req.body.model ? req.body.model : undefined;
+    if (wanted) {
+      const allowed = deps.listModels?.().models ?? [];
+      if (!allowed.includes(wanted)) { res.status(400).json({ error: 'Model not available', models: allowed }); return; }
+    }
+    const model = deps.getModel(wanted);
     if (!model) { res.status(503).json({ error: 'The model is not configured on the server' }); return; }
     const chat = await store.getChat(user.uid, id);
     if (!chat) { res.status(404).json({ error: 'Chat not found' }); return; }

@@ -17,6 +17,7 @@ RUN npm prune --omit=dev && chmod +x start.sh
 
 ENV NODE_ENV=production
 ENV PORT=10000
+ENV AGENT_SERVER_HOST=0.0.0.0
 
 EXPOSE 10000
 

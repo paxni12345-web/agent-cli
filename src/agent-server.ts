@@ -837,18 +837,23 @@ async function authenticateChat(req: Request, res: Response): Promise<ChatIdenti
   return null;
 }
 
-function chatModel(): { provider: ReturnType<typeof createProvider>; name: string } | null {
+function chatModel(override?: string): { provider: ReturnType<typeof createProvider>; name: string } | null {
   if (!settings.apiKey || !settings.model) return null;
   const activeProfile = settings.activeProfile ? profiles.find(p => p.name === settings.activeProfile) : undefined;
   const provider = activeProfile ? activeProfile.apiStyle : settings.provider;
-  const cfg = { provider, model: settings.model, apiKey: settings.apiKey, baseUrl: settings.baseUrl || undefined, thinkingLevel: 'off' } as Config;
-  return { provider: createProvider(cfg, settings.apiKey), name: settings.model };
+  const modelName = override || settings.model;
+  const cfg = { provider, model: modelName, apiKey: settings.apiKey, baseUrl: settings.baseUrl || undefined, thinkingLevel: 'off' } as Config;
+  return { provider: createProvider(cfg, settings.apiKey), name: modelName };
 }
 
 app.use('/api/chat', createChatRouter({
   authenticate: authenticateChat,
   store: createChatStoreFromEnv(),
   getModel: chatModel,
+  listModels: () => ({
+    default: settings.model,
+    models: [settings.model, ...(process.env.CHAT_EXTRA_MODELS ?? '').split(',').map(m => m.trim())].filter(Boolean).filter((m, i, all) => all.indexOf(m) === i),
+  }),
   quota: quotaFromEnv(),
   systemPrompt: process.env.CHAT_SYSTEM_PROMPT || 'You are a helpful assistant. Answer in the same language the user writes in.',
 }));
